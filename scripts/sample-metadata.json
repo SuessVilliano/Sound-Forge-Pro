@@ -1,0 +1,32 @@
+{
+  "name": "Voice IP: Alex Rivera",
+  "description": "Official biometric voice registration for Alex Rivera. Protected by SoundForge Pro VoiceShield™.",
+  "image": "ipfs://QmImageHash...", 
+  "external_url": "https://soundforge.pro/artist/alexrivera",
+  "attributes": [
+    {
+      "trait_type": "Voice ID Hash",
+      "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "trait_type": "License Type",
+      "value": "Commercial & Sync"
+    },
+    {
+      "trait_type": "Jurisdiction",
+      "value": "Delaware, USA"
+    },
+    {
+      "trait_type": "Voice Classification",
+      "value": "Tenor"
+    },
+    {
+      "trait_type": "Language",
+      "value": "English (US)"
+    }
+  ],
+  "legal_documents": {
+    "consent_form": "ipfs://QmDocHash...",
+    "terms_hash": "0x123abc..."
+  }
+}
