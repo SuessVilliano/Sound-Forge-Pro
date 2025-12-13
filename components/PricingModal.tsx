@@ -2,6 +2,7 @@
 import React from 'react';
 import { CheckCircle2, X, Shield, Zap, Music } from 'lucide-react';
 import { authService } from '../services/authService';
+import { affiliateService } from '../services/affiliateService';
 import { User } from '../types';
 
 interface PricingModalProps {
@@ -17,7 +18,17 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, use
   const handleUpgrade = async (plan: 'pro' | 'label') => {
       // Simulate payment processing
       await new Promise(r => setTimeout(r, 1000));
+      
+      const price = plan === 'pro' ? 19 : 99;
+      const invoiceId = `inv_${Date.now()}`;
+
       await authService.updateUserPlan(plan);
+      
+      if (user) {
+          // Track Sale
+          affiliateService.trackSale(user, price, invoiceId, `Plan Upgrade: ${plan}`);
+      }
+
       onUpgrade(plan);
       onClose();
   };

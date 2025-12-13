@@ -1,31 +1,59 @@
 
-import { Opportunity, Track, Course, Stats } from './types';
+import { Opportunity, Track, Course, Stats, Battle } from './types';
 import { 
   Music, LayoutDashboard, Zap, DollarSign, Briefcase, 
   BookOpen, Sliders, BarChart2, User, Mail, Mic, 
-  Radio, Activity, Wand2, Video, MapPin, Disc, Star
+  Radio, Activity, Wand2, Video, MapPin, Disc, Star, Vote, ShoppingBag, Link, Swords, Send, UserPlus, TrendingUp
 } from 'lucide-react';
 
 export const APP_NAME = "SoundForge Pro";
 
+export const VIEWS = {
+  DASHBOARD: 'dashboard',
+  BATTLES: 'battles',
+  CATALOG: 'catalog',
+  STUDIO: 'studio',
+  AR_DASHBOARD: 'ar-dashboard',
+  MY_MUSIC: 'my-music',
+  OPPORTUNITIES: 'opportunities',
+  TOURING: 'touring',
+  REVENUE: 'revenue',
+  BRAND: 'brand',
+  ACADEMY: 'academy',
+  MASTERING: 'mastering',
+  ANALYTICS: 'analytics',
+  PROFILE: 'profile',
+  CRM: 'crm',
+  VOICE: 'voice',
+  DISTRIBUTION: 'distribution',
+  DAO: 'dao',
+  MONITORING: 'monitoring',
+  SETTINGS: 'settings',
+  LIVE_AGENT: 'live-agent',
+  AFFILIATES: 'affiliates'
+};
+
 export const NAVIGATION_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'catalog', label: 'Music Catalog', icon: Disc, new: true },
-  { id: 'studio', label: 'AI Studio', icon: Wand2, ai: true },
-  { id: 'ar-dashboard', label: 'A&R Suite', icon: Star, badge: 3 },
-  { id: 'my-music', label: 'My Music', icon: Music },
-  { id: 'opportunities', label: 'Opportunities', icon: Zap, badge: 8 },
-  { id: 'touring', label: 'Touring', icon: MapPin, ai: true },
-  { id: 'revenue', label: 'Revenue Recovery', icon: DollarSign },
-  { id: 'brand', label: 'Brand Builder', icon: Briefcase },
-  { id: 'academy', label: 'Music Academy', icon: BookOpen },
-  { id: 'mastering', label: 'Mastering', icon: Sliders },
-  { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-  { id: 'profile', label: 'Artist Profile', icon: User },
-  { id: 'crm', label: 'Marketing CRM', icon: Mail },
-  { id: 'voice', label: 'Voice Marketplace', icon: Mic, ai: true },
-  { id: 'distribution', label: 'Music Distribution', icon: Radio },
-  { id: 'monitoring', label: 'AI Monitoring', icon: Activity, ai: true },
+  { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
+  { id: VIEWS.BATTLES, label: 'Battles Arena', icon: Swords, new: true, ai: true },
+  { id: VIEWS.CATALOG, label: 'Music Catalog', icon: Disc, new: true },
+  { id: VIEWS.STUDIO, label: 'AI Studio', icon: Wand2, ai: true },
+  { id: VIEWS.AR_DASHBOARD, label: 'A&R Suite', icon: Star, badge: 3 },
+  { id: VIEWS.MY_MUSIC, label: 'My Music', icon: Music },
+  { id: VIEWS.OPPORTUNITIES, label: 'Opportunities', icon: Zap, badge: 8 },
+  { id: VIEWS.TOURING, label: 'Touring', icon: MapPin, ai: true },
+  { id: VIEWS.REVENUE, label: 'Revenue Recovery', icon: DollarSign },
+  { id: VIEWS.BRAND, label: 'Brand Builder', icon: Briefcase },
+  { id: VIEWS.ACADEMY, label: 'Music Academy', icon: BookOpen },
+  { id: VIEWS.MASTERING, label: 'Mastering', icon: Sliders },
+  { id: VIEWS.ANALYTICS, label: 'Analytics', icon: BarChart2 },
+  { id: VIEWS.PROFILE, label: 'Artist Profile', icon: User },
+  { id: VIEWS.CRM, label: 'Marketing CRM', icon: Mail },
+  { id: VIEWS.VOICE, label: 'Voice Marketplace', icon: Mic, ai: true },
+  { id: VIEWS.DISTRIBUTION, label: 'Music Distribution', icon: Radio },
+  { id: VIEWS.DAO, label: 'DAO Governance', icon: Vote, new: true },
+  { id: VIEWS.AFFILIATES, label: 'Affiliates', icon: Link, new: true },
+  { id: VIEWS.MONITORING, label: 'AI Monitoring', icon: Activity, ai: true },
 ];
 
 export const MOCK_STATS: Stats = {
@@ -41,222 +69,269 @@ export const MOCK_STATS: Stats = {
   nextLevelXp: 2000
 };
 
-export const PLACEMENT_PLATFORMS = [
-  { name: "Songtradr", url: "https://www.songtradr.com" },
-  { name: "Musicbed", url: "https://www.musicbed.com" },
-  { name: "Artlist", url: "https://artlist.io" },
-  { name: "Epidemic Sound", url: "https://www.epidemicsound.com" },
-  { name: "AudioJungle", url: "https://audiojungle.net" },
-  { name: "Pond5", url: "https://www.pond5.com" },
-  { name: "TAXI", url: "https://www.taxi.com" },
-  { name: "Music Gateway", url: "https://www.musicgateway.com" },
-  { name: "BMG Production Music", url: "https://www.bmgproductionmusic.com" },
-  { name: "APM Music", url: "https://www.apmmusic.com" }
-];
-
-export const PRO_PLATFORMS = [
-  { name: "ASCAP", url: "https://www.ascap.com/member-access", type: "Performance Rights" },
-  { name: "BMI", url: "https://www.bmi.com/login", type: "Performance Rights" },
-  { name: "SESAC", url: "https://www.sesac.com/", type: "Performance Rights" },
-  { name: "SoundExchange", url: "https://www.soundexchange.com/", type: "Digital Performance" },
-  { name: "The MLC", url: "https://www.themlc.com/", type: "Mechanical" },
-];
-
-export const DISTRIBUTION_PARTNERS = [
-  { 
-    name: "DistroKid", 
-    cost: "$22.99/year", 
-    features: ["Unlimited uploads", "100% royalties", "HyperFollow pages", "Split payments"], 
-    payout: "Monthly", 
-    speed: "1-3 days", 
-    connected: false 
-  },
-  { 
-    name: "TuneCore", 
-    cost: "$29.99/year", 
-    features: ["Social platforms", "Daily trends", "Cover art creator", "Publishing admin"], 
-    payout: "Daily/Weekly", 
-    speed: "1-3 days", 
-    connected: false 
-  },
-  { 
-    name: "UnitedMasters", 
-    cost: "Free or $59.99/yr", 
-    features: ["Brand partnerships", "Keep 100% (Select)", "MasterLinks", "Artist Advances"], 
-    payout: "Monthly", 
-    speed: "2-5 days", 
-    connected: false 
-  },
-  { 
-    name: "LANDR", 
-    cost: "$49.99/year", 
-    features: ["AI Mastering included", "Collaboration tools", "Distribution to 150+", "Sample packs"], 
-    payout: "Monthly", 
-    speed: "2-5 days", 
-    connected: false 
-  }
-];
-
-export const MASTERING_STYLES = [
-  { id: 'balanced', name: 'Balanced', description: 'Natural and transparent. Good for Acoustic, Jazz, Folk.' },
-  { id: 'warm', name: 'Warm', description: 'Vintage warmth with soft highs. Good for Soul, R&B, Lo-fi.' },
-  { id: 'punchy', name: 'Punchy', description: 'Tight low end and crisp transients. Good for Hip Hop, Pop, EDM.' },
-  { id: 'open', name: 'Open', description: 'Wide stereo image and airy highs. Good for Orchestral, Cinematic.' },
-  { id: 'loud', name: 'Loud', description: 'Maximized volume for streaming. Good for Trap, Dubstep, Club.' },
-];
-
-export const CAMPAIGN_TEMPLATES = [
-  {
-    id: 'music-promo',
-    title: 'New Single Release',
-    description: 'Promote your latest track with a pre-save campaign and social blast.',
-    icon: Music,
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-400/10',
-    steps: ['Pre-Save Page', 'Email Blast', 'Social Posts', 'Ad Setup']
-  },
-  {
-    id: 'event-announce',
-    title: 'Tour Announcement',
-    description: 'Announce your upcoming tour dates and sell tickets directly to fans.',
-    icon: MapPin,
-    color: 'text-purple-400',
-    bg: 'bg-purple-400/10',
-    steps: ['Tour Dates', 'Ticket Links', 'Fan Presale', 'Venue Info']
-  },
-  {
-    id: 'merch-launch',
-    title: 'Merch Drop',
-    description: 'Launch a limited edition merchandise collection to your top fans.',
-    icon: DollarSign,
-    color: 'text-green-400',
-    bg: 'bg-green-400/10',
-    steps: ['Product Catalog', 'Lookbook', 'Early Access', 'Discount Codes']
-  }
-];
-
 export const MOCK_OPPORTUNITIES: Opportunity[] = [
   {
-    id: 'op_1',
+    id: 'op1',
     source_platform: 'songtradr',
-    brief_title: '30s Upbeat Fitness Ad',
-    description: 'Looking for a high energy electronic pop track for a global sportswear campaign. Must be driving, no vocals preferred.',
+    brief_title: 'Summer Travel Vlog',
+    description: 'Upbeat, energetic pop track for travel content. Must have positive vibes and catchy melody.',
     usage_type: 'Ad',
-    duration_required: 30,
-    payout_min: 2500,
-    payout_max: 5000,
-    deadline_datetime: '2025-06-01T17:00:00Z',
-    submission_status: 'open',
-    match_score: 92,
-    risk_score: 10,
-    recommended_action: 'auto_submit',
-    mood_tags: ['energetic', 'workout', 'electronic'],
-  },
-  {
-    id: 'op_2',
-    source_platform: 'artlist',
-    brief_title: 'Indie Film Opening Scene',
-    description: 'Melancholic acoustic guitar track needed for a short film intro. Rainy vibes, emotional build up.',
-    usage_type: 'Film',
     duration_required: 120,
     payout_min: 500,
-    payout_max: 1200,
-    deadline_datetime: '2025-06-05T12:00:00Z',
+    payout_max: 2000,
+    deadline_datetime: new Date(Date.now() + 86400000 * 3).toISOString(),
     submission_status: 'matched',
-    match_score: 85,
-    risk_score: 25,
-    recommended_action: 'manual_review',
-    mood_tags: ['sad', 'acoustic', 'emotional'],
+    match_score: 92,
+    risk_score: 5,
+    recommended_action: 'auto_submit',
+    mood_tags: ['Upbeat', 'Summer', 'Pop']
   },
   {
-    id: 'op_3',
-    source_platform: 'google_search',
-    brief_title: 'Cyberpunk Game Menu Loop',
-    description: 'Dark synthwave loop for a futuristic RPG menu screen. Needs to loop perfectly.',
-    usage_type: 'Game',
-    duration_required: 60,
-    payout_min: 1000,
-    payout_max: 3000,
-    deadline_datetime: '2025-06-10T09:00:00Z',
+    id: 'op2',
+    source_platform: 'artlist',
+    brief_title: 'Tech Review Background',
+    description: 'Clean, minimal electronic beat for gadget reviews. No distracting vocals.',
+    usage_type: 'Ad',
+    duration_required: 180,
+    payout_min: 300,
+    payout_max: 1000,
+    deadline_datetime: new Date(Date.now() + 86400000 * 7).toISOString(),
     submission_status: 'open',
-    match_score: 45,
-    risk_score: 5,
+    match_score: 85,
+    risk_score: 10,
     recommended_action: 'create',
-    mood_tags: ['dark', 'synthwave', 'sci-fi'],
+    mood_tags: ['Electronic', 'Minimal', 'Tech']
   },
+  {
+    id: 'op3',
+    source_platform: 'internal',
+    brief_title: 'Cinematic Movie Trailer',
+    description: 'Epic orchestral build-up for an action movie trailer. High intensity.',
+    usage_type: 'Film',
+    duration_required: 90,
+    payout_min: 2500,
+    payout_max: 8000,
+    deadline_datetime: new Date(Date.now() + 86400000 * 14).toISOString(),
+    submission_status: 'matched',
+    match_score: 78,
+    risk_score: 20,
+    recommended_action: 'manual_review',
+    mood_tags: ['Cinematic', 'Epic', 'Orchestral']
+  }
 ];
 
-export const MOCK_TRACKS: Track[] = [
-  {
-    id: 't1',
-    title: 'Neon Horizon',
-    artist: 'Midnight Echo',
-    bpm: 124,
-    key: 'Cm',
-    mood_tags: ['Synthwave', 'Driving', 'Night'],
-    duration: '3:45',
-    plays: 12500,
-    earnings: 450.25,
-    image: 'https://picsum.photos/100/100?random=1',
-  },
-  {
-    id: 't2',
-    title: 'Summer Breeze',
-    artist: 'Midnight Echo',
-    bpm: 98,
-    key: 'G',
-    mood_tags: ['Chill', 'Acoustic', 'Happy'],
-    duration: '2:50',
-    plays: 8900,
-    earnings: 320.10,
-    image: 'https://picsum.photos/100/100?random=2',
-  },
-  {
-    id: 't3',
-    title: 'Code Red',
-    artist: 'Midnight Echo',
-    bpm: 140,
-    key: 'Fm',
-    mood_tags: ['Aggressive', 'Industrial', 'Action'],
-    duration: '3:10',
-    plays: 24000,
-    earnings: 890.50,
-    image: 'https://picsum.photos/100/100?random=3',
-  },
+export const MOCK_BATTLES: Battle[] = [
+    {
+        id: 'bat_1',
+        title: "Future Trap Vol. 3",
+        description: "Heavy 808s and futuristic synths. Who ruled the future?",
+        type: "Hybrid",
+        genre: "Trap",
+        status: "Live",
+        endTime: new Date(Date.now() + 3600000).toISOString(),
+        totalVotes: 1245,
+        listeners: 342,
+        config: {
+            maxDurationSeconds: 90,
+            format: "Hybrid",
+            votingWindow: "Live",
+            maxEntries: 2,
+            rewards: { xp: 500, cash: 100 },
+            customRules: ["Must use AI vocals", "Original production only"]
+        },
+        participants: [
+            {
+                id: 'p1',
+                artistName: "Neon Pulse",
+                isAi: true,
+                trackTitle: "Cyber Drip",
+                audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                image: "https://picsum.photos/400/400?random=88",
+                votes: 620,
+                creativityScore: 92,
+                soundScore: 88
+            },
+            {
+                id: 'p2',
+                artistName: "DJ Hype",
+                isAi: false,
+                trackTitle: "Atlanta Nights",
+                audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+                image: "https://picsum.photos/400/400?random=99",
+                votes: 625,
+                creativityScore: 85,
+                soundScore: 95
+            }
+        ]
+    },
+    {
+        id: 'bat_2',
+        title: "Lo-Fi Sunday Chill",
+        description: "The smoothest beats to study to. Relaxed vibes only.",
+        type: "AI Only",
+        genre: "Lo-Fi",
+        status: "Voting",
+        endTime: new Date(Date.now() + 86400000).toISOString(),
+        totalVotes: 856,
+        listeners: 120,
+        config: {
+            maxDurationSeconds: 120,
+            format: "AI Only",
+            votingWindow: "24h",
+            maxEntries: 2,
+            rewards: { xp: 300, badge: "Chill Master" },
+            customRules: ["No lyrics", "Under 80 BPM", "AI Generation required"]
+        },
+        participants: [
+            {
+                id: 'p3',
+                artistName: "ChillBot",
+                isAi: true,
+                trackTitle: "Rainy Window",
+                audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+                image: "https://picsum.photos/400/400?random=77",
+                votes: 400,
+                creativityScore: 89,
+                soundScore: 90
+            },
+            {
+                id: 'p4',
+                artistName: "ZenMaster",
+                isAi: true,
+                trackTitle: "Tea Ceremony",
+                audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+                image: "https://picsum.photos/400/400?random=66",
+                votes: 456,
+                creativityScore: 94,
+                soundScore: 91
+            }
+        ]
+    },
+    {
+        id: 'bat_3',
+        title: "Hyperpop Speed Run",
+        description: "Fast, distorted, and glitchy. The wildest sound wins.",
+        type: "Human Only",
+        genre: "Hyperpop",
+        status: "Ended",
+        endTime: new Date(Date.now() - 100000).toISOString(),
+        totalVotes: 5200,
+        listeners: 0,
+        config: {
+            maxDurationSeconds: 180,
+            format: "Human Only",
+            votingWindow: "Live",
+            maxEntries: 2,
+            rewards: { xp: 1000, placement: true },
+            customRules: ["Over 160 BPM", "Glitch effects mandatory"]
+        },
+        participants: [
+            {
+                id: 'p5',
+                artistName: "GlitchWitch",
+                isAi: false,
+                trackTitle: "Sugar Crash",
+                audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
+                image: "https://picsum.photos/400/400?random=55",
+                votes: 3200,
+                creativityScore: 98,
+                soundScore: 85
+            },
+            {
+                id: 'p6',
+                artistName: "SpeedDemon",
+                isAi: false,
+                trackTitle: "Turbo",
+                audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
+                image: "https://picsum.photos/400/400?random=44",
+                votes: 2000,
+                creativityScore: 88,
+                soundScore: 92
+            }
+        ]
+    },
+    {
+        id: 'bat_4',
+        title: "Global Bass Championship",
+        description: "Represent your region. Moombah, Baile Funk, and Dancehall styles.",
+        type: "Hybrid",
+        genre: "Global Bass",
+        status: "Upcoming",
+        endTime: new Date(Date.now() + 86400000 * 2).toISOString(),
+        totalVotes: 0,
+        listeners: 0,
+        config: {
+            maxDurationSeconds: 240,
+            format: "Hybrid",
+            votingWindow: "24h",
+            maxEntries: 2,
+            rewards: { xp: 800, badge: "Global Icon" },
+            customRules: ["Regional Instruments required", "Open format"]
+        },
+        participants: [
+            {
+                id: 'p7',
+                artistName: "RhythmKing",
+                isAi: false,
+                trackTitle: "Pending",
+                audioUrl: "",
+                image: "https://picsum.photos/400/400?random=22",
+                votes: 0
+            },
+            {
+                id: 'p8',
+                artistName: "BassDroid",
+                isAi: true,
+                trackTitle: "Pending",
+                audioUrl: "",
+                image: "https://picsum.photos/400/400?random=33",
+                votes: 0
+            }
+        ]
+    }
 ];
 
 export const MOCK_COURSES: Course[] = [
-  {
-    id: 'c1',
-    title: 'Music Production 101',
-    category: 'Production',
-    difficulty: 'Beginner',
-    duration: '8h',
-    lessons: 12,
-    progress: 45,
-    price: 49.99,
-    image: 'https://picsum.photos/400/225?random=4',
-  },
-  {
-    id: 'c2',
-    title: 'Music Business & Royalties',
-    category: 'Business',
-    difficulty: 'Intermediate',
-    duration: '6h',
-    lessons: 10,
-    progress: 100,
-    price: 79.99,
-    image: 'https://picsum.photos/400/225?random=5',
-  },
-  {
-    id: 'c3',
-    title: 'Artist Branding Mastery',
-    category: 'Marketing',
-    difficulty: 'Intermediate',
-    duration: '5h',
-    lessons: 8,
-    progress: 0,
-    price: 59.99,
-    image: 'https://picsum.photos/400/225?random=6',
-  },
+    { id: 'c1', title: 'Music Business 101', category: 'Business', difficulty: 'Beginner', duration: '2h 30m', lessons: 12, progress: 0, price: 0, image: 'https://picsum.photos/400/225?random=1' },
+    { id: 'c2', title: 'Advanced Mixing', category: 'Production', difficulty: 'Advanced', duration: '4h 15m', lessons: 18, progress: 35, price: 49, image: 'https://picsum.photos/400/225?random=2' },
+    { id: 'c3', title: 'TikTok Marketing', category: 'Marketing', difficulty: 'Intermediate', duration: '1h 45m', lessons: 8, progress: 0, price: 29, image: 'https://picsum.photos/400/225?random=3' },
+    { id: 'c4', title: 'Sync Licensing Masterclass', category: 'Business', difficulty: 'Advanced', duration: '3h 20m', lessons: 15, progress: 10, price: 99, image: 'https://picsum.photos/400/225?random=4' },
+    { id: 'c5', title: 'Synth Sound Design', category: 'Production', difficulty: 'Intermediate', duration: '2h 10m', lessons: 10, progress: 0, price: 39, image: 'https://picsum.photos/400/225?random=5' },
+    { id: 'c6', title: 'Touring Logistics', category: 'Business', difficulty: 'Intermediate', duration: '1h 30m', lessons: 6, progress: 0, price: 0, image: 'https://picsum.photos/400/225?random=6' },
+];
+
+export const PLACEMENT_PLATFORMS = [
+  { name: "Songtradr", url: "https://soundforge.biz/go/songtradr" },
+  { name: "Artlist", url: "https://soundforge.biz/go/artlist" },
+  { name: "Epidemic", url: "https://soundforge.biz/go/epidemic" },
+  { name: "MusicBed", url: "https://soundforge.biz/go/musicbed" },
+  { name: "Taxi", url: "https://soundforge.biz/go/taxi" }
+];
+
+export const PRO_PLATFORMS = [
+    { name: "ASCAP", type: "Performance Rights", url: "https://ascap.com" },
+    { name: "BMI", type: "Performance Rights", url: "https://bmi.com" },
+    { name: "SoundExchange", type: "Digital Rights", url: "https://soundexchange.com" },
+    { name: "Songtrust", type: "Publishing Admin", url: "https://songtrust.com" },
+    { name: "The MLC", type: "Mechanical Rights", url: "https://themlc.com" }
+];
+
+export const DISTRIBUTION_PARTNERS = [
+    { name: "DistroKid", url: "https://distrokid.com" },
+    { name: "TuneCore", url: "https://tunecore.com" },
+    { name: "CD Baby", url: "https://cdbaby.com" },
+    { name: "Symphonic", url: "https://symphonic.com" }
+];
+
+export const CAMPAIGN_TEMPLATES = [
+    { id: 't1', title: 'Release Radar', description: 'Promote your new single to Spotify playlist curators.', steps: ['Email Pitch', 'Social Teaser', 'Ads'], icon: Music, color: 'text-green-400', bg: 'bg-green-500/10' },
+    { id: 't2', title: 'Tour Announcement', description: 'Notify fans in specific cities about upcoming shows.', steps: ['SMS Blast', 'Geo-Targeted Email'], icon: MapPin, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { id: 't3', title: 'Merch Drop', description: 'Drive sales for your new clothing line or vinyl.', steps: ['IG Story', 'Email Newsletter'], icon: ShoppingBag, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+];
+
+export const MASTERING_STYLES = [
+    { id: 'modern_pop', name: 'Modern Pop', description: 'Bright, punchy, and loud. Perfect for Spotify.' },
+    { id: 'warm_vintage', name: 'Warm Vintage', description: 'Analog warmth with soft highs and rich mids.' },
+    { id: 'club_banger', name: 'Club Banger', description: 'Maximum loudness and bass emphasis.' },
+    { id: 'cinematic', name: 'Cinematic', description: 'Wide dynamic range and spatial clarity.' }
 ];

@@ -1,7 +1,7 @@
 {
   "name": "SoundForge Player",
   "short_name": "SoundForge",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#06b6d4",

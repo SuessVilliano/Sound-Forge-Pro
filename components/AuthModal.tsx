@@ -62,7 +62,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const handleGuestAccess = async () => {
       setLoading(true);
       // Create a guest session explicitly
-      await authService.registerWithEmail("Guest Artist", `guest${Date.now()}@soundforge.pro`, "guest123");
+      await authService.registerWithEmail("Guest Artist", `guest${Date.now()}@soundforge.club`, "guest123");
       setLoading(false);
       onClose();
   };

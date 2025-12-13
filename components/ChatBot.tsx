@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Loader2, Minimize2, Sparkles, Bot } from 'lucide-react';
 import { chatWithGemini, ChatContext } from '../services/geminiService';
@@ -12,7 +13,7 @@ interface ChatBotProps {
 export const ChatBot: React.FC<ChatBotProps> = ({ currentView, stats, opportunities }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([
-    { role: 'model', text: "Hello! I'm your SoundForge Pro assistant. Ask me anything about your music career, the app features, or the industry." }
+    { role: 'model', text: "Hello! I've been updated with RapidAPI access. I can now track real-time Billboard Charts, live Spotify stats, and manage your favorite tracks. How can I help your career today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);

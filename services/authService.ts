@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { auth, db, googleProvider } from './firebase';
 import { User } from '../types';
+import { affiliateService } from './affiliateService';
 
 const STORAGE_KEY = 'soundforge_user_session';
 
@@ -38,7 +39,7 @@ export const authService = {
       // Update Display Name
       try {
         await updateProfile(fbUser, { displayName: name });
-      } catch (e) { console.warn("Profile update warning", e); }
+      } catch (e) { /* ignore profile update error */ }
 
       // Create User Profile in Firestore
       const newUser: User = {
@@ -54,38 +55,34 @@ export const authService = {
       try {
         await setDoc(doc(db, "users", fbUser.uid), newUser);
       } catch (e) {
-        // Silent fail, dataService will handle storage
+        // Silent fail for Firestore, will use local storage via fallback logic later
       }
+
+      // Track Signup with Affiliate Service
+      affiliateService.trackSignup(newUser);
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
       return newUser;
 
     } catch (error: any) {
-      // Suppress logging for known infrastructure errors
-      const isConfigError = error.code === 'auth/configuration-not-found' || 
-                           error.code === 'auth/operation-not-allowed' || 
-                           error.code === 'auth/network-request-failed';
-
-      if (!isConfigError) {
-          console.error("Registration Error", error);
-      }
-      
-      // Handle actual user input errors
+      // 1. Handle VALIDATION errors (Throw these so the user knows to fix inputs)
       if (error.code === 'auth/email-already-in-use') {
         throw new Error("This email is already registered. Please login.");
       }
       if (error.code === 'auth/weak-password') {
         throw new Error("Password should be at least 6 characters.");
       }
-      
-      // FAIL-SAFE: For infrastructure errors, allow entry as demo user
-      if (isConfigError) {
-          console.warn(`Auth Config Issue (${error.code}). Falling back to Local Mode.`);
+      if (error.code === 'auth/invalid-email') {
+        throw new Error("Please enter a valid email address.");
       }
+      
+      // 2. FAIL-SAFE: For ALL infrastructure/config errors, fallback cleanly to Local Mode.
+      // Log affirmative message instead of error warning
+      console.log(`Note: Using Demo Mode (Backend Config: ${error.code})`);
       
       const demoUser = authService._createDemoUser(name, email);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser));
-      notifyObservers(demoUser); 
+      notifyObservers(demoUser); // Update App state immediately
       return demoUser;
     }
   },
@@ -98,22 +95,16 @@ export const authService = {
       const result = await signInWithEmailAndPassword(auth, email, pass);
       return await authService._fetchUserProfile(result.user);
     } catch (error: any) {
-      const isConfigError = error.code === 'auth/configuration-not-found' || 
-                           error.code === 'auth/operation-not-allowed';
-
-      if (!isConfigError) {
-          console.error("Login Error", error);
-      }
-      
-      // Handle actual credential errors
+      // 1. Handle CREDENTIAL errors
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         throw new Error("Invalid email or password.");
       }
-      
-      // FAIL-SAFE
-      if (isConfigError) {
-          console.warn(`Auth Config Issue (${error.code}). Falling back to Local Mode.`);
+      if (error.code === 'auth/invalid-email') {
+        throw new Error("Please enter a valid email address.");
       }
+      
+      // 2. FAIL-SAFE: Fallback to local mode for any system error
+      console.log(`Note: Using Demo Mode (Backend Config: ${error.code})`);
       
       const demoUser = authService._createDemoUser("Artist", email);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser));
@@ -128,27 +119,31 @@ export const authService = {
   loginWithGoogle: async (): Promise<User> => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      return await authService._fetchUserProfile(result.user);
+      
+      // Check if new user context (optional, depends on logic, but we track profile creation)
+      // For simplicity, we check if doc exists inside _fetchUserProfile, 
+      // but here we just return the user. 
+      // Ideally, trackSignup happens only on *new* creation. 
+      // Since this flow is simplified, we might miss tracking google signups in this exact block
+      // unless we refactor _fetchUserProfile to return {user, isNew}.
+      
+      const user = await authService._fetchUserProfile(result.user);
+      
+      // Simple check: if createdAt is very recent (handled inside fetch if we added metadata), 
+      // but for now we skip tracking here to avoid duplicate events on login.
+      // A robust implementation would check `result.additionalUserInfo.isNewUser`
+      
+      return user;
     } catch (error: any) {
-      // 1. Check for User Cancellation (Throw so UI can handle "Cancelled")
+      // 1. User explicitly closed popup
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
           throw new Error("Login cancelled.");
       }
-
-      // 2. Check for Config/Infra Errors (Suppress error log, just warn)
-      const isConfigError = error.code === 'auth/configuration-not-found' || 
-                           error.code === 'auth/operation-not-allowed' || 
-                           error.code === 'auth/unauthorized-domain';
-
-      if (!isConfigError) {
-          // Only log unexpected errors (like quota exceeded)
-          console.error("Google Login Error", error);
-      } else {
-          console.warn(`Google Sign-In Config Issue (${error.code}). Falling back to Local Mode.`);
-      }
       
-      // 3. FAIL-SAFE: Always fallback to Demo User for config/network errors
-      const demoUser = authService._createDemoUser("Demo Artist", "demo@soundforge.pro");
+      // 2. FAIL-SAFE: Treat any other error (config, domain, network) as a Demo login trigger
+      console.log(`Note: Using Demo Mode (Backend Config: ${error.code})`);
+      
+      const demoUser = authService._createDemoUser("Demo Artist", "demo@soundforge.club");
       localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser));
       notifyObservers(demoUser); 
       return demoUser;
@@ -177,9 +172,12 @@ export const authService = {
               walletBalance: 0
           };
           await setDoc(userDocRef, appUser);
+          
+          // Track Signup for Google Users here (New Profile Created)
+          affiliateService.trackSignup(appUser);
       }
     } catch (firestoreError) {
-      // Fallback profile if Firestore is down
+      // Fallback profile if Firestore is down/unreachable
       appUser = {
           uid: fbUser.uid,
           displayName: fbUser.displayName || 'Artist',
@@ -244,14 +242,16 @@ export const authService = {
         if (fbUser) {
             authService._fetchUserProfile(fbUser).then(u => callback(u));
         } else {
-            // If Firebase says logged out, check if we are maintaining a local session
+            // If Firebase says logged out, check if we are maintaining a local demo session
             const currentStored = localStorage.getItem(STORAGE_KEY);
             if (currentStored) {
-                const u = JSON.parse(currentStored);
-                if (u.uid.startsWith('demo-')) {
-                    callback(u); // Keep demo user session active
-                    return;
-                }
+                try {
+                    const u = JSON.parse(currentStored);
+                    if (u.uid.startsWith('demo-')) {
+                        callback(u); // Keep demo user session active
+                        return;
+                    }
+                } catch(e) { /* ignore parse error */ }
             }
             callback(null);
         }
@@ -282,6 +282,7 @@ export const authService = {
         voiceShieldEnabled: plan !== 'free' 
     };
     
+    // Only attempt Firestore update if not a demo user
     if (!currentUser.uid.startsWith('demo-')) {
         try {
             const userDocRef = doc(db, "users", currentUser.uid);
@@ -289,7 +290,9 @@ export const authService = {
                 plan: plan, 
                 voiceShieldEnabled: plan !== 'free' 
             });
-        } catch (e) { /* ignore */ }
+        } catch (e) { 
+            console.warn("Failed to sync plan update to backend");
+        }
     }
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));

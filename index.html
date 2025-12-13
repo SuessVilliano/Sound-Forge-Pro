@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SoundForge Pro</title>
     <link rel="manifest" href="/manifest.json">
+    
+    <!-- PushLapGrowth Affiliate Tracker -->
+    <script 
+      src="https://pushlapgrowth.com/affiliate-tracker.js" 
+      data-affiliate data-program-id="0f5888c5-e5fe-4743-97fc-53f44b7ee7f0" 
+      async>
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -81,7 +89,8 @@
     "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
     "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
     "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
+    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0"
   }
 }
 </script>
@@ -92,12 +101,14 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
+          // Use relative path './' to ensure it works in sub-paths/previews
+          navigator.serviceWorker.register('./service-worker.js')
             .then(registration => {
-              console.log('SW registered: ', registration);
+              console.log('SW registered with scope:', registration.scope);
             })
             .catch(registrationError => {
-              console.log('SW registration failed: ', registrationError);
+              // Suppress error in console if it's just a preview environment restriction
+              console.log('SW registration skipped (preview env constraint)');
             });
         });
       }

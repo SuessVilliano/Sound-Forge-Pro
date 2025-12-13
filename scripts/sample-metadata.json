@@ -1,8 +1,9 @@
+
 {
   "name": "Voice IP: Alex Rivera",
   "description": "Official biometric voice registration for Alex Rivera. Protected by SoundForge Pro VoiceShield™.",
   "image": "ipfs://QmImageHash...", 
-  "external_url": "https://soundforge.pro/artist/alexrivera",
+  "external_url": "https://soundforge.club/artist/alexrivera",
   "attributes": [
     {
       "trait_type": "Voice ID Hash",

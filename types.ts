@@ -30,6 +30,9 @@ export interface Track {
   audioUrl?: string; // For player
   licenseType?: 'exclusive' | 'non-exclusive' | 'sync-ready';
   hasVocals?: boolean;
+  status?: string;
+  createdAt?: string;
+  genre?: string; // Added for catalog filtering
 }
 
 export interface Playlist {
@@ -70,6 +73,7 @@ export interface User {
   uid: string;
   displayName: string;
   email: string;
+  phoneNumber?: string; // Added for CRM
   photoURL: string;
   plan: 'free' | 'pro' | 'label';
   voiceShieldEnabled: boolean;
@@ -109,6 +113,17 @@ export interface VoiceLicense {
   terms_hash: string;
 }
 
+export interface Product {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  currency: 'USD' | 'SOL';
+  image: string;
+  type: 'digital' | 'physical';
+  stock: number;
+}
+
 export interface ExportConfig {
   format: 'mp3' | 'wav' | 'stems';
   sampleRate: '44.1' | '48' | '96';
@@ -119,4 +134,135 @@ export interface ExportConfig {
     blockchainMint: boolean;
     network: 'Solana' | 'Polygon';
   };
+}
+
+export interface DistributionTrack {
+  id: string;
+  title: string;
+  version?: string; // e.g. Remix, Radio Edit
+  audioFile?: File | null;
+  isInstrumental: boolean;
+  isExplicit: boolean;
+  isRadioEdit: boolean;
+  writerType: 'original' | 'cover';
+  songwriters: string[]; // Comma separated for UI
+  featuring?: string;
+  isrc?: string;
+}
+
+export interface DistributionRelease {
+  title: string; // Release Title
+  artistName: string;
+  releaseDate: string;
+  recordLabel: string;
+  albumCover?: File | null;
+  coverUrl?: string; // Preview URL
+  language: string;
+  primaryGenre: string;
+  secondaryGenre?: string;
+  services: string[];
+  previouslyReleased: boolean;
+  
+  // Copyright Info
+  copyrightYear: string;
+  copyrightOwner: string;
+  pLineYear: string;
+  pLineOwner: string;
+  upc?: string;
+
+  // Tracks (Array for Single or Album)
+  tracks: DistributionTrack[];
+  
+  // Extras
+  optSocialPack: boolean; // $4.95/yr
+  optDiscoveryPack: boolean; // $0.99/yr per song
+  optStoreMaximizer: boolean; // $7.95/yr
+  optLeaveLegacy: boolean; // $29 (single) or $49 (album)
+  optLoudnessNorm: boolean; // $2.99 per song
+}
+
+// --- KITS.AI Types ---
+export interface KitsVoiceModel {
+  id: string;
+  label: string;
+  tags: string[];
+  image?: string;
+  isCustom?: boolean;
+}
+
+export interface KitsJobStatus {
+  jobId: string;
+  status: 'running' | 'success' | 'failed';
+  outputUrl?: string;
+}
+
+export interface StemResult {
+  vocalsUrl?: string;
+  instrumentalUrl?: string;
+  drumsUrl?: string;
+  bassUrl?: string;
+  otherUrl?: string;
+}
+
+// --- DAO Types ---
+export interface Proposal {
+  id: string;
+  title: string;
+  description: string;
+  category: 'Feature' | 'Monetization' | 'Royalty Split' | 'Platform';
+  status: 'active' | 'passed' | 'rejected';
+  votesFor: number;
+  votesAgainst: number;
+  deadline: string;
+  author: string;
+  userVoted?: 'for' | 'against';
+}
+
+// --- BATTLE Types ---
+export interface BattleParticipant {
+  id: string;
+  artistName: string;
+  isAi: boolean;
+  trackTitle: string;
+  audioUrl: string;
+  image: string;
+  votes: number;
+  creativityScore?: number;
+  soundScore?: number;
+}
+
+export interface BattleRulesConfig {
+  maxDurationSeconds: number;
+  format: 'AI Only' | 'Human Only' | 'Hybrid' | 'Cover' | 'Beat' | 'DJ';
+  votingWindow: 'Live' | '24h';
+  maxEntries: number;
+  entryFee?: number;
+  rewards: {
+    xp: number;
+    cash?: number;
+    badge?: string;
+    placement?: boolean;
+  };
+  customRules: string[];
+}
+
+export interface Battle {
+  id: string;
+  title: string;
+  description: string;
+  type: BattleRulesConfig['format']; // Derived from config
+  genre: string;
+  status: 'Live' | 'Voting' | 'Ended' | 'Upcoming';
+  endTime: string; // ISO
+  participants: BattleParticipant[]; 
+  totalVotes: number;
+  listeners: number;
+  config: BattleRulesConfig; // The Rules Engine Data
+}
+
+// --- Global Window Extension ---
+declare global {
+  interface Window {
+    affiliateId?: string;
+  }
 }

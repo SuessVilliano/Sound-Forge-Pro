@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import { Edit2, Camera, Share2, BarChart, MapPin, Globe, Save, X, Link as LinkIcon, Music, Users, Shield } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Edit2, Camera, Share2, BarChart, MapPin, Globe, Save, X, Link as LinkIcon, Music, Users, Shield, ShoppingBag } from 'lucide-react';
 import { VoiceNFTManager } from './VoiceNFTManager';
+import { MerchStore } from './MerchStore';
 import { User } from '../types';
 
 interface ArtistProfileProps {
@@ -10,10 +11,13 @@ interface ArtistProfileProps {
 }
 
 export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'voice-ip'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'voice-ip' | 'store'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(user?.photoURL || null);
   const [banner, setBanner] = useState<string | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadTarget, setUploadTarget] = useState<'avatar' | 'banner' | null>(null);
   
   const [profile, setProfile] = useState({
     stageName: user?.displayName || 'New Artist',
@@ -21,42 +25,103 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate }
     genre: 'Pop',
     location: 'Los Angeles, CA',
     website: '',
-    customUrl: `soundforge.pro/${user?.displayName?.toLowerCase().replace(/\s/g, '') || 'artist'}`,
+    customUrl: `soundforge.club/${user?.displayName?.toLowerCase().replace(/\s/g, '') || 'artist'}`,
     instagram: '',
     twitter: '',
   });
 
-  const [stats] = useState({
-      followers: 0,
-      posts: 0,
-      events: 0,
-      releases: 0
+  const [stats, setStats] = useState({
+      followers: 12450,
+      posts: 24,
+      events: 3,
+      releases: 5
   });
 
   const handleSave = () => {
     setIsEditing(false);
-    // In real app, save to firestore via dataService
+    // In real app, save to firestore via dataService with the base64 avatar string
   };
 
   const handleChange = (field: string, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = (type: 'avatar' | 'banner') => {
-      const randomId = Math.floor(Math.random() * 1000);
-      const url = `https://picsum.photos/seed/${randomId}/${type === 'avatar' ? '200/200' : '1200/400'}`;
-      if (type === 'avatar') setAvatar(url);
-      else setBanner(url);
+  const handleUploadClick = (target: 'avatar' | 'banner') => {
+    setUploadTarget(target);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        if (uploadTarget === 'avatar') {
+            setAvatar(result);
+        } else if (uploadTarget === 'banner') {
+            setBanner(result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset input to allow re-selection of same file if needed
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
+
+  // Quick Action Handlers
+  const handleCreatePost = () => {
+      const content = window.prompt("Create a new post for your fans:");
+      if (content) {
+          alert("Post published successfully!");
+          setStats(prev => ({ ...prev, posts: prev.posts + 1 }));
+      }
+  };
+
+  const handleShareProfile = async () => {
+      const shareData = {
+          title: profile.stageName,
+          text: `Check out ${profile.stageName} on SoundForge Pro!`,
+          url: `https://${profile.customUrl}`
+      };
+
+      if (navigator.share) {
+          try {
+              await navigator.share(shareData);
+          } catch (err) {
+              // User cancelled share
+          }
+      } else {
+          navigator.clipboard.writeText(shareData.url);
+          alert("Profile link copied to clipboard!");
+      }
+  };
+
+  const handleViewAnalytics = () => {
+      if (onNavigate) {
+          onNavigate('analytics');
+      }
   };
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="flex justify-between items-end">
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept="image/*" 
+        onChange={handleFileChange} 
+      />
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
          <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Artist Profile</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage your public artist profile and Voice IP assets</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage your public artist profile, Voice IP, and Merch Store</p>
          </div>
-         <div className="flex gap-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-lg">
+         <div className="flex gap-1 bg-slate-200 dark:bg-slate-800 p-1 rounded-lg">
             <button 
                 onClick={() => setActiveTab('overview')}
                 className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'overview' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
@@ -68,6 +133,12 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate }
                 className={`px-4 py-2 text-sm font-bold rounded-md transition-all flex items-center gap-2 ${activeTab === 'voice-ip' ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
             >
                 <Shield className="w-3 h-3" /> Voice IP
+            </button>
+            <button 
+                onClick={() => setActiveTab('store')}
+                className={`px-4 py-2 text-sm font-bold rounded-md transition-all flex items-center gap-2 ${activeTab === 'store' ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+            >
+                <ShoppingBag className="w-3 h-3" /> Merch Store
             </button>
          </div>
       </div>
@@ -85,7 +156,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate }
                   </div>
               )}
               <button 
-                onClick={() => handleImageUpload('banner')}
+                onClick={() => handleUploadClick('banner')}
                 className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Change Banner"
               >
@@ -107,7 +178,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate }
                           )}
                       </div>
                       <button 
-                        onClick={() => handleImageUpload('avatar')}
+                        onClick={() => handleUploadClick('avatar')}
                         className="absolute bottom-0 right-0 bg-cyan-500 text-white p-1.5 rounded-full border-2 border-white dark:border-slate-850 hover:bg-cyan-400 transition-colors"
                         title="Change Avatar"
                       >
@@ -253,9 +324,12 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate }
                           </div>
                       </div>
                   </div>
-              ) : (
-                  // Voice IP Tab with Data Sync
+              ) : activeTab === 'voice-ip' ? (
+                  // Voice IP Tab
                   <VoiceNFTManager user={user} onNavigateToRegister={() => onNavigate && onNavigate('voice')} />
+              ) : (
+                  // Merch Store Tab
+                  <MerchStore userDisplayName={user?.displayName} />
               )}
           </div>
       </div>
@@ -265,7 +339,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate }
           <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in">
                 {[
-                    { label: "Followers", val: stats.followers, color: "text-cyan-500" },
+                    { label: "Followers", val: stats.followers.toLocaleString(), color: "text-cyan-500" },
                     { label: "Posts", val: stats.posts, color: "text-green-500" },
                     { label: "Events", val: stats.events, color: "text-yellow-500" },
                     { label: "Releases", val: stats.releases, color: "text-purple-500" }
@@ -280,13 +354,22 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate }
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm animate-in fade-in">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button className="flex items-center justify-center gap-2 py-3 border border-slate-300 dark:border-slate-600 rounded-full text-cyan-600 dark:text-cyan-400 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <button 
+                        onClick={handleCreatePost}
+                        className="flex items-center justify-center gap-2 py-3 border border-slate-300 dark:border-slate-600 rounded-full text-cyan-600 dark:text-cyan-400 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
                         <Camera className="w-4 h-4" /> Create Post
                     </button>
-                    <button className="flex items-center justify-center gap-2 py-3 border border-slate-300 dark:border-slate-600 rounded-full text-green-600 dark:text-green-400 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <button 
+                        onClick={handleShareProfile}
+                        className="flex items-center justify-center gap-2 py-3 border border-slate-300 dark:border-slate-600 rounded-full text-green-600 dark:text-green-400 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
                         <Share2 className="w-4 h-4" /> Share Profile
                     </button>
-                    <button className="flex items-center justify-center gap-2 py-3 border border-slate-300 dark:border-slate-600 rounded-full text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <button 
+                        onClick={handleViewAnalytics}
+                        className="flex items-center justify-center gap-2 py-3 border border-slate-300 dark:border-slate-600 rounded-full text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
                         <BarChart className="w-4 h-4" /> View Analytics
                     </button>
                 </div>
