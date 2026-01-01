@@ -52,7 +52,7 @@ export const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ user }) 
               
               <div className="flex flex-col sm:flex-row gap-4">
                   <a 
-                    href="https://pushlapgrowth.com/register" 
+                    href="https://soundforge.pushlapgrowth.com/" 
                     target="_blank" 
                     rel="noreferrer"
                     className="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
@@ -60,7 +60,7 @@ export const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ user }) 
                       Apply Now <ArrowRight className="w-4 h-4" />
                   </a>
                   <a 
-                    href="https://pushlapgrowth.com/login" 
+                    href="https://soundforge.pushlapgrowth.com/" 
                     target="_blank" 
                     rel="noreferrer"
                     className="bg-white/10 backdrop-blur border border-white/20 text-white px-8 py-3 rounded-full font-bold flex items-center justify-center gap-2 hover:bg-white/20 transition-all"

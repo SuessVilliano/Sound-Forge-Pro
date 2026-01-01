@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Activity, Search, Globe } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Activity, Search, Globe, ArrowUpDown } from 'lucide-react';
 import { Opportunity } from '../types';
 import { OpportunityCard } from './OpportunityCard';
 import { PLACEMENT_PLATFORMS } from '../constants';
@@ -12,6 +12,29 @@ interface OpportunitiesViewProps {
 }
 
 export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({ opportunities, isScanning, onScan }) => {
+  const [sortMode, setSortMode] = useState<'deadline_asc' | 'deadline_desc' | 'payout_desc' | 'match_desc'>('deadline_asc');
+
+  const sortedOpportunities = useMemo(() => {
+    return [...opportunities].sort((a, b) => {
+      switch (sortMode) {
+        case 'deadline_asc':
+          // Earliest deadline first (Upcoming/Past due at top if any)
+          return new Date(a.deadline_datetime).getTime() - new Date(b.deadline_datetime).getTime();
+        case 'deadline_desc':
+          // Latest deadline first
+          return new Date(b.deadline_datetime).getTime() - new Date(a.deadline_datetime).getTime();
+        case 'payout_desc':
+          // Highest max payout first
+          return b.payout_max - a.payout_max;
+        case 'match_desc':
+          // Highest match score first
+          return (b.match_score || 0) - (a.match_score || 0);
+        default:
+          return 0;
+      }
+    });
+  }, [opportunities, sortMode]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -38,8 +61,31 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({ opportunit
         </button>
       </div>
 
+      {/* Sort & Filter Toolbar */}
+      <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl shadow-sm">
+          <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400">
+                  <ArrowUpDown className="w-4 h-4" />
+                  Sort By:
+              </div>
+              <select
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as any)}
+                  className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer"
+              >
+                  <option value="deadline_asc">Deadline (Soonest)</option>
+                  <option value="deadline_desc">Deadline (Latest)</option>
+                  <option value="payout_desc">Highest Payout</option>
+                  <option value="match_desc">Best Match</option>
+              </select>
+          </div>
+          <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              {sortedOpportunities.length} Active Briefs
+          </div>
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {opportunities.map(op => (
+        {sortedOpportunities.map(op => (
           <OpportunityCard key={op.id} opportunity={op} />
         ))}
       </div>

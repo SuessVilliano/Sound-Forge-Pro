@@ -1,17 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { 
-  MOCK_OPPORTUNITIES, MOCK_STATS, VIEWS
+  MOCK_OPPORTUNITIES, VIEWS, FEATURED_ARTISTS
 } from './constants';
 import { parseRawBrief } from './services/geminiService';
 import { authService } from './services/authService';
 import { dataService } from './services/dataService';
-import { Opportunity, User as UserType } from './types';
+import { webhookService } from './services/webhookService';
+import { Opportunity, User as UserType, Stats } from './types';
 import { PlayerProvider, usePlayer } from './contexts/PlayerContext';
+import { WalletProvider } from './contexts/WalletContext';
 
 // New Components
+// Fix: Added missing imports for DashboardView, OpportunitiesView, and AcademyView
+import { DashboardView } from './components/DashboardView';
+import { OpportunitiesView } from './components/OpportunitiesView';
+import { AcademyView } from './components/AcademyView';
 import { RevenueRecovery } from './components/RevenueRecovery';
 import { MusicDistribution } from './components/MusicDistribution';
 import { MarketingCRM } from './components/MarketingCRM';
@@ -41,13 +47,12 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { AffiliateDashboard } from './components/AffiliateDashboard';
 import { WaitlistModal } from './components/WaitlistModal';
 import { BattlesArena } from './components/BattlesArena';
+import { OnboardingFlow } from './components/OnboardingFlow'; 
+import { HelpModal } from './components/HelpModal';
+import { CommunityView } from './components/CommunityView';
+import { AdminDashboard } from './components/AdminDashboard';
+import { SmartWalletDashboard } from './components/SmartWalletDashboard'; 
 
-// Extracted Views
-import { DashboardView } from './components/DashboardView';
-import { OpportunitiesView } from './components/OpportunitiesView';
-import { AcademyView } from './components/AcademyView';
-
-// Internal component to handle playing from header
 const AppContent = () => {
   // Auth State
   const [user, setUser] = useState<UserType | null>(null);
@@ -59,38 +64,56 @@ const AppContent = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
   const [isScanning, setIsScanning] = useState(false);
   
-  // Analytics State
+  const [realStats, setRealStats] = useState<Stats>({
+      totalEarnings: 0,
+      totalStreams: 0,
+      activeOpportunities: 0,
+      brandScore: '-',
+      earningsGrowth: 0,
+      streamsGrowth: 0,
+      opportunitiesNew: false,
+      artistLevel: "New Artist",
+      xp: 0,
+      nextLevelXp: 1000
+  });
+  
   const [selectedArtistId, setSelectedArtistId] = useState<number | undefined>(undefined);
+  const [viewingProfile, setViewingProfile] = useState<UserType | null>(null);
 
   // Onboarding & Legal
   const [showLegalModal, setShowLegalModal] = useState(false);
-  const [hasSignedLegal, setHasSignedLegal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
-  // Theme State
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Use Global Player State
   const { queue } = usePlayer();
 
   useEffect(() => {
     let userUnsubscribe: () => void = () => {};
 
-    // REAL AUTH: Subscribe to Firebase Auth State
     const authUnsubscribe = authService.observeAuth((observedUser) => {
         if (observedUser) {
-            // If we have an authenticated user, subscribe to their Firestore doc for real-time updates
+            setUser(observedUser); 
+            
             userUnsubscribe = dataService.subscribeToUserProfile(observedUser.uid, (updatedUser) => {
                 setUser(updatedUser);
+                dataService.getRealStats(updatedUser.uid).then(stats => setRealStats(stats));
+                
+                const isDemoMaster = updatedUser.uid === 'demo_master_account';
+                const isLocallyDismissed = localStorage.getItem('sf_onboarding_skip') === 'true';
+                if (!isDemoMaster && !updatedUser.onboardingCompleted && !onboardingDismissed && !isLocallyDismissed) {
+                    setShowOnboarding(true);
+                }
             });
-            setUser(observedUser); // Set initial state immediately
-            setShowAuthModal(false); // Close modal if open
-            if (!hasSignedLegal && !observedUser.uid.startsWith('guest')) {
-               setShowLegalModal(true); // Trigger legal onboarding
-            }
+            
+            setShowAuthModal(false); 
         } else {
             setUser(null);
             if (userUnsubscribe) userUnsubscribe();
@@ -98,15 +121,14 @@ const AppContent = () => {
         setLoadingAuth(false);
     });
 
-    // Theme Init
+    const safetyTimeout = setTimeout(() => {
+        setLoadingAuth(current => current ? false : current);
+    }, 2500);
+
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
     if (savedTheme) {
       setTheme(savedTheme);
-      if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     } else {
       document.documentElement.classList.add('dark');
     }
@@ -114,44 +136,105 @@ const AppContent = () => {
     return () => {
         authUnsubscribe();
         if (userUnsubscribe) userUnsubscribe();
+        clearTimeout(safetyTimeout);
     };
-  }, []);
+  }, [onboardingDismissed]); 
+
+  // Legal Modal Controller - Trigger only when user object is stable and missing signature
+  useEffect(() => {
+      if (user && !user.hasSignedLegal && !user.uid.startsWith('guest') && user.uid !== 'demo_master_account' && !showLegalModal) {
+          setShowLegalModal(true);
+      }
+  }, [user, user?.hasSignedLegal]);
 
   const handleLogout = async () => {
       await authService.logout();
       setCurrentView(VIEWS.DASHBOARD);
+      setOnboardingDismissed(false);
+      localStorage.removeItem('sf_onboarding_skip'); 
   };
 
-  const handleLegalSign = () => {
-      setHasSignedLegal(true);
+  const handleLegalSign = async (signature: string) => {
+      if (!user) return;
+      
+      // Close modal immediately for a snappy feel
       setShowLegalModal(false);
+
+      const now = new Date().toISOString();
+      const optimisticUser = { ...user, hasSignedLegal: true, legalSignedDate: now };
+      setUser(optimisticUser);
+
+      try {
+          await Promise.all([
+              dataService.saveLegalRecord({
+                  id: `leg_${Date.now()}`,
+                  userId: user.uid,
+                  userEmail: user.email,
+                  userName: user.displayName,
+                  documentType: 'Voice IP & NDA',
+                  documentVersion: 'v1.0',
+                  signature: signature,
+                  timestamp: now,
+                  ipAddress: '127.0.0.1', 
+                  status: 'signed'
+              }),
+              authService.updateUserProfile({
+                  hasSignedLegal: true,
+                  legalSignedDate: now
+              })
+          ]);
+      } catch (e) {
+          console.error("Legal background sync error:", e);
+      }
   };
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  // Simulated Agent: "Brief Hunter"
+  const handleOnboardingComplete = async (updatedData: Partial<UserType>, favorites: string[]) => {
+      if (!user) return;
+      setOnboardingDismissed(true);
+      setShowOnboarding(false);
+      setUser(prev => prev ? { ...prev, ...updatedData, onboardingCompleted: true } : null);
+
+      try {
+          await authService.updateUserProfile({ ...updatedData, onboardingCompleted: true });
+      } catch (e) {
+          console.error("Onboarding Save Error:", e);
+      } finally {
+          localStorage.setItem('sf_favorites', JSON.stringify(favorites));
+      }
+  };
+
+  const handleOnboardingDismiss = () => {
+      setOnboardingDismissed(true);
+      setShowOnboarding(false);
+      localStorage.setItem('sf_onboarding_skip', 'true');
+  };
+
+  const handleRestartOnboarding = () => {
+      localStorage.removeItem('sf_onboarding_skip');
+      setShowHelpModal(false);
+      setOnboardingDismissed(false);
+      setShowOnboarding(true);
+  };
+
+  const handleNavigate = (view: string) => {
+      setCurrentView(view);
+      if (view !== VIEWS.PROFILE) setViewingProfile(null);
+  };
+
   const scanForBriefs = async () => {
+    if (!user) return;
     setIsScanning(true);
-    const rawBriefFound = `
-      NEW BRIEF: Tech Promo. 
-      We need a background track for a software launch video. 
-      Style: Minimal techno, clean, precise. 
-      Budget: $3000 flat fee. 
-      Length: 60s. 
-      Deadline: Next Friday.
-    `;
-    
     try {
+        const rawBriefFound = "NEW BRIEF: Luxury Car Ad. Style: Synthwave/Electronic Pop. Payout: $5000.";
         const parsed = await parseRawBrief(rawBriefFound);
+        
         if (parsed.brief_title) {
             const newOp: Opportunity = {
                 id: `op_${Date.now()}`,
@@ -164,12 +247,23 @@ const AppContent = () => {
                 payout_max: parsed.payout_max || 0,
                 deadline_datetime: new Date().toISOString(),
                 submission_status: "open",
-                match_score: parsed.match_score,
-                risk_score: 10,
-                recommended_action: "manual_review",
+                match_score: parsed.match_score || 85,
                 mood_tags: parsed.mood_tags || []
             };
-            setOpportunities([newOp, ...opportunities]);
+            
+            setOpportunities(prev => [newOp, ...prev]);
+
+            // --- NOTIFICATION LOGIC ---
+            // Check if user has genre preferences that match
+            const userGenres = user.genrePreferences || [];
+            const briefMoods = newOp.mood_tags.map(t => t.toLowerCase());
+            
+            const hasGenreMatch = userGenres.some(g => briefMoods.includes(g.toLowerCase()));
+            const isHighPayer = newOp.payout_max > 2000;
+
+            if ((hasGenreMatch || isHighPayer) && user.notificationSettings?.emailSyncMatches) {
+                await webhookService.sendSyncMatchNotification(user, newOp);
+            }
         }
     } catch (e) {
         console.error(e);
@@ -178,7 +272,6 @@ const AppContent = () => {
     }
   };
 
-  // Render Logic
   if (loadingAuth) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
   if (!user) {
@@ -191,16 +284,21 @@ const AppContent = () => {
       );
   }
 
+  if (showOnboarding) {
+      return <OnboardingFlow user={user} onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} />;
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-cyan-500/30 transition-colors duration-200">
       <Sidebar 
         currentView={currentView} 
-        setCurrentView={setCurrentView} 
+        setCurrentView={handleNavigate} 
         isMobileOpen={isMobileMenuOpen}
         setIsMobileOpen={setIsMobileMenuOpen}
         isCollapsed={isSidebarCollapsed}
         toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         onLogout={handleLogout}
+        onOpenHelp={() => setShowHelpModal(true)}
       />
       
       <div className={`flex-1 flex flex-col relative transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
@@ -211,24 +309,26 @@ const AppContent = () => {
             user={user}
             onUpgrade={() => setShowPricingModal(true)}
             onLogout={handleLogout}
-            onNavigate={setCurrentView}
+            onNavigate={handleNavigate}
             onUpload={() => setShowUploadModal(true)}
             onArtistSelect={(id) => setSelectedArtistId(id)}
         />
         
         <main className="flex-1 p-4 md:p-8 overflow-y-auto mb-20">
-          <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
+          <div className="max-w-7xl mx-auto animate-in fade-in duration-500 h-full">
             <ErrorBoundary>
               {currentView === VIEWS.DASHBOARD && (
                 <DashboardView 
                   user={user} 
-                  stats={MOCK_STATS} 
+                  stats={realStats} 
                   opportunities={opportunities} 
-                  onNavigate={setCurrentView} 
+                  onNavigate={handleNavigate} 
                   onUpgrade={() => setShowPricingModal(true)} 
                   onUpload={() => setShowUploadModal(true)}
                 />
               )}
+              {currentView === VIEWS.ADMIN && user.isAdmin && <AdminDashboard />}
+              {currentView === VIEWS.SMART_WALLET && <SmartWalletDashboard />}
               {currentView === VIEWS.CATALOG && <MusicCatalog />}
               {currentView === VIEWS.BATTLES && <BattlesArena />}
               {currentView === VIEWS.AR_DASHBOARD && <ARDashboard />}
@@ -240,6 +340,7 @@ const AppContent = () => {
                 />
               )}
               {currentView === VIEWS.ACADEMY && <AcademyView />}
+              {currentView === VIEWS.COMMUNITY && <CommunityView />}
               {currentView === VIEWS.REVENUE && <RevenueRecovery />}
               {currentView === VIEWS.DISTRIBUTION && <MusicDistribution />}
               {currentView === VIEWS.CRM && <MarketingCRM />}
@@ -251,11 +352,16 @@ const AppContent = () => {
               )}
               {currentView === VIEWS.DAO && <DAODashboard user={user} />}
               {currentView === VIEWS.AFFILIATES && <AffiliateDashboard user={user} />}
-              {currentView === VIEWS.MONITORING && <AIMonitoring />}
+              {currentView === VIEWS.MONITORING && user.isAdmin && <AIMonitoring />}
               {currentView === VIEWS.PROFILE && (
                   <ArtistProfile 
-                      user={user} 
-                      onNavigate={setCurrentView} 
+                      user={viewingProfile || user} 
+                      onNavigate={handleNavigate}
+                      isPublic={!!viewingProfile}
+                      onBack={() => {
+                          setViewingProfile(null);
+                          setCurrentView(VIEWS.DASHBOARD);
+                      }}
                   />
               )}
               {currentView === VIEWS.BRAND && <BrandBuilder />}
@@ -270,14 +376,10 @@ const AppContent = () => {
           </div>
         </main>
 
-        {/* Global Audio Player using Context */}
-        {queue.length > 0 && (
-            <MusicPlayer />
-        )}
+        {queue.length > 0 && <MusicPlayer />}
 
-        {/* Modals */}
         <LegalOnboarding 
-            isOpen={showLegalModal && !hasSignedLegal && user?.uid.startsWith('demo') === false} 
+            isOpen={showLegalModal} 
             onSign={handleLegalSign} 
         />
         
@@ -285,9 +387,7 @@ const AppContent = () => {
             isOpen={showPricingModal} 
             onClose={() => setShowPricingModal(false)}
             user={user}
-            onUpgrade={(plan) => {
-               console.log("Upgrading to", plan);
-            }}
+            onUpgrade={(plan) => console.log("Upgraded", plan)}
         />
 
         <UploadModal 
@@ -296,10 +396,15 @@ const AppContent = () => {
             user={user}
         />
 
-        {/* AI Chatbot Overlay */}
+        <HelpModal 
+            isOpen={showHelpModal}
+            onClose={() => setShowHelpModal(false)}
+            onRestartOnboarding={handleRestartOnboarding}
+        />
+
         <ChatBot 
             currentView={currentView}
-            stats={MOCK_STATS}
+            stats={realStats}
             opportunities={opportunities}
         />
       </div>
@@ -309,8 +414,10 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <PlayerProvider>
-      <AppContent />
-    </PlayerProvider>
+    <WalletProvider>
+        <PlayerProvider>
+            <AppContent />
+        </PlayerProvider>
+    </WalletProvider>
   );
 }

@@ -13,6 +13,11 @@ export interface ChatContext {
   currentView: string;
   stats: Stats;
   opportunities: Opportunity[];
+  studioContext?: {
+      tracks: any[];
+      currentTime: number;
+      bpm: number;
+  };
 }
 
 // Utility to clean Markdown JSON blocks
@@ -26,7 +31,7 @@ export const parseRawBrief = async (text: string): Promise<Partial<Opportunity>>
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: `Extract the following details from this music brief into a JSON object: brief_title, description, usage_type (Ad, TV, Film, Game), payout_min (number), payout_max (number), mood_tags (array of strings), match_score (number 0-100 based on 'electronic pop').
       
       Brief: ${text}`,
@@ -46,82 +51,80 @@ export const parseRawBrief = async (text: string): Promise<Partial<Opportunity>>
   }
 };
 
-export const generatePitchEmail = async (opportunity: Opportunity, artistContext: string): Promise<string> => {
-  const ai = getAiClient();
-  if (!ai) return "Error: API Key missing";
-
-  const prompt = `Write a short, professional pitch email to a music supervisor for this opportunity:
-  Title: ${opportunity.brief_title}
-  Description: ${opportunity.description}
-  
-  My Artist Context: ${artistContext}
-  
-  Keep it under 150 words. Focus on why my track fits the mood.`;
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt
-  });
-
-  return response.text || "";
-};
-
-export const generateCustomPitch = async (brief: string, trackDetails: string): Promise<string> => {
-  const ai = getAiClient();
-  if (!ai) return "Error: API Key missing";
-
-  const prompt = `Act as a professional sync licensing agent. Write a pitch email to a music supervisor based on the following:
-
-  OPPORTUNITY BRIEF:
-  "${brief}"
-
-  TRACK DETAILS:
-  "${trackDetails}"
-
-  The email should be concise (max 150 words), professional, and persuasive. Highlight the specific sonic elements that match the brief. Do not include subject line placeholders unless necessary.`;
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt
-  });
-
-  return response.text || "";
-};
-
-export const generateSongStructure = async (topic: string, genre: string, vibe: string) => {
+export const enhanceMusicPrompt = async (simplePrompt: string): Promise<string> => {
     const ai = getAiClient();
-    if (!ai) return { lyrics: "Error", structure: "" };
+    if (!ai) return simplePrompt;
 
-    const prompt = `Write lyrics for a ${genre} song about "${topic}". Vibe: ${vibe}. Include structure markers [Verse], [Chorus].`;
+    const prompt = `You are a world-class Music Producer and Sound Designer. 
+    Convert this simple user idea into a high-fidelity audio generation prompt for a state-of-the-art AI music engine.
+    Focus on:
+    1. Sonic Texture (analog warmth, crisp transients, lush pads).
+    2. Specific Instruments (Roland TR-808, Moog Sub37, Fender Stratocaster).
+    3. Production Style (wide stereo image, sidechained compression, heavy saturation).
+    4. Composition (complex chord progressions, syncopated rhythms).
+    Keep the enhanced prompt under 40 words and extremely technical for maximum fidelity.
     
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt
-    });
+    User Idea: "${simplePrompt}"
+    
+    Enhanced High-Fidelity Prompt:`;
 
-    return { lyrics: response.text || "", structure: "Standard" };
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: {
+                temperature: 0.8,
+                topP: 0.95
+            }
+        });
+        return response.text?.trim() || simplePrompt;
+    } catch (e) {
+        return simplePrompt;
+    }
 };
 
 export const chatWithGemini = async (message: string, history: any[], context: ChatContext): Promise<string> => {
   const ai = getAiClient();
   if (!ai) return "I'm offline right now (No API Key).";
 
-  const systemInstruction = `You are a music industry manager AI agent for SoundForge Pro.
+  let systemInstruction = `You are a high-level Music Business Venture Partner for SoundForge Pro. 
+  Your goal is to help the artist manage their "Digital Identity Portfolio" and maximize asset valuation.
   
-  **App Context & Recent Updates (v2.5):**
-  1. **Real-Time Analytics**: We now integrate with **RapidAPI** (Spotify Scraper) to fetch live **Monthly Listeners**, **Followers**, and **Stream Counts** for artists in the Analytics view. Data is live, not mocked.
-  2. **A&R Discovery**: The A&R Dashboard now pulls the real-time **Billboard Hot 100** chart via RapidAPI to show trending tracks.
-  3. **Music Catalog**: Users can now 'Favorite' (Heart) tracks to save them to a personal list.
-  4. **Battles Arena**: New feature. Artists compete in AI vs Human music battles.
-  5. **Current Stats**: Earnings $${context.stats.totalEarnings}, Streams ${context.stats.totalStreams}.
-  6. **Current View**: The user is currently looking at: ${context.currentView}.
+  **Platform Philosophy:**
+  1. **Infrastructure Play**: We are the "Stripe Connect" for audio rights.
+  2. **Ownership**: The user owns 100% of their voice and sound.
+  3. **Liquid Assets (x402)**: We treat music and voice as liquid on-chain assets.
 
-  Answer the user's questions about their career, the app features, or the music industry. Be concise, encouraging, and emphasize the new real-time data capabilities when relevant.`;
+  Answer questions with a focus on unit economics, rights protection, and scaling their "Asset Valuation." Be strategic.`;
 
-  // Convert history to Gemini format if needed, here we simplify
+  if (context.currentView === 'studio') {
+      systemInstruction = `You are the SoundForge Studio Copilot—a virtual Executive Producer and Mixing Engineer.
+      You are assisting the user inside the AI Studio DAW. 
+      
+      **Current DAW State:**
+      - Tracks: ${JSON.stringify(context.studioContext?.tracks || [])}
+      - BPM: ${context.studioContext?.bpm}
+      - Playhead: ${context.studioContext?.currentTime}s
+      
+      **Your Tone:**
+      - Professional, encouraging, and technically astute.
+      - Speak like a pro engineer (e.g., mention "headroom," "transients," "dynamic range," "stereo field").
+      
+      **Capabilities:**
+      - Suggest specific instruments or sounds based on existing tracks.
+      - Write creative lyrics or scripts.
+      - Provide mixing tips (e.g., "Add some 2k boost to the vocals to help them cut through").
+      - Offer guidance on song structure.
+      
+      If the user wants to "generate" or "make" a sound, encourage them and mention that you will enhance their prompt for high-fidelity results.`;
+  }
+
   const chat = ai.chats.create({
-    model: "gemini-2.5-flash",
-    config: { systemInstruction }
+    model: "gemini-3-pro-preview",
+    config: { 
+        systemInstruction,
+        thinkingConfig: { thinkingBudget: 2048 } // Allow for reasoned production advice
+    }
   });
 
   const response = await chat.sendMessage({ message });
@@ -143,7 +146,7 @@ export const generateBattleCommentary = async (genre: string, artistA: string, a
 
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             contents: prompt
         });
         return response.text || "This battle is heating up!";
@@ -152,194 +155,377 @@ export const generateBattleCommentary = async (genre: string, artistA: string, a
     }
 };
 
-// --- VISUAL GENERATION ---
+export const generatePitchEmail = async (opportunity: Opportunity, trackTitle: string): Promise<string> => {
+  const ai = getAiClient();
+  if (!ai) return "AI service unavailable.";
 
-export const generateBrandImage = async (prompt: string, size: string, ratio: string): Promise<string | null> => {
-    const ai = getAiClient();
-    if (!ai) return null;
+  const prompt = `Write a professional, concise pitch email for the following music sync opportunity. 
+  The track being pitched is titled "${trackTitle}".
+  Opportunity: ${opportunity.brief_title}
+  Description: ${opportunity.description}
+  Usage: ${opportunity.usage_type}
+  
+  Keep it under 100 words. Focus on how the track fits the vibe and the rights are 100% cleared via Sound Forge Vault.`;
 
-    // Map size to supported '1K' or '2K' if needed, though gemini-3-pro-image-preview supports more
-    // Map ratio to "1:1", "16:9", etc.
-    
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image', // Defaulting to standard for speed
-            contents: {
-                parts: [{ text: prompt }]
-            },
-            config: {
-                imageConfig: {
-                    aspectRatio: ratio as any || "1:1",
-                }
-            }
-        });
-
-        // Find image part
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-            if (part.inlineData) {
-                return `data:image/png;base64,${part.inlineData.data}`;
-            }
-        }
-        return null;
-    } catch (e) {
-        console.error(e);
-        return null;
-    }
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+    });
+    return response.text || "Failed to generate pitch.";
+  } catch (error) {
+    return "Error generating pitch.";
+  }
 };
 
-export const editBrandImage = async (image: string, prompt: string, size: string): Promise<string | null> => {
+export const generateBrandImage = async (prompt: string, imageSize: string = '1K', aspectRatio: string = '1:1'): Promise<string | null> => {
+  const ai = getAiClient();
+  if (!ai) return null;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: imageSize === '1K' ? 'gemini-2.5-flash-image' : 'gemini-3-pro-image-preview',
+      contents: { parts: [{ text: prompt }] },
+      config: {
+        imageConfig: {
+          aspectRatio: aspectRatio as any,
+          imageSize: imageSize as any
+        }
+      }
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Image generation error:", error);
+    return null;
+  }
+};
+
+export const editBrandImage = async (base64Image: string, prompt: string, imageSize: string = '1K'): Promise<string | null> => {
+  const ai = getAiClient();
+  if (!ai) return null;
+
+  const mimeType = base64Image.split(';')[0].split(':')[1];
+  const data = base64Image.split(',')[1];
+
+  try {
+    const response = await ai.models.generateContent({
+      model: imageSize === '1K' ? 'gemini-2.5-flash-image' : 'gemini-3-pro-image-preview',
+      contents: {
+        parts: [
+          { inlineData: { data, mimeType } },
+          { text: prompt }
+        ]
+      }
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Image editing error:", error);
+    return null;
+  }
+};
+
+export const analyzeImage = async (base64Image: string): Promise<string[]> => {
     const ai = getAiClient();
-    if (!ai) return null;
+    if (!ai) return [];
+
+    const mimeType = base64Image.split(';')[0].split(':')[1];
+    const data = base64Image.split(',')[1];
 
     try {
-        // Strip header if present
-        const base64Data = image.split(',')[1];
-        
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
+            model: 'gemini-3-flash-preview',
             contents: {
                 parts: [
-                    { inlineData: { mimeType: 'image/png', data: base64Data } },
-                    { text: prompt }
+                    { inlineData: { data, mimeType } },
+                    { text: "List the main objects detected in this image as a JSON array of strings." }
                 ]
+            },
+            config: {
+                responseMimeType: "application/json"
             }
         });
 
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-            if (part.inlineData) {
-                return `data:image/png;base64,${part.inlineData.data}`;
-            }
+        if (response.text) {
+            const cleanedText = cleanJson(response.text);
+            return JSON.parse(cleanedText);
         }
-        return null;
-    } catch (e) {
-        console.error(e);
-        return null;
+        return [];
+    } catch (error) {
+        return [];
     }
 };
 
-export const generateVideoFromImage = async (image: string, prompt: string, ratio: string): Promise<string | null> => {
+export const generateVideoFromText = async (prompt: string, aspectRatio: string = '16:9'): Promise<string | null> => {
     const ai = getAiClient();
     if (!ai) return null;
 
     try {
-        const base64Data = image.split(',')[1];
-        
         let operation = await ai.models.generateVideos({
             model: 'veo-3.1-fast-generate-preview',
             prompt: prompt,
-            image: {
-                imageBytes: base64Data,
-                mimeType: 'image/png'
-            },
             config: {
                 numberOfVideos: 1,
                 resolution: '720p',
-                aspectRatio: ratio as any || '16:9'
+                aspectRatio: aspectRatio as any
             }
         });
 
         while (!operation.done) {
             await new Promise(resolve => setTimeout(resolve, 5000));
-            operation = await ai.operations.getVideosOperation({operation: operation});
+            operation = await ai.operations.getVideosOperation({ operation });
         }
 
         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-        if (downloadLink) {
-            // In a real app, you would fetch this with the API key attached if required by the SDK docs,
-            // or return the URI. The provided SDK guidelines say "fetch(`${downloadLink}&key=${process.env.API_KEY}`)"
-            return `${downloadLink}&key=${process.env.API_KEY}`;
-        }
-        return null;
+        if (!downloadLink) return null;
 
-    } catch (e) {
-        console.error(e);
+        const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+    } catch (error) {
+        console.error("Video generation error:", error);
         return null;
     }
 };
 
-export const analyzeImage = async (image: string): Promise<string[]> => {
+export const generateVideoFromImage = async (base64Image: string, prompt: string, aspectRatio: string = '16:9'): Promise<string | null> => {
     const ai = getAiClient();
-    if (!ai) return [];
+    if (!ai) return null;
 
-    const base64Data = image.split(',')[1];
-    
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: {
-            parts: [
-                { inlineData: { mimeType: 'image/png', data: base64Data } },
-                { text: "List the 5 main objects or themes in this image as a JSON array of strings." }
-            ]
-        },
-        config: { responseMimeType: "application/json" }
-    });
+    const mimeType = base64Image.split(';')[0].split(':')[1];
+    const data = base64Image.split(',')[1];
 
     try {
-        const cleaned = cleanJson(response.text || "[]");
-        return JSON.parse(cleaned);
-    } catch {
-        return [];
+        let operation = await ai.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt: prompt,
+            image: {
+                imageBytes: data,
+                mimeType: mimeType
+            },
+            config: {
+                numberOfVideos: 1,
+                resolution: '720p',
+                aspectRatio: aspectRatio as any
+            }
+        });
+
+        while (!operation.done) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            operation = await ai.operations.getVideosOperation({ operation });
+        }
+
+        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+        if (!downloadLink) return null;
+
+        const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+    } catch (error) {
+        console.error("Video generation error:", error);
+        return null;
     }
 };
 
-export const searchVenues = async (query: string, location?: {latitude: number, longitude: number}) => {
+export const generateSongStructure = async (topic: string, genre: string, style: string): Promise<{ lyrics: string }> => {
     const ai = getAiClient();
-    if (!ai) return { text: "API Key missing", places: [] };
+    if (!ai) return { lyrics: "Service unavailable." };
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Find music venues for: ${query}`,
-        config: {
-            tools: [{ googleMaps: {} }],
-            toolConfig: location ? {
-                retrievalConfig: {
-                    latLng: {
-                        latitude: location.latitude,
-                        longitude: location.longitude
+    const prompt = `Write song lyrics for a ${genre} song about "${topic}" in a ${style} style. 
+    Include structure labels like [Verse 1], [Chorus], etc.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+        });
+        return { lyrics: response.text || "Failed to generate lyrics." };
+    } catch (error) {
+        return { lyrics: "Error generating lyrics." };
+    }
+};
+
+export const searchVenues = async (query: string, location?: { latitude: number; longitude: number }): Promise<{ text: string; places: any[] }> => {
+    const ai = getAiClient();
+    if (!ai) return { text: "Service unavailable.", places: [] };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `Find music venues and related places for: ${query}`,
+            config: {
+                tools: [{ googleMaps: {} }],
+                toolConfig: {
+                    retrievalConfig: {
+                        latLng: location ? {
+                            latitude: location.latitude,
+                            longitude: location.longitude
+                        } : undefined
                     }
                 }
-            } : undefined
+            },
+        });
+
+        const places: any[] = [];
+        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (groundingChunks) {
+            for (const chunk of groundingChunks) {
+                if (chunk.maps) {
+                    places.push({
+                        title: chunk.maps.title,
+                        uri: chunk.maps.uri
+                    });
+                }
+            }
         }
-    });
 
-    const places = response.candidates?.[0]?.groundingMetadata?.groundingChunks
-        ?.filter((c: any) => c.maps)
-        .map((c: any) => ({
-            title: c.maps.title,
-            uri: c.maps.uri
-        })) || [];
-
-    return {
-        text: response.text || "No results found.",
-        places
-    };
+        return {
+            text: response.text || "Here are some venues I found.",
+            places
+        };
+    } catch (error) {
+        console.error("Maps search error:", error);
+        return { text: "Error searching for venues.", places: [] };
+    }
 };
 
-// --- LIVE API ---
-
 export class LiveSession {
-    private client: GoogleGenAI | null;
-    private session: any;
-    public onAudioData: ((base64: string) => void) | null = null;
-
-    constructor() {
-        this.client = getAiClient();
-    }
+    private ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    private session: any = null;
+    private audioContext: AudioContext | null = null;
+    private nextStartTime = 0;
+    private sources = new Set<AudioBufferSourceNode>();
+    public onAudioData?: () => void;
 
     async connect() {
-        if (!this.client) throw new Error("No API Client");
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
         
-        // Mock connection for UI demo if real WebSocket fails or restricted
-        // In a real implementation, use ai.live.connect() as per SDK
-        console.log("Live Session Connected (Mock)");
+        const sessionPromise = this.ai.live.connect({
+            model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+            callbacks: {
+                onopen: () => {
+                    const source = inputAudioContext.createMediaStreamSource(stream);
+                    const scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
+                    scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob = this.createBlob(inputData);
+                        sessionPromise.then((session) => {
+                            session.sendRealtimeInput({ media: pcmBlob });
+                        });
+                    };
+                    source.connect(scriptProcessor);
+                    scriptProcessor.connect(inputAudioContext.destination);
+                },
+                onmessage: async (message: LiveServerMessage) => {
+                    const base64EncodedAudioString = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                    if (base64EncodedAudioString && this.audioContext) {
+                        if (this.onAudioData) this.onAudioData();
+                        this.nextStartTime = Math.max(this.nextStartTime, this.audioContext.currentTime);
+                        const audioBuffer = await this.decodeAudioData(
+                            this.decode(base64EncodedAudioString),
+                            this.audioContext,
+                            24000,
+                            1
+                        );
+                        const source = this.audioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(this.audioContext.destination);
+                        source.addEventListener('ended', () => {
+                            this.sources.delete(source);
+                        });
+                        source.start(this.nextStartTime);
+                        this.nextStartTime += audioBuffer.duration;
+                        this.sources.add(source);
+                    }
+
+                    if (message.serverContent?.interrupted) {
+                        for (const source of this.sources.values()) {
+                            source.stop();
+                        }
+                        this.sources.clear();
+                        this.nextStartTime = 0;
+                    }
+                },
+                onerror: (e: any) => console.error("Live session error", e),
+                onclose: () => console.log("Live session closed"),
+            },
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+                },
+                systemInstruction: 'You are a helpful music industry assistant focusing on portfolio strategy and rights management.',
+            },
+        });
+
+        this.session = await sessionPromise;
     }
 
     disconnect() {
-        // if (this.session) this.session.close();
-        console.log("Live Session Disconnected");
+        if (this.session) {
+            this.session.close();
+            this.session = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
     }
 
-    sendAudio(blob: Blob) {
-        // this.session.sendRealtimeInput({ media: { mimeType: 'audio/pcm;rate=16000', data: base64 } });
+    private createBlob(data: Float32Array): any {
+        const l = data.length;
+        const int16 = new Int16Array(l);
+        for (let i = 0; i < l; i++) {
+            int16[i] = data[i] * 32768;
+        }
+        return {
+            data: this.encode(new Uint8Array(int16.buffer)),
+            mimeType: 'audio/pcm;rate=16000',
+        };
+    }
+
+    private decode(base64: string) {
+        const binaryString = atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+    }
+
+    private encode(bytes: Uint8Array) {
+        let binary = '';
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    }
+
+    private async decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
+        const dataInt16 = new Int16Array(data.buffer);
+        const frameCount = dataInt16.length / numChannels;
+        const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+        for (let channel = 0; channel < numChannels; channel++) {
+            const channelData = buffer.getChannelData(channel);
+            for (let i = 0; i < frameCount; i++) {
+                channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+            }
+        }
+        return buffer;
     }
 }

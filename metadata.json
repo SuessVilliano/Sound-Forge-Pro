@@ -2,6 +2,8 @@
   "name": "SoundForge Pro",
   "description": "The complete music industry platform for artists. AI-powered sync licensing, distribution, and revenue recovery.",
   "requestFramePermissions": [
-    "microphone"
+    "microphone",
+    "camera",
+    "geolocation"
   ]
 }

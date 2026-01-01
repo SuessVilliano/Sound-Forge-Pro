@@ -1,8 +1,10 @@
 
 import React, { useState } from 'react';
-import { User, Mail, Camera, Save, X, Shield, CreditCard, LogOut, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Camera, Save, X, Shield, CreditCard, LogOut, CheckCircle2, Webhook, Link, AlertTriangle, Trash2, BarChart2, FileText, Bell, Tag } from 'lucide-react';
 import { User as UserType } from '../types';
 import { authService } from '../services/authService';
+import { dataService } from '../services/dataService';
+import { LegalOnboarding } from './LegalOnboarding';
 
 interface UserProfileProps {
   user: UserType;
@@ -12,6 +14,25 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user.displayName);
   const [photoURL, setPhotoURL] = useState(user.photoURL);
+  
+  // Data Connections
+  const [chartmetricId, setChartmetricId] = useState(user.chartmetricArtistId?.toString() || '');
+  
+  // Webhook State
+  const [webhookUrl, setWebhookUrl] = useState(user.webhooks?.url || '');
+  const [webhookEnabled, setWebhookEnabled] = useState(user.webhooks?.enabled || false);
+  
+  // Notification State
+  const [emailSyncMatches, setEmailSyncMatches] = useState(user.notificationSettings?.emailSyncMatches || false);
+  const [genres, setGenres] = useState(user.genrePreferences?.join(', ') || '');
+
+  // Deletion State
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Legal View State
+  const [viewAgreement, setViewAgreement] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -19,14 +40,30 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
     setLoading(true);
     setMessage(null);
     try {
-      // In a real app, this would update firebase profile via authService
-      // For now, we update local state simulation
-      // await authService.updateProfile({ displayName, photoURL });
+      // Create Webhook Config Object
+      const webhooks = {
+          url: webhookUrl,
+          enabled: webhookEnabled,
+          events: user.webhooks?.events || ['sale', 'stream', 'placement'] // Default to all
+      };
+
+      const cmId = chartmetricId ? parseInt(chartmetricId) : undefined;
+
+      await authService.updateUserProfile({ 
+          displayName, 
+          photoURL: photoURL || undefined,
+          chartmetricArtistId: cmId,
+          webhooks: webhooks as any,
+          notificationSettings: {
+              emailSyncMatches
+          },
+          genrePreferences: genres.split(',').map(g => g.trim()).filter(g => g.length > 0)
+      });
       
       // Simulate delay
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      setMessage("Profile updated successfully!");
+      setMessage("Profile settings updated!");
       setIsEditing(false);
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
@@ -43,8 +80,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
       setPhotoURL(`https://picsum.photos/seed/${randomId}/200/200`);
   };
 
+  const handleDeleteAccount = async () => {
+      setIsDeleting(true);
+      try {
+          await dataService.deleteUserAccount(user.uid);
+          await authService.logout();
+      } catch (e) {
+          alert("Failed to delete account. Please contact support.");
+          setIsDeleting(false);
+      }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-20">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Account Settings</h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage your personal information and subscription.</p>
@@ -52,8 +100,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Left Col: Identity */}
+        {/* Left Col: Identity & Developer */}
         <div className="md:col-span-2 space-y-6">
+            
+            {/* PERSONAL INFO */}
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Personal Information</h3>
@@ -109,47 +159,218 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
                         </div>
                     </div>
                 </div>
-
-                {isEditing && (
-                    <div className="mt-8 flex gap-3 justify-end border-t border-slate-100 dark:border-slate-800 pt-4">
-                        <button 
-                            onClick={() => {
-                                setIsEditing(false);
-                                setDisplayName(user.displayName);
-                                setPhotoURL(user.photoURL);
-                            }}
-                            className="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            onClick={handleSave}
-                            disabled={loading}
-                            className="px-4 py-2 rounded-lg bg-cyan-500 text-white dark:text-slate-950 font-bold text-sm hover:bg-cyan-400 transition-colors flex items-center gap-2"
-                        >
-                            {loading ? 'Saving...' : <><Save className="w-4 h-4" /> Save Changes</>}
-                        </button>
-                    </div>
-                )}
-                
-                {message && (
-                    <div className="mt-4 p-3 bg-green-500/10 text-green-600 dark:text-green-400 text-sm rounded-lg flex items-center gap-2 animate-in fade-in">
-                        <CheckCircle2 className="w-4 h-4" /> {message}
-                    </div>
-                )}
             </div>
 
+            {/* NOTIFICATIONS & MATCHING */}
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Notification Preferences</h3>
-                <div className="space-y-4">
-                    {['Email me about new opportunities', 'Notify me when I receive royalties', 'Weekly performance summary', 'Product updates and news'].map((pref, i) => (
-                        <label key={i} className="flex items-center gap-3 cursor-pointer group">
-                            <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-slate-300 text-cyan-500 focus:ring-cyan-500 bg-slate-100 dark:bg-slate-900 dark:border-slate-700" />
-                            <span className="text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{pref}</span>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Bell className="w-5 h-5 text-yellow-500" /> Sync Match Alerts
+                    </h3>
+                </div>
+                
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">Email Notifications</p>
+                            <p className="text-xs text-slate-500">Get notified when an AI agent finds a perfect sync brief match.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={emailSyncMatches} 
+                                onChange={(e) => setEmailSyncMatches(e.target.checked)}
+                                disabled={!isEditing}
+                                className="sr-only peer" 
+                            />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-cyan-500"></div>
                         </label>
-                    ))}
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+                            <Tag className="w-3 h-3" /> Target Sync Genres
+                        </label>
+                        {isEditing ? (
+                            <input 
+                                type="text" 
+                                value={genres}
+                                onChange={(e) => setGenres(e.target.value)}
+                                placeholder="e.g. Electronic, Pop, Cinematic (comma separated)"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                            />
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {user.genrePreferences?.length ? user.genrePreferences.map(g => (
+                                    <span key={g} className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold rounded border border-slate-200 dark:border-slate-700">
+                                        {g}
+                                    </span>
+                                )) : <span className="text-xs text-slate-500 italic">No genres selected.</span>}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {/* LEGAL & COMPLIANCE */}
+            <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-slate-500" /> Legal & Compliance
+                    </h3>
+                </div>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">Service Agreement & Voice IP License</p>
+                            <p className="text-xs text-slate-500">
+                                {user.hasSignedLegal 
+                                    ? `Signed on ${new Date(user.legalSignedDate!).toLocaleDateString()}` 
+                                    : "Not signed yet"}
+                            </p>
+                        </div>
+                        {user.hasSignedLegal && (
+                            <button 
+                                onClick={() => setViewAgreement(true)}
+                                className="text-xs bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 px-3 py-1.5 rounded font-bold transition-colors"
+                            >
+                                View
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* DATA CONNECTIONS */}
+            <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <BarChart2 className="w-5 h-5 text-blue-500" /> Data Connections
+                    </h3>
+                </div>
+                
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">Chartmetric Artist ID</label>
+                        <p className="text-xs text-slate-500 mb-2">Connect your Chartmetric profile to pull official data into your analytics dashboard.</p>
+                        {isEditing ? (
+                            <input 
+                                type="text" 
+                                value={chartmetricId}
+                                onChange={(e) => setChartmetricId(e.target.value)}
+                                placeholder="e.g. 187689"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                            />
+                        ) : (
+                            <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                <span className="text-sm font-mono text-slate-700 dark:text-slate-300">
+                                    {user.chartmetricArtistId ? `ID: ${user.chartmetricArtistId}` : 'Not Connected'}
+                                </span>
+                                {user.chartmetricArtistId && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* WEBHOOKS & API */}
+            <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Webhook className="w-5 h-5 text-purple-500" /> Developer Webhooks
+                    </h3>
+                </div>
+                
+                <p className="text-sm text-slate-500 mb-4">
+                    Receive real-time JSON payloads for sales, streams, and sync placements. Connect to Zapier, Make, or your own server.
+                </p>
+
+                {isEditing ? (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">Webhook URL</label>
+                            <div className="flex items-center gap-2">
+                                <Link className="w-4 h-4 text-slate-400" />
+                                <input 
+                                    type="text" 
+                                    value={webhookUrl}
+                                    onChange={(e) => setWebhookUrl(e.target.value)}
+                                    placeholder="https://hooks.zapier.com/..."
+                                    className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                                />
+                            </div>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={webhookEnabled} 
+                                onChange={(e) => setWebhookEnabled(e.target.checked)}
+                                className="rounded border-slate-300 bg-slate-100 dark:bg-slate-900 text-cyan-500 focus:ring-cyan-500" 
+                            />
+                            <span className="text-sm text-slate-700 dark:text-slate-300 font-bold">Enable Webhooks</span>
+                        </label>
+                    </div>
+                ) : (
+                    <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${user.webhooks?.enabled ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                            <code className="text-xs text-slate-600 dark:text-slate-400 font-mono truncate">
+                                {user.webhooks?.url || "No Webhook Configured"}
+                            </code>
+                        </div>
+                        <span className="text-xs font-bold text-slate-500">{user.webhooks?.enabled ? 'Active' : 'Disabled'}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* DANGER ZONE */}
+            <div className="bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-900/30 p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" /> Danger Zone
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                    Deleting your account will permanently remove all tracks, voice registrations, and licensing data. This action cannot be undone.
+                </p>
+                <button 
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-6 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors flex items-center gap-2 shadow-lg shadow-red-600/20"
+                >
+                    <Trash2 className="w-4 h-4" /> Delete Account
+                </button>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            {(isEditing || message) && (
+                <div className="flex flex-col items-end gap-2">
+                    {message && (
+                        <div className="p-3 bg-green-500/10 text-green-600 dark:text-green-400 text-sm rounded-lg flex items-center gap-2 animate-in fade-in">
+                            <CheckCircle2 className="w-4 h-4" /> {message}
+                        </div>
+                    )}
+                    {isEditing && (
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => {
+                                    setIsEditing(false);
+                                    setDisplayName(user.displayName);
+                                    setWebhookUrl(user.webhooks?.url || '');
+                                    setWebhookEnabled(user.webhooks?.enabled || false);
+                                }}
+                                className="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSave}
+                                disabled={loading}
+                                className="px-4 py-2 rounded-lg bg-cyan-500 text-white dark:text-slate-950 font-bold text-sm hover:bg-cyan-400 transition-colors flex items-center gap-2"
+                            >
+                                {loading ? 'Saving...' : <><Save className="w-4 h-4" /> Save Changes</>}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
 
         {/* Right Col: Plan & Status */}
@@ -200,8 +421,49 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
                 <LogOut className="w-4 h-4" /> Sign Out
             </button>
         </div>
-
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+                  <div className="p-6 text-center">
+                      <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <AlertTriangle className="w-6 h-6" />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Are you absolutely sure?</h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                          This action cannot be undone. This will permanently delete your account, tracks, and remove your data from our servers.
+                      </p>
+                      
+                      <div className="flex gap-3">
+                          <button 
+                            onClick={() => setShowDeleteConfirm(false)}
+                            className="flex-1 py-2.5 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                              Cancel
+                          </button>
+                          <button 
+                            onClick={handleDeleteAccount}
+                            disabled={isDeleting}
+                            className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                              {isDeleting ? 'Deleting...' : 'Delete Account'}
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Legal Agreement Viewer Modal */}
+      <LegalOnboarding 
+          isOpen={viewAgreement} 
+          onSign={() => {}} 
+          readOnly={true}
+          onClose={() => setViewAgreement(false)}
+          signedDate={user.legalSignedDate}
+      />
     </div>
   );
 };

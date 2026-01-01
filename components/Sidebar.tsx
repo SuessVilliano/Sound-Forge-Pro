@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Music2, LogOut, PanelLeftClose, PanelLeft, X, Star, History, List, AlertCircle, Trophy } from 'lucide-react';
-import { NAVIGATION_ITEMS, APP_NAME, MOCK_STATS } from '../constants';
+import { Music2, LogOut, PanelLeftClose, PanelLeft, X, Star, History, List, AlertCircle, Trophy, HelpCircle, Shield } from 'lucide-react';
+import { NAVIGATION_ITEMS, APP_NAME, MOCK_STATS, VIEWS } from '../constants';
+import { authService } from '../services/authService';
 
 interface SidebarProps {
   currentView: string;
@@ -11,12 +12,13 @@ interface SidebarProps {
   isCollapsed: boolean;
   toggleCollapse: () => void;
   onLogout: () => void;
+  onOpenHelp: () => void;
 }
 
 type FilterMode = 'all' | 'favorites' | 'recent';
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
-    currentView, setCurrentView, isMobileOpen, setIsMobileOpen, isCollapsed, toggleCollapse, onLogout 
+    currentView, setCurrentView, isMobileOpen, setIsMobileOpen, isCollapsed, toggleCollapse, onLogout, onOpenHelp 
 }) => {
   // Persistence State with SAFE Parsing
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -40,6 +42,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   });
 
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  
+  // Get current user for admin check
+  const currentUser = authService.getCurrentUser();
+
+  // Init check: If we have favorites, default to favorites view to show "Customized" experience
+  useEffect(() => {
+      if (favorites.length > 0 && filterMode === 'all') {
+          // Optional: You could default to favorites here, but 'all' is usually safer for navigation
+          // setFilterMode('favorites'); 
+      }
+  }, []);
 
   // Persist effects
   useEffect(() => {
@@ -70,14 +83,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   // Filter Logic
-  let displayItems = NAVIGATION_ITEMS;
+  // 1. Filter out Admin-only items if user is not admin
+  const allowedItems = NAVIGATION_ITEMS.filter(item => {
+      if (item.adminOnly && !currentUser?.isAdmin) return false;
+      return true;
+  });
+
+  let displayItems = allowedItems;
 
   if (filterMode === 'favorites') {
-      displayItems = NAVIGATION_ITEMS.filter(item => favorites.includes(item.id));
+      displayItems = allowedItems.filter(item => favorites.includes(item.id));
   } else if (filterMode === 'recent') {
       // Map recents to actual items to preserve order of recents
       displayItems = recents
-          .map(id => NAVIGATION_ITEMS.find(item => item.id === id))
+          .map(id => allowedItems.find(item => item.id === id))
           .filter(item => item !== undefined) as typeof NAVIGATION_ITEMS;
   }
 
@@ -85,8 +104,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const xpPercent = Math.min(100, Math.max(0, (MOCK_STATS.xp / MOCK_STATS.nextLevelXp) * 100));
 
   // Common classes
-  // Increased z-index to 60 to ensure mobile sidebar sits above some content but below modals (z-70+)
-  // Note: MusicPlayer expanded is z-[60], so sidebar z-[50] means player covers it. Correct.
   const baseClasses = `bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-screen fixed left-0 top-0 flex flex-col z-[50] transition-all duration-300`;
   const widthClass = isCollapsed ? 'w-20' : 'w-64';
   const mobileTransform = isMobileOpen ? 'translate-x-0' : '-translate-x-full';
@@ -202,6 +219,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 );
               })
           )}
+
+          {/* ADMIN LINK */}
+          {currentUser?.isAdmin && (
+              <button
+                onClick={() => handleNavigation(VIEWS.ADMIN)}
+                title={isCollapsed ? "Admin" : undefined}
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between px-3'} py-2.5 rounded-lg transition-all duration-200 group mt-4 border border-slate-200 dark:border-slate-800 ${
+                  currentView === VIEWS.ADMIN
+                    ? 'bg-slate-200 dark:bg-slate-800 text-red-600 dark:text-red-400' 
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-red-500'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Shield className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span className="text-sm font-bold whitespace-nowrap">Admin Panel</span>}
+                </div>
+              </button>
+          )}
         </div>
 
         {/* Footer / XP & Logout */}
@@ -236,6 +271,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
             {!isCollapsed && <span className="text-sm font-medium">Collapse</span>}
+          </button>
+
+          <button 
+            onClick={onOpenHelp}
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors w-full py-2 mb-2`}
+            title="Help & Support"
+          >
+            <HelpCircle className="w-5 h-5" />
+            {!isCollapsed && <span className="text-sm font-medium">Help</span>}
           </button>
 
           <button 

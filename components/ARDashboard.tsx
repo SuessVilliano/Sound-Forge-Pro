@@ -1,14 +1,29 @@
 
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, TrendingUp, Music, Star, Zap, CheckCircle2, Sliders, PlayCircle, Loader2, ArrowUp, ArrowDown, Minus } from 'lucide-react';
-import { Track } from '../types';
+import { Search, Filter, TrendingUp, Music, Star, Zap, CheckCircle2, Sliders, PlayCircle, Loader2, ArrowUp, ArrowDown, Minus, X, Crown, ChevronRight } from 'lucide-react';
+import { Track, User } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { RapidApiAgent, BillboardEntry } from '../services/rapidApiService';
+import { FEATURED_ARTISTS } from '../constants';
+
+// Extended type for UI filtering
+interface ExtendedBillboardEntry extends BillboardEntry {
+    genre?: string;
+}
+
+const MOCK_GENRES = ['Pop', 'Hip Hop', 'R&B', 'Country', 'Electronic', 'Rock'];
 
 export const ARDashboard: React.FC = () => {
   const { playTrack } = usePlayer();
-  const [chartData, setChartData] = useState<BillboardEntry[]>([]);
+  const [chartData, setChartData] = useState<ExtendedBillboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filtering State
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({
+      trend: 'all', // all, rising, falling, new
+      genre: 'all'  // all, pop, hiphop, etc.
+  });
 
   // Fetch Real Billboard Data on Mount
   useEffect(() => {
@@ -18,13 +33,18 @@ export const ARDashboard: React.FC = () => {
           const realData = await RapidApiAgent.getBillboardHot100();
           
           if (realData && realData.length > 0) {
-              setChartData(realData);
+              // Assign random genres for demo filtering since API doesn't return genre
+              const enhancedData = realData.map(item => ({
+                  ...item,
+                  genre: MOCK_GENRES[Math.floor(Math.random() * MOCK_GENRES.length)]
+              }));
+              setChartData(enhancedData);
           } else {
               // Fallback Mock if API Rate Limited or Fails
               setChartData([
-                  { rank: 1, title: "Cruel Summer", artist: "Taylor Swift", image: "https://charts-static.billboard.com/img/2019/09/taylor-swift-90f-cruel-summer-155x155.jpg", last_week: 1, peak_position: 1, weeks_on_chart: 20 },
-                  { rank: 2, title: "Paint The Town Red", artist: "Doja Cat", image: "https://charts-static.billboard.com/img/2023/08/doja-cat-87d-paint-the-town-red-155x155.jpg", last_week: 3, peak_position: 2, weeks_on_chart: 8 },
-                  { rank: 3, title: "Snooze", artist: "SZA", image: "https://charts-static.billboard.com/img/2022/12/sza-59z-snooze-155x155.jpg", last_week: 2, peak_position: 2, weeks_on_chart: 42 }
+                  { rank: 1, title: "Cruel Summer", artist: "Taylor Swift", image: "https://charts-static.billboard.com/img/2019/09/taylor-swift-90f-cruel-summer-155x155.jpg", last_week: 1, peak_position: 1, weeks_on_chart: 20, genre: 'Pop' },
+                  { rank: 2, title: "Paint The Town Red", artist: "Doja Cat", image: "https://charts-static.billboard.com/img/2023/08/doja-cat-87d-paint-the-town-red-155x155.jpg", last_week: 3, peak_position: 2, weeks_on_chart: 8, genre: 'Hip Hop' },
+                  { rank: 3, title: "Snooze", artist: "SZA", image: "https://charts-static.billboard.com/img/2022/12/sza-59z-snooze-155x155.jpg", last_week: 2, peak_position: 2, weeks_on_chart: 42, genre: 'R&B' }
               ]);
           }
           setLoading(false);
@@ -39,6 +59,18 @@ export const ARDashboard: React.FC = () => {
       return <Minus className="w-3 h-3 text-slate-500" />;
   };
 
+  const filteredChart = chartData.filter(item => {
+      // Genre Filter
+      if (activeFilters.genre !== 'all' && item.genre !== activeFilters.genre) return false;
+      
+      // Trend Filter
+      if (activeFilters.trend === 'rising') return item.rank < item.last_week && item.last_week !== 0;
+      if (activeFilters.trend === 'falling') return item.rank > item.last_week && item.last_week !== 0;
+      if (activeFilters.trend === 'new') return item.last_week === 0;
+      
+      return true;
+  });
+
   return (
     <div className="space-y-8 pb-24">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
@@ -50,6 +82,45 @@ export const ARDashboard: React.FC = () => {
                 <p className="text-slate-400">
                     Find the next breakout hit before it charts. AI-powered A&R signals, Billboard data, and sync-ready filtering.
                 </p>
+            </div>
+        </div>
+
+        {/* FEATURED SPOTLIGHT CAROUSEL */}
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-amber-400" /> Featured Talent
+                </h3>
+                <button className="text-xs text-slate-400 hover:text-white flex items-center gap-1">View All <ChevronRight className="w-3 h-3"/></button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {FEATURED_ARTISTS.map((artist) => (
+                    <div key={artist.uid} className="bg-slate-800/50 rounded-xl overflow-hidden border border-amber-500/20 group hover:border-amber-500/50 transition-all cursor-pointer relative">
+                        <div className="h-24 bg-slate-900 relative">
+                            <img src={artist.photoURL} alt={artist.displayName} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" />
+                            <div className="absolute top-2 right-2 bg-amber-500 text-slate-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                Spotlight
+                            </div>
+                        </div>
+                        <div className="p-4 relative">
+                            <div className="absolute -top-8 left-4 w-14 h-14 rounded-full border-2 border-slate-900 overflow-hidden bg-slate-800">
+                                <img src={artist.photoURL} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="mt-6">
+                                <h4 className="font-bold text-white text-lg">{artist.displayName}</h4>
+                                <p className="text-xs text-slate-400 mb-3">{artist.bio?.substring(0, 50)}...</p>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded capitalize">{artist.role}</span>
+                                    {artist.rates?.featureVerse && <span className="text-[10px] bg-green-900/30 text-green-400 border border-green-500/20 px-2 py-0.5 rounded">Feat: ${artist.rates.featureVerse}</span>}
+                                </div>
+                                <button className="w-full py-2 bg-white text-slate-900 text-xs font-bold rounded hover:bg-slate-200 transition-colors">
+                                    View Profile
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
 
@@ -77,14 +148,62 @@ export const ARDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Chart Feed */}
             <div className="lg:col-span-2 space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center relative">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <TrendingUp className="w-5 h-5 text-red-500" /> Real-Time Billboard Hot 100
                     </h3>
-                    <div className="flex gap-2">
-                        <button className="text-xs flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300">
+                    <div className="flex gap-2 relative">
+                        <button 
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`text-xs flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors border border-transparent ${
+                                showFilters 
+                                ? 'bg-cyan-500 text-slate-950 shadow-md' 
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}
+                        >
                             <Sliders className="w-3 h-3" /> Filters
                         </button>
+
+                        {/* Filter Dropdown */}
+                        {showFilters && (
+                            <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 p-4 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase">Filter Chart</h4>
+                                    <button onClick={() => setShowFilters(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs text-slate-500 mb-1.5 block font-bold">Trend</label>
+                                        <select 
+                                            value={activeFilters.trend}
+                                            onChange={(e) => setActiveFilters({...activeFilters, trend: e.target.value})}
+                                            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                                        >
+                                            <option value="all">All Trends</option>
+                                            <option value="rising">Rising (Rank Up)</option>
+                                            <option value="falling">Falling (Rank Down)</option>
+                                            <option value="new">New Entries</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-500 mb-1.5 block font-bold">Genre</label>
+                                        <select 
+                                            value={activeFilters.genre}
+                                            onChange={(e) => setActiveFilters({...activeFilters, genre: e.target.value})}
+                                            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                                        >
+                                            <option value="all">All Genres</option>
+                                            {MOCK_GENRES.map(g => (
+                                                <option key={g} value={g}>{g}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -93,9 +212,20 @@ export const ARDashboard: React.FC = () => {
                         <Loader2 className="w-8 h-8 animate-spin text-purple-500 mb-2" />
                         <p className="text-xs">Fetching RapidAPI Billboard Data...</p>
                     </div>
+                ) : filteredChart.length === 0 ? (
+                    <div className="h-48 flex flex-col items-center justify-center text-slate-500 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                        <Filter className="w-8 h-8 opacity-20 mb-2" />
+                        <p className="text-sm">No tracks match your filters.</p>
+                        <button 
+                            onClick={() => setActiveFilters({trend: 'all', genre: 'all'})}
+                            className="text-xs text-cyan-500 hover:underline mt-2"
+                        >
+                            Clear Filters
+                        </button>
+                    </div>
                 ) : (
                     <div className="space-y-3">
-                        {chartData.map((item) => (
+                        {filteredChart.map((item) => (
                             <div 
                                 key={item.rank} 
                                 className="bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center gap-4 hover:border-purple-500/50 transition-all cursor-pointer group"
@@ -108,7 +238,12 @@ export const ARDashboard: React.FC = () => {
                                 
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-bold text-slate-900 dark:text-white text-base truncate">{item.title}</h4>
-                                    <p className="text-slate-500 text-sm truncate">{item.artist}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-slate-500 text-sm truncate">{item.artist}</p>
+                                        {item.genre && (
+                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">{item.genre}</span>
+                                        )}
+                                    </div>
                                     <div className="flex gap-4 mt-2 text-xs text-slate-400">
                                         <span className="flex items-center gap-1">
                                             {getRankChangeIcon(item.rank, item.last_week)}

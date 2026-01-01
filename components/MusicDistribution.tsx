@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { CheckCircle2, Bot, ArrowLeft, Upload, Server, ShieldCheck, Globe, Zap, Music2, Plus, Trash2, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Bot, ArrowLeft, Upload, Server, ShieldCheck, Globe, Zap, Music2, Plus, Trash2, Image as ImageIcon, AlertCircle, Database, Lock, Disc, Layers, Copy, Check } from 'lucide-react';
 import { DISTRIBUTION_PARTNERS } from '../constants';
 import { DistributionRelease, DistributionTrack } from '../types';
 import { dataService } from '../services/dataService';
@@ -15,13 +15,21 @@ const SERVICES_LIST = [
 const GENRES = ["Pop", "Hip Hop", "R&B", "Rock", "Electronic", "Latin", "Country", "Jazz", "Classical", "Folk", "Reggae", "Blues", "Alternative"];
 const LANGUAGES = ["English", "Spanish", "French", "German", "Japanese", "Korean", "Portuguese", "Chinese"];
 
+// Webhooks
+const WEBHOOK_PROD = "https://apps.taskmagic.com/api/v1/webhooks/PwEfXVx4XIQd5Z6GFbQdI";
+const WEBHOOK_TEST = "https://apps.taskmagic.com/api/v1/webhooks/PwEfXVx4XIQd5Z6GFbQdI/test";
+
 export const MusicDistribution: React.FC = () => {
-  const [view, setView] = useState<'dashboard' | 'new-release' | 'agent-processing'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'setup' | 'new-release' | 'agent-processing'>('dashboard');
   const user = authService.getCurrentUser();
   
   // Agent State
   const [agentLogs, setAgentLogs] = useState<string[]>([]);
   const [agentProgress, setAgentProgress] = useState(0);
+
+  // Setup State
+  const [releaseType, setReleaseType] = useState<'Single' | 'Album'>('Single');
+  const [trackCount, setTrackCount] = useState(1);
 
   // Form State
   const [release, setRelease] = useState<DistributionRelease>({
@@ -37,21 +45,36 @@ export const MusicDistribution: React.FC = () => {
       primaryGenre: 'Pop',
       services: SERVICES_LIST,
       previouslyReleased: false,
-      tracks: [{
-          id: 't1',
+      tracks: [],
+      optSocialPack: true,
+      optDiscoveryPack: false,
+      optStoreMaximizer: true,
+      optLeaveLegacy: false,
+      optLoudnessNorm: false,
+      optBlockchainStorage: false
+  });
+
+  // Track file inputs Refs (Array)
+  const trackFileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Initialize tracks based on setup
+  const startRelease = () => {
+      const initialTracks: DistributionTrack[] = Array.from({ length: trackCount }).map((_, i) => ({
+          id: `t${Date.now()}_${i}`,
           title: '',
           isInstrumental: false,
           isExplicit: false,
           isRadioEdit: false,
           writerType: 'original',
           songwriters: [],
-      }],
-      optSocialPack: true,
-      optDiscoveryPack: false,
-      optStoreMaximizer: true,
-      optLeaveLegacy: false,
-      optLoudnessNorm: false
-  });
+          producers: '',
+          performers: user?.displayName || '',
+          originalArtist: ''
+      }));
+
+      setRelease(prev => ({ ...prev, tracks: initialTracks }));
+      setView('new-release');
+  };
 
   // Helper to handle cover art upload
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,13 +88,15 @@ export const MusicDistribution: React.FC = () => {
   // Helper for Track Management
   const addTrack = () => {
       const newTrack: DistributionTrack = {
-          id: `t${Date.now()}`,
+          id: `t${Date.now()}_new`,
           title: '',
           isInstrumental: false,
           isExplicit: false,
           isRadioEdit: false,
           writerType: 'original',
-          songwriters: []
+          songwriters: [],
+          producers: '',
+          performers: release.artistName,
       };
       setRelease(prev => ({ ...prev, tracks: [...prev.tracks, newTrack] }));
   };
@@ -89,6 +114,32 @@ export const MusicDistribution: React.FC = () => {
       }));
   };
 
+  const handleTrackFileUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          setRelease(prev => {
+              const newTracks = [...prev.tracks];
+              newTracks[index] = { ...newTracks[index], audioFile: file };
+              
+              // Auto-fill title from filename if empty
+              if (!newTracks[index].title) {
+                  newTracks[index].title = file.name.replace(/\.[^/.]+$/, "");
+              }
+              return { ...prev, tracks: newTracks };
+          });
+      }
+  };
+
+  // Bulk Apply Helper
+  const applyToAll = (field: keyof DistributionTrack, value: any) => {
+      if (!value) return;
+      setRelease(prev => ({
+          ...prev,
+          tracks: prev.tracks.map(t => ({ ...t, [field]: value }))
+      }));
+      alert(`Applied "${value}" to all tracks.`);
+  };
+
   const handleSubmit = async () => {
       if (!release.title || !release.artistName) {
           alert("Please fill in Release Title and Artist Name.");
@@ -98,24 +149,87 @@ export const MusicDistribution: React.FC = () => {
           alert("Please upload cover art.");
           return;
       }
+      // Check if all tracks have audio
+      const missingAudio = release.tracks.findIndex(t => !t.audioFile);
+      if (missingAudio >= 0) {
+          alert(`Track ${missingAudio + 1} is missing an audio file.`);
+          return;
+      }
       
       setView('agent-processing');
       setAgentLogs([]);
       setAgentProgress(0);
 
+      // --- WEBHOOK TRANSMISSION ---
+      try {
+          const payload = {
+              releaseId: `rel_${Date.now()}`,
+              user: {
+                  uid: user?.uid,
+                  email: user?.email,
+                  name: user?.displayName
+              },
+              releaseData: {
+                  title: release.title,
+                  artist: release.artistName,
+                  type: releaseType,
+                  upc: release.upc || 'AUTO',
+                  genre: release.primaryGenre,
+                  label: release.recordLabel,
+                  trackCount: release.tracks.length
+              },
+              tracks: release.tracks.map(t => ({
+                  title: t.title,
+                  isrc: t.isrc || 'AUTO',
+                  writers: t.songwriters,
+                  producers: t.producers,
+                  isExplicit: t.isExplicit
+              })),
+              timestamp: new Date().toISOString(),
+              source: 'SoundForge Pro v2.5'
+          };
+
+          // FIRE AND FORGET WEBHOOK (Non-blocking but logged)
+          fetch(WEBHOOK_PROD, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          }).then(res => {
+              console.log("Webhook Sent:", res.status);
+          }).catch(err => {
+              console.error("Webhook Error:", err);
+          });
+
+      } catch(e) {
+          console.error("Payload construction error", e);
+      }
+
       // Simulate the AI Agent Backend Workflow
       const steps = [
           { msg: "Agent Initialized: Analyzing Release Metadata...", time: 1000 },
+          { msg: `Sending Metadata to Distribution Partners...`, time: 1000 },
           { msg: "Validating Cover Art Specs (3000x3000px)...", time: 1000 },
           { msg: "Connecting to DSP Gateways...", time: 1500 },
           { msg: "Logging in as SoundForge Label Admin...", time: 800 },
           { msg: `Uploading "${release.title}" Assets to S3...`, time: 2000 },
           { msg: "Assigning UPC/EAN Codes...", time: 1000 },
           { msg: "Registering Songwriter Credits...", time: 1200 },
-          { msg: "Minting ISRC Codes on Blockchain...", time: 1500 },
+      ];
+
+      // Insert Blockchain steps if selected
+      if (release.optBlockchainStorage) {
+          steps.push(
+              { msg: "Encrypting Assets for Lighthouse Storage...", time: 1500 },
+              { msg: "Uploading to IPFS/Filecoin Network...", time: 2000 },
+              { msg: "Minting Copyright Proof on Solana...", time: 1500 },
+              { msg: "Blockchain Verification Complete. CID Generated.", time: 800 }
+          );
+      }
+
+      steps.push(
           { msg: "Submitting Final Release Package...", time: 1000 },
           { msg: "Success: Release Queued for Global Delivery.", time: 500 }
-      ];
+      );
 
       for (let i = 0; i < steps.length; i++) {
           await new Promise(r => setTimeout(r, steps[i].time));
@@ -163,18 +277,80 @@ export const MusicDistribution: React.FC = () => {
   }
 
   // ----------------------------------------------------------------------
+  // SETUP VIEW
+  // ----------------------------------------------------------------------
+  if (view === 'setup') {
+      return (
+          <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-300 py-10">
+              <div className="text-center">
+                  <h1 className="text-3xl font-bold text-white mb-2">Start New Release</h1>
+                  <p className="text-slate-400">Choose your release format to configure the agent.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                  <div 
+                    onClick={() => { setReleaseType('Single'); setTrackCount(1); }}
+                    className={`cursor-pointer rounded-2xl border-2 p-8 flex flex-col items-center gap-4 transition-all ${releaseType === 'Single' ? 'bg-cyan-500/10 border-cyan-500' : 'bg-slate-900 border-slate-800 hover:border-slate-600'}`}
+                  >
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center ${releaseType === 'Single' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
+                          <Disc className="w-8 h-8" />
+                      </div>
+                      <h3 className={`text-xl font-bold ${releaseType === 'Single' ? 'text-white' : 'text-slate-300'}`}>Single</h3>
+                      <p className="text-xs text-slate-500 text-center">1 Track</p>
+                  </div>
+
+                  <div 
+                    onClick={() => { setReleaseType('Album'); setTrackCount(5); }}
+                    className={`cursor-pointer rounded-2xl border-2 p-8 flex flex-col items-center gap-4 transition-all ${releaseType === 'Album' ? 'bg-purple-500/10 border-purple-500' : 'bg-slate-900 border-slate-800 hover:border-slate-600'}`}
+                  >
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center ${releaseType === 'Album' ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                          <Layers className="w-8 h-8" />
+                      </div>
+                      <h3 className={`text-xl font-bold ${releaseType === 'Album' ? 'text-white' : 'text-slate-300'}`}>Album / EP</h3>
+                      <p className="text-xs text-slate-500 text-center">2+ Tracks</p>
+                  </div>
+              </div>
+
+              {releaseType === 'Album' && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col items-center">
+                      <label className="text-sm font-bold text-slate-400 mb-4">How many tracks?</label>
+                      <div className="flex items-center gap-6">
+                          <button onClick={() => setTrackCount(Math.max(2, trackCount - 1))} className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center">
+                              <span className="text-xl font-bold">-</span>
+                          </button>
+                          <div className="text-4xl font-bold text-white w-16 text-center">{trackCount}</div>
+                          <button onClick={() => setTrackCount(Math.min(50, trackCount + 1))} className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center">
+                              <span className="text-xl font-bold">+</span>
+                          </button>
+                      </div>
+                  </div>
+              )}
+
+              <div className="flex gap-4">
+                  <button onClick={() => setView('dashboard')} className="flex-1 py-4 rounded-xl font-bold text-slate-400 hover:text-white transition-colors">
+                      Cancel
+                  </button>
+                  <button onClick={startRelease} className="flex-1 py-4 rounded-xl bg-white text-slate-950 font-bold hover:bg-slate-200 transition-colors shadow-lg">
+                      Start Release
+                  </button>
+              </div>
+          </div>
+      );
+  }
+
+  // ----------------------------------------------------------------------
   // NEW RELEASE FORM
   // ----------------------------------------------------------------------
   if (view === 'new-release') {
       return (
           <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300 pb-20">
               <div className="flex items-center gap-4 border-b border-slate-800 pb-6">
-                  <button onClick={() => setView('dashboard')} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                  <button onClick={() => setView('setup')} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
                       <ArrowLeft className="w-6 h-6 text-slate-400" />
                   </button>
                   <div>
                       <h1 className="text-2xl font-bold text-white">Global Distribution</h1>
-                      <p className="text-slate-400 text-sm">Create a new release for Spotify, Apple Music, and 150+ stores.</p>
+                      <p className="text-slate-400 text-sm">Create a new {releaseType} for Spotify, Apple Music, and 150+ stores.</p>
                   </div>
               </div>
 
@@ -271,81 +447,19 @@ export const MusicDistribution: React.FC = () => {
                   </div>
               </div>
 
-              {/* 2. Copyright & IDs */}
-              <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-                  <div className="bg-slate-950 px-6 py-4 border-b border-slate-800">
-                      <h3 className="font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-purple-500"/> Copyright & IDs</h3>
-                  </div>
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                          <div className="grid grid-cols-3 gap-2">
-                              <div className="col-span-1">
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">© Year</label>
-                                  <input 
-                                    type="text" 
-                                    value={release.copyrightYear}
-                                    onChange={e => setRelease({...release, copyrightYear: e.target.value})}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                                  />
-                              </div>
-                              <div className="col-span-2">
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">© Copyright Owner</label>
-                                  <input 
-                                    type="text" 
-                                    value={release.copyrightOwner}
-                                    onChange={e => setRelease({...release, copyrightOwner: e.target.value})}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                                  />
-                              </div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                              <div className="col-span-1">
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">℗ Year</label>
-                                  <input 
-                                    type="text" 
-                                    value={release.pLineYear}
-                                    onChange={e => setRelease({...release, pLineYear: e.target.value})}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                                  />
-                              </div>
-                              <div className="col-span-2">
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">℗ Sound Recording Owner</label>
-                                  <input 
-                                    type="text" 
-                                    value={release.pLineOwner}
-                                    onChange={e => setRelease({...release, pLineOwner: e.target.value})}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                                  />
-                              </div>
-                          </div>
-                      </div>
-                      <div>
-                          <label className="block text-xs font-bold text-slate-400 mb-1">UPC / EAN Code (Optional)</label>
-                          <input 
-                            type="text" 
-                            placeholder="Leave blank to auto-generate"
-                            value={release.upc || ''}
-                            onChange={e => setRelease({...release, upc: e.target.value})}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                          />
-                          <p className="text-[10px] text-slate-500 mt-2">SoundForge will assign a UPC automatically if you don't have one.</p>
-                      </div>
-                  </div>
-              </div>
-
               {/* 3. Tracklist */}
               <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
                   <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                      <h3 className="font-bold text-white flex items-center gap-2"><Music2 className="w-4 h-4 text-green-500"/> Tracklist</h3>
+                      <h3 className="font-bold text-white flex items-center gap-2"><Music2 className="w-4 h-4 text-green-500"/> Tracklist ({release.tracks.length})</h3>
                       <button onClick={addTrack} className="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
                           <Plus className="w-3 h-3" /> Add Track
                       </button>
                   </div>
                   <div className="p-6 space-y-4">
                       {release.tracks.map((track, index) => (
-                          <div key={track.id} className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
-                              <div className="flex justify-between items-start mb-4">
-                                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Track {index + 1}</span>
+                          <div key={track.id} className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-6 relative">
+                              <div className="flex justify-between items-center mb-4">
+                                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide bg-slate-900 px-2 py-1 rounded">Track {index + 1}</span>
                                   {release.tracks.length > 1 && (
                                       <button onClick={() => removeTrack(track.id)} className="text-slate-500 hover:text-red-500 transition-colors">
                                           <Trash2 className="w-4 h-4" />
@@ -353,96 +467,165 @@ export const MusicDistribution: React.FC = () => {
                                   )}
                               </div>
                               
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-400 mb-1">Track Title</label>
-                                      <input 
-                                        type="text" 
-                                        value={track.title}
-                                        onChange={e => updateTrack(track.id, 'title', e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                      />
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-400 mb-1">Version (Optional)</label>
-                                      <input 
-                                        type="text" 
-                                        placeholder="e.g. Radio Edit, Remix"
-                                        value={track.version || ''}
-                                        onChange={e => updateTrack(track.id, 'version', e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                      />
-                                  </div>
-                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  
+                                  {/* Left Col: Core Metadata */}
+                                  <div className="space-y-4">
+                                      <div>
+                                          <label className="block text-xs font-bold text-slate-400 mb-1">Track Title</label>
+                                          <input 
+                                            type="text" 
+                                            value={track.title}
+                                            onChange={e => updateTrack(track.id, 'title', e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                          />
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                              <label className="block text-xs font-bold text-slate-400 mb-1">Version (Optional)</label>
+                                              <input 
+                                                type="text" 
+                                                placeholder="Radio Edit"
+                                                value={track.version || ''}
+                                                onChange={e => updateTrack(track.id, 'version', e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                              />
+                                          </div>
+                                          <div>
+                                              <label className="block text-xs font-bold text-slate-400 mb-1">ISRC (Optional)</label>
+                                              <input 
+                                                type="text" 
+                                                placeholder="Auto-generate"
+                                                value={track.isrc || ''}
+                                                onChange={e => updateTrack(track.id, 'isrc', e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                              />
+                                          </div>
+                                      </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-400 mb-1">Audio File (WAV/FLAC)</label>
-                                      <div className="flex gap-2">
-                                          <button className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-3 py-2 rounded flex items-center gap-2 transition-colors">
-                                              <Upload className="w-3 h-3" /> Choose File
-                                          </button>
-                                          <span className="text-xs text-slate-500 self-center">No file chosen</span>
+                                      <div>
+                                          <label className="block text-xs font-bold text-slate-400 mb-1">Audio File (WAV/FLAC)</label>
+                                          <div className={`border-2 border-dashed border-slate-600 rounded-lg p-3 flex items-center justify-between transition-colors ${track.audioFile ? 'bg-green-500/10 border-green-500/30' : 'bg-slate-900 hover:border-cyan-500'}`}>
+                                              <div className="flex items-center gap-3 overflow-hidden">
+                                                  <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${track.audioFile ? 'bg-green-500 text-slate-950' : 'bg-slate-700 text-slate-400'}`}>
+                                                      {track.audioFile ? <CheckCircle2 className="w-4 h-4" /> : <Music2 className="w-4 h-4" />}
+                                                  </div>
+                                                  <div className="min-w-0">
+                                                      <p className={`text-sm font-bold truncate ${track.audioFile ? 'text-green-400' : 'text-slate-400'}`}>
+                                                          {track.audioFile ? track.audioFile.name : "No file selected"}
+                                                      </p>
+                                                      {track.audioFile && <p className="text-[10px] text-slate-500">{(track.audioFile.size / 1024 / 1024).toFixed(2)} MB</p>}
+                                                  </div>
+                                              </div>
+                                              <button 
+                                                onClick={() => trackFileRefs.current[index]?.click()}
+                                                className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded font-bold transition-colors whitespace-nowrap"
+                                              >
+                                                  {track.audioFile ? 'Change' : 'Select File'}
+                                              </button>
+                                              <input 
+                                                type="file" 
+                                                accept="audio/*" 
+                                                className="hidden" 
+                                                ref={el => trackFileRefs.current[index] = el}
+                                                onChange={(e) => handleTrackFileUpload(index, e)}
+                                              />
+                                          </div>
                                       </div>
                                   </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-400 mb-1">ISRC (Optional)</label>
-                                      <input 
-                                        type="text" 
-                                        placeholder="Leave blank to auto-generate"
-                                        value={track.isrc || ''}
-                                        onChange={e => updateTrack(track.id, 'isrc', e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                      />
+
+                                  {/* Right Col: Credits & Flags */}
+                                  <div className="space-y-4">
+                                      <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                              <div className="flex justify-between items-center mb-1">
+                                                  <label className="block text-xs font-bold text-slate-400">Performers</label>
+                                                  {index === 0 && (
+                                                      <button onClick={() => applyToAll('performers', track.performers)} className="text-[10px] text-cyan-500 hover:underline flex items-center gap-0.5"><Copy className="w-2.5 h-2.5"/> All</button>
+                                                  )}
+                                              </div>
+                                              <input 
+                                                type="text" 
+                                                value={track.performers}
+                                                onChange={e => updateTrack(track.id, 'performers', e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                              />
+                                          </div>
+                                          <div>
+                                              <div className="flex justify-between items-center mb-1">
+                                                  <label className="block text-xs font-bold text-slate-400">Producers</label>
+                                                  {index === 0 && (
+                                                      <button onClick={() => applyToAll('producers', track.producers)} className="text-[10px] text-cyan-500 hover:underline flex items-center gap-0.5"><Copy className="w-2.5 h-2.5"/> All</button>
+                                                  )}
+                                              </div>
+                                              <input 
+                                                type="text" 
+                                                value={track.producers || ''}
+                                                onChange={e => updateTrack(track.id, 'producers', e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                              />
+                                          </div>
+                                      </div>
+
+                                      <div>
+                                          <div className="flex justify-between items-center mb-1">
+                                              <label className="block text-xs font-bold text-slate-400">Songwriters (Legal Names)</label>
+                                              {index === 0 && (
+                                                  <button onClick={() => applyToAll('songwriters', track.songwriters)} className="text-[10px] text-cyan-500 hover:underline flex items-center gap-0.5"><Copy className="w-2.5 h-2.5"/> All</button>
+                                              )}
+                                          </div>
+                                          <input 
+                                            type="text" 
+                                            placeholder="Separated by comma"
+                                            value={track.songwriters.join(', ')}
+                                            onChange={e => updateTrack(track.id, 'songwriters', e.target.value.split(', '))}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                          />
+                                      </div>
+
+                                      <div className="flex flex-wrap gap-4 pt-2">
+                                          <label className="flex items-center gap-2 cursor-pointer bg-slate-900 px-3 py-1.5 rounded border border-slate-700">
+                                              <input 
+                                                type="checkbox" 
+                                                checked={track.isExplicit} 
+                                                onChange={e => updateTrack(track.id, 'isExplicit', e.target.checked)}
+                                                className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                                              />
+                                              <span className="text-xs text-slate-300">Explicit</span>
+                                          </label>
+                                          <label className="flex items-center gap-2 cursor-pointer bg-slate-900 px-3 py-1.5 rounded border border-slate-700">
+                                              <input 
+                                                type="checkbox" 
+                                                checked={track.writerType === 'cover'} 
+                                                onChange={e => updateTrack(track.id, 'writerType', e.target.checked ? 'cover' : 'original')}
+                                                className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                                              />
+                                              <span className="text-xs text-slate-300">Cover Song</span>
+                                          </label>
+                                      </div>
+
+                                      {/* Cover Song Logic */}
+                                      {track.writerType === 'cover' && (
+                                          <div className="animate-in fade-in slide-in-from-top-2">
+                                              <label className="block text-xs font-bold text-slate-400 mb-1">Original Performing Artist</label>
+                                              <input 
+                                                type="text" 
+                                                placeholder="Who originally performed this?"
+                                                value={track.originalArtist || ''}
+                                                onChange={e => updateTrack(track.id, 'originalArtist', e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                              />
+                                          </div>
+                                      )}
                                   </div>
-                              </div>
-
-                              <div className="mb-4">
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">Songwriters (Required)</label>
-                                  <input 
-                                    type="text" 
-                                    placeholder="Full Legal Names, separated by comma"
-                                    value={track.songwriters.join(', ')}
-                                    onChange={e => updateTrack(track.id, 'songwriters', e.target.value.split(', '))}
-                                    className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                  />
-                              </div>
-
-                              <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-700">
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                      <input 
-                                        type="checkbox" 
-                                        checked={track.isExplicit} 
-                                        onChange={e => updateTrack(track.id, 'isExplicit', e.target.checked)}
-                                        className="rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
-                                      />
-                                      <span className="text-sm text-slate-300">Explicit Content</span>
-                                  </label>
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                      <input 
-                                        type="checkbox" 
-                                        checked={track.isInstrumental} 
-                                        onChange={e => updateTrack(track.id, 'isInstrumental', e.target.checked)}
-                                        className="rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
-                                      />
-                                      <span className="text-sm text-slate-300">Instrumental</span>
-                                  </label>
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                      <input 
-                                        type="checkbox" 
-                                        checked={track.isRadioEdit} 
-                                        onChange={e => updateTrack(track.id, 'isRadioEdit', e.target.checked)}
-                                        className="rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
-                                      />
-                                      <span className="text-sm text-slate-300">Radio Edit</span>
-                                  </label>
                               </div>
                           </div>
                       ))}
                   </div>
               </div>
 
-              {/* 4. Store Selection */}
+              {/* 4. Store Selection & Footer */}
               <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
                   <h3 className="font-bold text-white mb-4 flex items-center gap-2"><Server className="w-4 h-4 text-cyan-500"/> Stores & Services</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -461,7 +644,8 @@ export const MusicDistribution: React.FC = () => {
                     onClick={handleSubmit}
                     className="bg-green-500 hover:bg-green-400 text-slate-950 px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-green-500/20 transition-all flex items-center gap-2"
                   >
-                      <CheckCircle2 className="w-5 h-5" /> Submit to Stores
+                      {release.optBlockchainStorage ? <Lock className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />} 
+                      {release.optBlockchainStorage ? 'Secure & Submit' : 'Submit to Stores'}
                   </button>
               </div>
           </div>
@@ -485,7 +669,7 @@ export const MusicDistribution: React.FC = () => {
               </p>
               <div className="flex gap-4">
                   <button 
-                    onClick={() => setView('new-release')}
+                    onClick={() => setView('setup')}
                     className="bg-white text-indigo-950 px-8 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2 hover:scale-105"
                   >
                       <Upload className="w-4 h-4" /> Distribute New Release
@@ -510,7 +694,7 @@ export const MusicDistribution: React.FC = () => {
                      </div>
                      <div>
                          <h4 className="font-bold text-white text-sm">{partner.name}</h4>
-                         <span className="text-[10px] text-slate-500 block">External Link</span>
+                         <span className="text-xs text-slate-500 block">External Link</span>
                      </div>
                  </div>
              ))}

@@ -2,11 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, ArrowRight, Sparkles, Clock, CheckCircle2, Phone } from 'lucide-react';
 import { affiliateService } from '../services/affiliateService';
+import { webhookService } from '../services/webhookService';
+import { dataService } from '../services/dataService';
 import { User } from '../types';
-
-// Webhooks provided
-const WEBHOOK_PROD = "https://apps.taskmagic.com/api/v1/webhooks/JPKrlyiBI0keHNRdW38Hw";
-// const WEBHOOK_TEST = "https://apps.taskmagic.com/api/v1/webhooks/JPKrlyiBI0keHNRdW38Hw/test";
 
 export const WaitlistModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,7 +34,7 @@ export const WaitlistModal: React.FC = () => {
   };
 
   const validatePhone = (p: string) => {
-      // Basic regex for international or US numbers: allows +, spaces, dashes, parens, digits
+      // Basic regex for international or US numbers
       const regex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
       return regex.test(p);
   };
@@ -58,52 +56,35 @@ export const WaitlistModal: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Send data to GoHighLevel CRM via TaskMagic Webhook
-      const crmPayload = {
-          name,
-          email,
-          phone,
-          source: 'SoundForge Waitlist Modal',
-          date: new Date().toISOString(),
-          affiliateId: window.affiliateId || 'organic'
-      };
-
-      console.log('Sending CRM Data:', crmPayload);
-
-      try {
-          const response = await fetch(WEBHOOK_PROD, {
-              method: 'POST',
-              headers: { 
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(crmPayload),
-              // Use no-cors if backend doesn't support CORS options, but for JSON APIs typically they do or we want result
-              // If TaskMagic fails CORS, change to mode: 'no-cors' but we lose response status
-          });
-          
-          if (!response.ok) {
-              console.warn(`CRM Webhook warning: ${response.statusText}`);
-          } else {
-              console.log("CRM Webhook Success");
-          }
-      } catch (webhookErr) {
-          console.error("CRM Webhook Network Error:", webhookErr);
-          // Don't block the user flow if webhook fails, proceed to app logic
-      }
-
-      // 2. Track with Affiliate Service
-      // Create a temporary user object to track the lead
+      const leadId = `lead_${Date.now()}`;
+      
       const leadUser: User = {
-        uid: `lead_${Date.now()}`,
+        uid: leadId,
         email: email,
         displayName: name,
         phoneNumber: phone,
         photoURL: '',
         plan: 'free',
+        role: 'listener', // Initially listener/lead
         voiceShieldEnabled: false,
         walletBalance: 0
       };
 
+      // 1. Send System Webhook (Visible in Admin -> Logs)
+      // This sends to the configured external webhook AND stores a log entry
+      await webhookService.sendSystemEvent('signup', leadUser, {
+          source: 'waitlist_modal',
+          affiliateId: window.affiliateId || 'organic'
+      });
+
+      // 2. Save to Database/Cache (Visible in Admin -> Users)
+      await dataService.adminCreateUser({
+          ...leadUser,
+          role: 'listener', // Mark as listener/lead
+          plan: 'free'
+      });
+
+      // 3. Track with Affiliate Service
       await affiliateService.trackSignup(leadUser);
 
       // UI Feedback Delay

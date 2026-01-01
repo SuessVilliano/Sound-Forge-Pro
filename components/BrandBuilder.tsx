@@ -1,10 +1,12 @@
+
 import React, { useState, useRef } from 'react';
-import { Sparkles, MessageSquare, Target, Heart, Image as ImageIcon, Wand2, Download, Upload, Layers, Video, Play, Music, Scan, Eraser, Palette, Camera, Sun, Brush, X } from 'lucide-react';
-import { generateBrandImage, editBrandImage, generateVideoFromImage, analyzeImage } from '../services/geminiService';
+import { Sparkles, MessageSquare, Target, Heart, Image as ImageIcon, Wand2, Download, Upload, Layers, Video, Play, Music, Scan, Eraser, Palette, Camera, Sun, Brush, X, Sliders, RotateCcw, Clapperboard } from 'lucide-react';
+import { generateBrandImage, editBrandImage, generateVideoFromImage, analyzeImage, generateVideoFromText } from '../services/geminiService';
 
 type Tab = 'strategy' | 'visuals';
 type VisualMode = 'create' | 'enhance' | 'animate';
 type ImageSize = '1K' | '2K' | '4K';
+type AssetType = 'image' | 'video';
 type AspectRatio = '1:1' | '16:9' | '9:16' | '3:4';
 
 const ART_STYLES = ['Photorealistic', 'Cyberpunk', 'Anime', 'Oil Painting', 'Watercolor', 'Cinematic', 'Minimalist', 'Retro', '3D Render', 'Surrealism'];
@@ -34,6 +36,7 @@ export const BrandBuilder: React.FC = () => {
   
   // Visuals State
   const [visualMode, setVisualMode] = useState<VisualMode>('create');
+  const [assetType, setAssetType] = useState<AssetType>('image'); // New State for Video Generation
   const [imgPrompt, setImgPrompt] = useState('');
   const [imgSize, setImgSize] = useState<ImageSize>('1K');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
@@ -44,6 +47,14 @@ export const BrandBuilder: React.FC = () => {
   const [artStyle, setArtStyle] = useState('');
   const [camera, setCamera] = useState('');
   const [light, setLight] = useState('');
+  
+  // Image Adjustments
+  const [adjustments, setAdjustments] = useState({
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      hue: 0
+  });
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -64,8 +75,8 @@ export const BrandBuilder: React.FC = () => {
     if (!imgPrompt && visualMode === 'create') return;
     if (!uploadedImage && (visualMode === 'enhance' || visualMode === 'animate')) return;
 
-    // Check for API Key Selection for Veo (Animate mode)
-    if (visualMode === 'animate' && (window as any).aistudio) {
+    // Check for API Key Selection for Veo (Animate mode OR Create Video mode)
+    if ((visualMode === 'animate' || (visualMode === 'create' && assetType === 'video')) && (window as any).aistudio) {
         const hasKey = await (window as any).aistudio.hasSelectedApiKey();
         if (!hasKey) {
             await (window as any).aistudio.openSelectKey();
@@ -78,23 +89,39 @@ export const BrandBuilder: React.FC = () => {
     
     try {
       if (visualMode === 'create') {
-        // Construct enriched prompt
-        let enrichedPrompt = imgPrompt;
-        const enhancements = [];
-        if (artStyle) enhancements.push(`${artStyle} style`);
-        if (camera) enhancements.push(`${camera} shot`);
-        if (light) enhancements.push(`${light} lighting`);
-        
-        if (enhancements.length > 0) {
-            enrichedPrompt += `. (${enhancements.join(', ')})`;
-        }
+        if (assetType === 'video') {
+            // Text to Video (Veo)
+            let enrichedPrompt = imgPrompt;
+            if (artStyle) enrichedPrompt += `, ${artStyle} style`;
+            if (camera) enrichedPrompt += `, ${camera} shot`;
+            if (light) enrichedPrompt += `, ${light} lighting`;
+            
+            // For video, we might want to enforce 16:9 or 9:16
+            const videoRatio = (aspectRatio === '16:9' || aspectRatio === '9:16') ? aspectRatio : '16:9';
+            
+            const result = await generateVideoFromText(enrichedPrompt, videoRatio);
+            if (result) setGeneratedVideo(result);
 
-        const result = await generateBrandImage(enrichedPrompt, imgSize, aspectRatio);
-        if (result) setGeneratedImage(result);
+        } else {
+            // Text to Image (Imagen/Gemini)
+            let enrichedPrompt = imgPrompt;
+            const enhancements = [];
+            if (artStyle) enhancements.push(`${artStyle} style`);
+            if (camera) enhancements.push(`${camera} shot`);
+            if (light) enhancements.push(`${light} lighting`);
+            
+            if (enhancements.length > 0) {
+                enrichedPrompt += `. (${enhancements.join(', ')})`;
+            }
+
+            const result = await generateBrandImage(enrichedPrompt, imgSize, aspectRatio);
+            if (result) setGeneratedImage(result);
+        }
       } else if (visualMode === 'enhance' && uploadedImage) {
         const result = await editBrandImage(uploadedImage, imgPrompt, imgSize);
         if (result) setGeneratedImage(result);
       } else if (visualMode === 'animate' && uploadedImage) {
+        // Image to Video (Veo)
         // Force 16:9 or 9:16 for video if not set correctly, defaulting to 16:9
         const videoRatio = (aspectRatio === '16:9' || aspectRatio === '9:16') ? aspectRatio : '16:9';
         
@@ -146,6 +173,10 @@ export const BrandBuilder: React.FC = () => {
     }
   };
 
+  const resetAdjustments = () => {
+      setAdjustments({ brightness: 100, contrast: 100, saturation: 100, hue: 0 });
+  };
+
   const handleGenerateStrategy = () => {
     setIsGeneratingStrategy(true);
     // Simulate AI delay
@@ -154,6 +185,8 @@ export const BrandBuilder: React.FC = () => {
         setIsGeneratingStrategy(false);
     }, 2000);
   };
+
+  const activeImage = generatedImage || uploadedImage;
 
   return (
     <div className="space-y-6">
@@ -182,6 +215,7 @@ export const BrandBuilder: React.FC = () => {
 
       {activeTab === 'strategy' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+            {/* ... Strategy Content remains unchanged ... */}
             <div className="bg-slate-850 rounded-xl border border-slate-800 p-8">
                 <div className="flex items-center gap-3 mb-6">
                     <Sparkles className="w-6 h-6 text-green-400" />
@@ -342,60 +376,133 @@ export const BrandBuilder: React.FC = () => {
 
                     {/* AI Editing Tools for Enhance Mode */}
                     {visualMode === 'enhance' && (
-                        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-                            <label className="block text-xs font-bold text-slate-400 mb-3">AI Editing Tools</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                <button 
-                                    onClick={triggerRemoveBg}
-                                    className="flex flex-col items-center justify-center p-2 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 hover:border-cyan-500/50 transition-all"
-                                    title="Remove Background"
-                                >
-                                    <Eraser className="w-5 h-5 text-red-400 mb-1" />
-                                    <span className="text-[10px] text-slate-300">Remove BG</span>
-                                </button>
-                                
-                                <div className="relative group">
-                                    <button className="w-full h-full flex flex-col items-center justify-center p-2 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 hover:border-purple-500/50 transition-all relative">
-                                        <Palette className="w-5 h-5 text-purple-400 mb-1" />
-                                        <span className="text-[10px] text-slate-300">Style Transfer</span>
-                                        <select 
-                                            onChange={(e) => applyStyle(e.target.value)}
-                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                        >
-                                            <option value="">Select Style...</option>
-                                            <option value="Cyberpunk">Cyberpunk</option>
-                                            <option value="Watercolor">Watercolor</option>
-                                            <option value="Oil Painting">Oil Painting</option>
-                                            <option value="Pencil Sketch">Pencil Sketch</option>
-                                            <option value="3D Render">3D Render</option>
-                                        </select>
+                        <>
+                            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                                <label className="block text-xs font-bold text-slate-400 mb-3">AI Editing Tools</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button 
+                                        onClick={triggerRemoveBg}
+                                        className="flex flex-col items-center justify-center p-2 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 hover:border-cyan-500/50 transition-all"
+                                        title="Remove Background"
+                                    >
+                                        <Eraser className="w-5 h-5 text-red-400 mb-1" />
+                                        <span className="text-[10px] text-slate-300">Remove BG</span>
+                                    </button>
+                                    
+                                    <div className="relative group">
+                                        <button className="w-full h-full flex flex-col items-center justify-center p-2 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 hover:border-purple-500/50 transition-all relative">
+                                            <Palette className="w-5 h-5 text-purple-400 mb-1" />
+                                            <span className="text-[10px] text-slate-300">Style Transfer</span>
+                                            <select 
+                                                onChange={(e) => applyStyle(e.target.value)}
+                                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                            >
+                                                <option value="">Select Style...</option>
+                                                <option value="Cyberpunk">Cyberpunk</option>
+                                                <option value="Watercolor">Watercolor</option>
+                                                <option value="Oil Painting">Oil Painting</option>
+                                                <option value="Pencil Sketch">Pencil Sketch</option>
+                                                <option value="3D Render">3D Render</option>
+                                            </select>
+                                        </button>
+                                    </div>
+
+                                    <button 
+                                        onClick={handleAnalyze}
+                                        disabled={isAnalyzing || !uploadedImage}
+                                        className="flex flex-col items-center justify-center p-2 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 hover:border-green-500/50 transition-all disabled:opacity-50"
+                                    >
+                                        {isAnalyzing ? <div className="w-5 h-5 border-2 border-green-400 border-t-transparent rounded-full animate-spin mb-1"></div> : <Scan className="w-5 h-5 text-green-400 mb-1" />}
+                                        <span className="text-[10px] text-slate-300">Detect Objects</span>
                                     </button>
                                 </div>
-
-                                <button 
-                                    onClick={handleAnalyze}
-                                    disabled={isAnalyzing || !uploadedImage}
-                                    className="flex flex-col items-center justify-center p-2 bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 hover:border-green-500/50 transition-all disabled:opacity-50"
-                                >
-                                    {isAnalyzing ? <div className="w-5 h-5 border-2 border-green-400 border-t-transparent rounded-full animate-spin mb-1"></div> : <Scan className="w-5 h-5 text-green-400 mb-1" />}
-                                    <span className="text-[10px] text-slate-300">Detect Objects</span>
-                                </button>
+                                {detectedObjects.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-top-2">
+                                        {detectedObjects.map((obj, i) => (
+                                            <span key={i} className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] rounded-full border border-green-500/20">
+                                                {obj}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                            {detectedObjects.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-top-2">
-                                    {detectedObjects.map((obj, i) => (
-                                        <span key={i} className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] rounded-full border border-green-500/20">
-                                            {obj}
-                                        </span>
-                                    ))}
+
+                            {/* Color & Tone Adjustments */}
+                            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="block text-xs font-bold text-slate-400">Color & Tone</label>
+                                    <button onClick={resetAdjustments} className="text-[10px] text-cyan-400 flex items-center gap-1 hover:text-cyan-300">
+                                        <RotateCcw className="w-3 h-3" /> Reset
+                                    </button>
                                 </div>
-                            )}
-                        </div>
+                                <div className="space-y-3">
+                                    <div>
+                                        <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                            <span>Brightness</span>
+                                            <span>{adjustments.brightness}%</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0" max="200" value={adjustments.brightness} 
+                                            onChange={(e) => setAdjustments({...adjustments, brightness: Number(e.target.value)})}
+                                            className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                            <span>Contrast</span>
+                                            <span>{adjustments.contrast}%</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0" max="200" value={adjustments.contrast} 
+                                            onChange={(e) => setAdjustments({...adjustments, contrast: Number(e.target.value)})}
+                                            className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                            <span>Saturation</span>
+                                            <span>{adjustments.saturation}%</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0" max="200" value={adjustments.saturation} 
+                                            onChange={(e) => setAdjustments({...adjustments, saturation: Number(e.target.value)})}
+                                            className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                            <span>Hue Rotate</span>
+                                            <span>{adjustments.hue}°</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="0" max="360" value={adjustments.hue} 
+                                            onChange={(e) => setAdjustments({...adjustments, hue: Number(e.target.value)})}
+                                            className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </>
                     )}
 
                     {/* GRANULAR CONTROLS FOR CREATE MODE */}
                     {visualMode === 'create' && (
                          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 space-y-3">
+                             <div className="flex gap-2 mb-2">
+                                <button
+                                    onClick={() => setAssetType('image')}
+                                    className={`flex-1 py-1.5 rounded text-xs font-bold transition-all flex items-center justify-center gap-1 ${assetType === 'image' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-700 text-slate-300'}`}
+                                >
+                                    <ImageIcon className="w-3 h-3" /> Image
+                                </button>
+                                <button
+                                    onClick={() => { setAssetType('video'); setAspectRatio('16:9'); }}
+                                    className={`flex-1 py-1.5 rounded text-xs font-bold transition-all flex items-center justify-center gap-1 ${assetType === 'video' ? 'bg-green-500 text-slate-950' : 'bg-slate-700 text-slate-300'}`}
+                                >
+                                    <Clapperboard className="w-3 h-3" /> Video
+                                </button>
+                             </div>
+
                              <div className="grid grid-cols-2 gap-3">
                                  <div>
                                     <label className="flex items-center gap-1 text-[10px] font-bold text-slate-400 mb-1">
@@ -430,13 +537,13 @@ export const BrandBuilder: React.FC = () => {
 
                     <div>
                         <label className="block text-xs font-bold text-slate-400 mb-2">
-                            {visualMode === 'create' ? 'Image Description' : visualMode === 'animate' ? 'Promo / Motion Description' : 'Enhancement Instructions'}
+                            {visualMode === 'create' ? (assetType === 'video' ? 'Video Prompt' : 'Image Description') : visualMode === 'animate' ? 'Promo / Motion Description' : 'Enhancement Instructions'}
                         </label>
                         <textarea 
                             value={imgPrompt}
                             onChange={(e) => setImgPrompt(e.target.value)}
                             placeholder={
-                                visualMode === 'create' ? "e.g. A futuristic cyberpunk album cover with neon lights and a robot..." :
+                                visualMode === 'create' ? (assetType === 'video' ? "e.g. A neon cyber city with flying cars zooming past, rain falling..." : "e.g. A futuristic cyberpunk album cover with neon lights and a robot...") :
                                 visualMode === 'animate' ? "e.g. Make the lights flicker to the beat, smooth camera pan, promote my new single 'Midnight'..." :
                                 "e.g. Make it look more cinematic, add blue and purple lighting, high contrast..."
                             }
@@ -474,7 +581,7 @@ export const BrandBuilder: React.FC = () => {
                     )}
 
                     <div className="grid grid-cols-2 gap-4">
-                        {visualMode !== 'animate' && (
+                        {visualMode !== 'animate' && assetType !== 'video' && (
                         <div>
                              <label className="block text-xs font-bold text-slate-400 mb-2">Quality / Size</label>
                              <select 
@@ -488,14 +595,14 @@ export const BrandBuilder: React.FC = () => {
                              </select>
                         </div>
                         )}
-                        <div className={visualMode === 'animate' ? 'col-span-2' : ''}>
+                        <div className={visualMode === 'animate' || assetType === 'video' ? 'col-span-2' : ''}>
                              <label className="block text-xs font-bold text-slate-400 mb-2">Aspect Ratio</label>
                              <select 
                                 value={aspectRatio} 
                                 onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
                             >
-                                {visualMode === 'animate' ? (
+                                {visualMode === 'animate' || assetType === 'video' ? (
                                     <>
                                         <option value="16:9">16:9 (Landscape Video)</option>
                                         <option value="9:16">9:16 (Portrait Video)</option>
@@ -516,6 +623,7 @@ export const BrandBuilder: React.FC = () => {
                         onClick={handleGeneration}
                         disabled={isGenerating || (!imgPrompt && visualMode === 'create') || ((visualMode === 'enhance' || visualMode === 'animate') && !uploadedImage)}
                         className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                            visualMode === 'create' && assetType === 'video' ? 'bg-green-500 hover:bg-green-400 text-slate-950' :
                             visualMode === 'create' ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950' : 
                             visualMode === 'animate' ? 'bg-green-500 hover:bg-green-400 text-slate-950' :
                             'bg-purple-500 hover:bg-purple-400 text-white'
@@ -524,17 +632,20 @@ export const BrandBuilder: React.FC = () => {
                         {isGenerating ? (
                             <div className="flex items-center gap-2">
                                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                {visualMode === 'animate' ? 'Generating Video...' : 'Processing...'}
+                                {visualMode === 'animate' || assetType === 'video' ? 'Generating Video...' : 'Processing...'}
                             </div>
                         ) : (
                             <>
-                                {visualMode === 'animate' ? <Video className="w-4 h-4" /> : <Wand2 className="w-4 h-4" />} 
-                                {visualMode === 'create' ? 'Generate Image' : visualMode === 'animate' ? 'Generate Promo Video' : 'Enhance Image'}
+                                {visualMode === 'animate' || assetType === 'video' ? <Video className="w-4 h-4" /> : <Wand2 className="w-4 h-4" />} 
+                                {visualMode === 'create' 
+                                    ? (assetType === 'video' ? 'Generate Video' : 'Generate Image') 
+                                    : visualMode === 'animate' ? 'Generate Promo Video' : 'Enhance Image'
+                                }
                             </>
                         )}
                     </button>
                     <p className="text-[10px] text-center text-slate-500">
-                        Powered by {visualMode === 'animate' ? 'Veo' : 'Gemini 3 Pro'}
+                        Powered by {visualMode === 'animate' || assetType === 'video' ? 'Veo' : 'Gemini 3 Pro'}
                     </p>
                 </div>
              </div>
@@ -550,34 +661,43 @@ export const BrandBuilder: React.FC = () => {
                              <div>
                                  <p className="text-white font-bold text-sm flex items-center gap-2">
                                      <Music className="w-4 h-4 text-cyan-400" />
-                                     Generated Music Promo
+                                     Generated Video Asset
                                  </p>
-                                 <p className="text-xs text-slate-400">720p • {aspectRatio} • {motionStyle}</p>
+                                 <p className="text-xs text-slate-400">720p • {aspectRatio} • Veo</p>
                              </div>
-                             <a href={generatedVideo} download="music-promo.mp4" className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                             <a href={generatedVideo} download="generated-video.mp4" className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
                                  <Download className="w-4 h-4" /> Download
                              </a>
                          </div>
                     </div>
-                ) : generatedImage ? (
+                ) : activeImage ? (
                     <div className="relative w-full h-full flex flex-col">
                          <div className="flex-1 p-8 flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-repeat">
-                            <img src={generatedImage} alt="Generated Result" className="max-w-full max-h-[500px] rounded-lg shadow-2xl border border-slate-700" />
+                            <img 
+                                src={activeImage} 
+                                alt="Result" 
+                                className="max-w-full max-h-[500px] rounded-lg shadow-2xl border border-slate-700 transition-all duration-200" 
+                                style={{
+                                    filter: `brightness(${adjustments.brightness}%) contrast(${adjustments.contrast}%) saturate(${adjustments.saturation}%) hue-rotate(${adjustments.hue}deg)`
+                                }}
+                            />
                          </div>
                          <div className="bg-slate-850 border-t border-slate-800 p-4 flex justify-between items-center">
                              <div>
-                                 <p className="text-white font-bold text-sm">Generated Asset</p>
-                                 <p className="text-xs text-slate-400">{imgSize} • {aspectRatio}</p>
+                                 <p className="text-white font-bold text-sm">{generatedImage ? 'Generated Asset' : 'Source Image Preview'}</p>
+                                 <p className="text-xs text-slate-400">{imgSize} • {aspectRatio} • Filters Applied</p>
                              </div>
-                             <a href={generatedImage} download="brand-asset.png" className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
-                                 <Download className="w-4 h-4" /> Download
-                             </a>
+                             {generatedImage && (
+                                 <a href={generatedImage} download="brand-asset.png" className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                                     <Download className="w-4 h-4" /> Download
+                                 </a>
+                             )}
                          </div>
                     </div>
                 ) : (
                     <div className="text-center text-slate-500 max-w-sm px-4">
                         <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                            {visualMode === 'animate' ? <Video className="w-10 h-10 opacity-50" /> : <ImageIcon className="w-10 h-10 opacity-50" />}
+                            {visualMode === 'animate' || assetType === 'video' ? <Video className="w-10 h-10 opacity-50" /> : <ImageIcon className="w-10 h-10 opacity-50" />}
                         </div>
                         <h3 className="text-xl font-bold text-slate-400 mb-2">Visual Workspace</h3>
                         <p className="text-sm">

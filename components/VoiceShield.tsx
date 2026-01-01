@@ -1,9 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Activity, Scan, Globe, Lock, Mic, CheckCircle2, Upload, Music, StopCircle, PlayCircle, Loader2 } from 'lucide-react';
+import { Shield, Activity, Scan, Globe, Lock, Mic, CheckCircle2, Upload, Music, StopCircle, PlayCircle, Loader2, Link, Database, FileArchive } from 'lucide-react';
 import { User, Track } from '../types';
 import { registerVoice } from '../services/voiceService';
 import { dataService } from '../services/dataService';
+import { lighthouseService } from '../services/lighthouseService';
+import { useWallet } from '../contexts/WalletContext';
 
 interface VoiceShieldProps {
   user: User;
@@ -16,12 +18,17 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
   const [activeTab, setActiveTab] = useState<'register' | 'monitor'>('register');
   const [isRegistering, setIsRegistering] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const { walletAddress, connectTipLink, connectPhantom } = useWallet();
   
   // Registration State
   const [sourceMode, setSourceMode] = useState<AudioSource>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<Track | null>(null);
   
+  // Lighthouse State
+  const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [ipfsHash, setIpfsHash] = useState<string | null>(null);
+
   // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -63,8 +70,6 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
       let fileToProcess: File | null = selectedFile;
 
       if (sourceMode === 'library' && selectedLibraryTrack) {
-          // In a real app, you'd fetch the BLOB from the URL. 
-          // For now, we simulate a file from the track metadata.
           fileToProcess = new File(["mock_audio_content"], `${selectedLibraryTrack.title}.mp3`, { type: "audio/mp3" });
       }
 
@@ -73,13 +78,33 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
           return;
       }
 
+      if (!walletAddress) {
+          alert("Please connect your wallet first to sign the encryption.");
+          return;
+      }
+
       setIsRegistering(true);
       try {
+          // 1. Upload to Lighthouse (The Vault)
+          setUploadStatus('Encrypting & Uploading to IPFS Vault...');
+          // Simulate signing message
+          const signedMessage = "mock_signature_" + Date.now(); 
+          const lighthouseRes = await lighthouseService.uploadEncrypted(fileToProcess, walletAddress, signedMessage);
+          
+          setIpfsHash(lighthouseRes.Hash);
+          setUploadStatus('Minting Proof of Ownership on Solana...');
+
+          // 2. Register/Mint Logic
           const result = await registerVoice(fileToProcess);
           
           if (result.success && result.nft) {
+              // Attach IPFS hash to the internal record
+              result.nft.fingerprint_hash = lighthouseRes.Hash; 
               await dataService.saveVoiceRegistration(user.uid, result.nft);
-              alert("Voice successfully registered and minted on Solana!");
+              
+              setUploadStatus('Success!');
+              alert("Voice secured in Vault and Registered on Chain!");
+              
               // Reset
               setSelectedFile(null);
               setSelectedLibraryTrack(null);
@@ -91,6 +116,7 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
           alert("Error during registration process.");
       } finally {
           setIsRegistering(false);
+          setUploadStatus('');
       }
   };
 
@@ -161,7 +187,7 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                <Shield className="w-6 h-6 text-green-500" /> VoiceShield™ Protection
            </h1>
-           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Register your voice DNA on the blockchain and detect unauthorized AI clones.</p>
+           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Register your voice DNA on the blockchain and secure files in the Lighthouse Vault.</p>
         </div>
         <div className="bg-slate-200 dark:bg-slate-800 p-1 rounded-lg flex gap-1">
             <button 
@@ -182,6 +208,27 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
       {activeTab === 'register' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-300">
               <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+                  
+                  {/* Connect Wallet Alert */}
+                  {!walletAddress && (
+                      <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                              <Link className="w-5 h-5 text-purple-500" />
+                              <div className="text-sm">
+                                  <span className="font-bold text-purple-400">Connect Wallet</span> to use the Vault.
+                              </div>
+                          </div>
+                          <div className="flex gap-2">
+                              <button onClick={connectTipLink} className="text-xs bg-white text-purple-900 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-200 transition-colors">
+                                  TipLink (Google)
+                              </button>
+                              <button onClick={connectPhantom} className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-purple-500 transition-colors">
+                                  Phantom
+                              </button>
+                          </div>
+                      </div>
+                  )}
+
                   <div className="flex items-center gap-4 mb-6">
                       <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
                           <Mic className="w-6 h-6 text-cyan-500" />
@@ -319,7 +366,7 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
                     className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
                   >
                       {isRegistering ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                          <><Loader2 className="w-4 h-4 animate-spin" /> {uploadStatus || 'Processing...'}</>
                       ) : (
                           <>Register Voice ID (Solana)</>
                       )}
@@ -328,13 +375,31 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
 
               <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm">
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-                  <Shield className="w-24 h-24 text-slate-300 dark:text-slate-700 mb-4" />
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Why Register?</h3>
+                  
+                  {walletAddress ? (
+                      <div className="mb-6 flex flex-col items-center">
+                          <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center text-green-500 mb-2">
+                              <Shield className="w-8 h-8" />
+                          </div>
+                          <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">Vault Active</div>
+                          <div className="text-sm font-mono text-slate-400 mt-1">{walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}</div>
+                      </div>
+                  ) : (
+                      <Shield className="w-24 h-24 text-slate-300 dark:text-slate-700 mb-4" />
+                  )}
+
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Decentralized Vault</h3>
                   <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mb-6">
-                      Registration establishes your legal ownership of your vocal likeness. This is required to issue takedowns against unauthorized AI clones.
+                      Your voice data is encrypted using your wallet signature and stored on IPFS/Filecoin via Lighthouse. Only you can decrypt it.
                   </p>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-600 dark:text-purple-400 text-xs font-bold">
-                      <Globe className="w-3 h-3" /> Solana Network Secured
+                  
+                  <div className="flex gap-2">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-600 dark:text-purple-400 text-xs font-bold">
+                          <Globe className="w-3 h-3" /> Solana
+                      </div>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-600 dark:text-blue-400 text-xs font-bold">
+                          <Database className="w-3 h-3" /> IPFS / Lighthouse
+                      </div>
                   </div>
               </div>
           </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Play, Heart, Download, Share2, MoreHorizontal, Music, Scissors, Plus, Trash2, Clock, Save } from 'lucide-react';
+import { Search, Filter, Play, Heart, Download, Edit3, Music, Scissors, Plus, Trash2, Clock, Save, ArrowUpDown, DollarSign, ListFilter, Tag, FileText, Check } from 'lucide-react';
 import { Track } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { dataService } from '../services/dataService';
@@ -28,7 +28,7 @@ const INITIAL_CATALOG: CatalogTrack[] = [
         mood_tags: ['Synthwave', 'Driving'], 
         duration: '3:45', 
         plays: 152000, 
-        earnings: 0, 
+        earnings: 1250.45, 
         image: 'https://picsum.photos/300/300?random=10', 
         audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 
         licenseType: 'sync-ready', 
@@ -38,31 +38,36 @@ const INITIAL_CATALOG: CatalogTrack[] = [
             { time: '0:45', label: 'Drop', description: 'Heavy bass enters' }
         ]
     },
-    { id: 'c2', title: 'Golden Hour', artist: 'Solar Beats', bpm: 95, key: 'C', mood_tags: ['Chill', 'Lo-Fi'], duration: '2:30', plays: 89000, earnings: 0, image: 'https://picsum.photos/300/300?random=11', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', licenseType: 'exclusive', genre: 'Hip Hop', syncPoints: [] },
-    { id: 'c3', title: 'Cyber War', artist: 'Glitch Mob', bpm: 140, key: 'Dm', mood_tags: ['Dark', 'Industrial'], duration: '4:10', plays: 45000, earnings: 0, image: 'https://picsum.photos/300/300?random=12', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', licenseType: 'non-exclusive', genre: 'Electronic', syncPoints: [] },
-    { id: 'c4', title: 'Ocean Breeze', artist: 'Acoustic Soul', bpm: 85, key: 'G', mood_tags: ['Acoustic', 'Happy'], duration: '3:15', plays: 67000, earnings: 0, image: 'https://picsum.photos/300/300?random=13', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', licenseType: 'sync-ready', genre: 'Acoustic', syncPoints: [] },
-    { id: 'c5', title: 'Summer Love', artist: 'The Starlets', bpm: 120, key: 'F', mood_tags: ['Fun', 'Summer'], duration: '3:10', plays: 12000, earnings: 0, image: 'https://picsum.photos/300/300?random=14', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', licenseType: 'sync-ready', genre: 'Pop', syncPoints: [] },
-    { id: 'c6', title: 'Gritty Road', artist: 'Black Rebel', bpm: 145, key: 'E', mood_tags: ['Distorted', 'Heavy'], duration: '2:50', plays: 3000, earnings: 0, image: 'https://picsum.photos/300/300?random=15', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', licenseType: 'non-exclusive', genre: 'Rock', syncPoints: [] },
+    { id: 'c2', title: 'Golden Hour', artist: 'Solar Beats', bpm: 95, key: 'C', mood_tags: ['Chill', 'Lo-Fi'], duration: '2:30', plays: 89000, earnings: 450.20, image: 'https://picsum.photos/300/300?random=11', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', licenseType: 'exclusive', genre: 'Hip Hop', syncPoints: [] },
+    { id: 'c3', title: 'Cyber War', artist: 'Glitch Mob', bpm: 140, key: 'Dm', mood_tags: ['Dark', 'Industrial'], duration: '4:10', plays: 45000, earnings: 890.00, image: 'https://picsum.photos/300/300?random=12', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', licenseType: 'non-exclusive', genre: 'Electronic', syncPoints: [] },
+    { id: 'c4', title: 'Ocean Breeze', artist: 'Acoustic Soul', bpm: 85, key: 'G', mood_tags: ['Acoustic', 'Happy'], duration: '3:15', plays: 67000, earnings: 320.50, image: 'https://picsum.photos/300/300?random=13', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', licenseType: 'sync-ready', genre: 'Acoustic', syncPoints: [] },
+    { id: 'c5', title: 'Summer Love', artist: 'The Starlets', bpm: 120, key: 'F', mood_tags: ['Fun', 'Summer'], duration: '3:10', plays: 12000, earnings: 50.10, image: 'https://picsum.photos/300/300?random=14', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', licenseType: 'sync-ready', genre: 'Pop', syncPoints: [] },
+    { id: 'c6', title: 'Gritty Road', artist: 'Black Rebel', bpm: 145, key: 'E', mood_tags: ['Distorted', 'Heavy'], duration: '2:50', plays: 3000, earnings: 10.05, image: 'https://picsum.photos/300/300?random=15', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', licenseType: 'non-exclusive', genre: 'Rock', syncPoints: [] },
 ];
 
 const GENRES = ['Pop', 'Rock', 'Electronic', 'Hip Hop', 'Acoustic'];
+const LICENSES = ['exclusive', 'non-exclusive', 'sync-ready'];
 
 export const MusicCatalog: React.FC = () => {
   // Initialize tracks by merging static catalog with persisted play counts
   const [tracks, setTracks] = useState<CatalogTrack[]>(() => {
       const savedPlays = dataService.getCatalogPlays();
-      return INITIAL_CATALOG.map(t => ({
+      return INITIAL_CATALOG.map((t, index) => ({
           ...t,
           plays: t.plays + (savedPlays[t.id] || 0),
-          // Ensure syncPoints exists, defaulting to empty array if missing
-          syncPoints: t.syncPoints || []
+          syncPoints: t.syncPoints || [],
+          createdAt: t.createdAt || new Date(Date.now() - (index * 86400000 * 5)).toISOString()
       }));
   });
 
   const [filter, setFilter] = useState('all'); // License/Status Filter
   const [genreFilter, setGenreFilter] = useState('all'); // Genre Filter
   const [search, setSearch] = useState('');
+  const [sortMode, setSortMode] = useState<'newest' | 'oldest' | 'plays' | 'earnings'>('newest');
+  
+  // Expanded Row State
   const [expandedTrackId, setExpandedTrackId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'details' | 'sync'>('details');
   
   // Favorites State with persistence
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -76,48 +81,77 @@ export const MusicCatalog: React.FC = () => {
 
   const { playTrack } = usePlayer();
 
-  // Persist to LocalStorage whenever favorites change
+  // Persist to LocalStorage whenever favorites change AND dispatch event
+  // Using a separate effect to ensure any change to favorites state is synced
   useEffect(() => {
       localStorage.setItem('sf_track_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
-  // Sync across tabs
+  // Sync across tabs and same-window components
   useEffect(() => {
+    const syncFavoritesFromStorage = () => {
+        try {
+            const saved = localStorage.getItem('sf_track_favorites');
+            const newFavorites = saved ? JSON.parse(saved) : [];
+            setFavorites(newFavorites);
+        } catch (error) {
+            console.error('Error syncing favorites', error);
+        }
+    };
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sf_track_favorites') {
-        try {
-          const newFavorites = e.newValue ? JSON.parse(e.newValue) : [];
-          setFavorites(newFavorites);
-        } catch (error) {
-          console.error('Error parsing favorites from storage event', error);
-        }
+        syncFavoritesFromStorage();
       }
     };
 
+    // Listen for custom event from other components (Player, My Music)
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('favoritesUpdated', syncFavoritesFromStorage);
+    
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('favoritesUpdated', syncFavoritesFromStorage);
+    };
   }, []);
 
   const toggleFavorite = (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      setFavorites(prev => 
-          prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
-      );
+      setFavorites(prev => {
+          const isFavorited = prev.includes(id);
+          const next = isFavorited ? prev.filter(fav => fav !== id) : [...prev, id];
+          // We set it to storage immediately to minimize race conditions 
+          // but the useEffect above will also handle it.
+          localStorage.setItem('sf_track_favorites', JSON.stringify(next));
+          // Notify other components (Player, My Music)
+          window.dispatchEvent(new Event('favoritesUpdated'));
+          return next;
+      });
   };
 
   const handlePlay = (track: CatalogTrack) => {
       playTrack(track);
       dataService.incrementPlayCount(track.id);
       
-      // Update local state immediately to reflect the new play count
+      const newEarnings = (track.earnings || 0) + 0.004;
+      
       setTracks(prev => prev.map(t => 
-          t.id === track.id ? { ...t, plays: t.plays + 1 } : t
+          t.id === track.id ? { ...t, plays: t.plays + 1, earnings: newEarnings } : t
       ));
   };
 
-  const toggleSyncEditor = (e: React.MouseEvent, id: string) => {
+  const toggleExpanded = (e: React.MouseEvent, id: string, tab: 'details' | 'sync') => {
       e.stopPropagation();
-      setExpandedTrackId(prev => prev === id ? null : id);
+      if (expandedTrackId === id && activeTab === tab) {
+          setExpandedTrackId(null);
+      } else {
+          setExpandedTrackId(id);
+          setActiveTab(tab);
+      }
+  };
+
+  const handleUpdateTrack = (id: string, field: keyof CatalogTrack, value: any) => {
+      setTracks(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
   };
 
   const handleAddSyncPoint = (trackId: string) => {
@@ -158,13 +192,28 @@ export const MusicCatalog: React.FC = () => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase());
     const matchesGenre = genreFilter === 'all' || t.genre === genreFilter;
     
-    // License/Favorites Filter Logic
     if (filter === 'favorites') {
         return favorites.includes(t.id) && matchesSearch && matchesGenre;
     }
     
+    // Exact match for license type or 'all'
     const matchesLicense = filter === 'all' || t.licenseType === filter;
     return matchesLicense && matchesSearch && matchesGenre;
+  });
+
+  const sortedTracks = [...filteredTracks].sort((a, b) => {
+      switch (sortMode) {
+          case 'newest':
+              return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+          case 'oldest':
+              return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+          case 'plays':
+              return b.plays - a.plays;
+          case 'earnings':
+              return b.earnings - a.earnings;
+          default:
+              return 0;
+      }
   });
 
   return (
@@ -175,7 +224,7 @@ export const MusicCatalog: React.FC = () => {
                 <p className="text-slate-500 dark:text-slate-400 mt-2">Discover sync-ready tracks from top AI artists.</p>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input 
@@ -183,48 +232,38 @@ export const MusicCatalog: React.FC = () => {
                         placeholder="Search tracks..." 
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-cyan-500 w-64"
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-cyan-500 w-64 shadow-sm"
                     />
                 </div>
-                <button className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700">
-                    <Filter className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                </button>
+                
+                <div className="relative">
+                    <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <select
+                        value={sortMode}
+                        onChange={(e) => setSortMode(e.target.value as any)}
+                        className="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full py-2 pl-10 pr-8 text-sm focus:outline-none focus:border-cyan-500 cursor-pointer text-slate-700 dark:text-slate-300 shadow-sm"
+                    >
+                        <option value="newest">Newest</option>
+                        <option value="oldest">Oldest</option>
+                        <option value="plays">Most Plays</option>
+                        <option value="earnings">Top Earnings</option>
+                    </select>
+                </div>
             </div>
         </div>
 
-        {/* Featured / Trending */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl p-8 relative overflow-hidden group cursor-pointer">
-                <div className="relative z-10">
-                    <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white mb-4 inline-block">Trending Now</span>
-                    <h2 className="text-3xl font-bold text-white mb-2">Cyberpunk Collection</h2>
-                    <p className="text-purple-200 mb-6">Dark, gritty, and futuristic synthwave tracks.</p>
-                    <button className="bg-white text-purple-900 px-6 py-2 rounded-full font-bold text-sm hover:bg-purple-100 transition-colors">Explore</button>
-                </div>
-                <img src="https://picsum.photos/600/400?random=20" className="absolute right-0 top-0 h-full w-2/3 object-cover opacity-30 group-hover:scale-105 transition-transform duration-700" alt="Featured" />
-            </div>
-            <div className="bg-gradient-to-br from-cyan-900 to-teal-900 rounded-2xl p-8 relative overflow-hidden group cursor-pointer">
-                <div className="relative z-10">
-                    <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white mb-4 inline-block">New Arrivals</span>
-                    <h2 className="text-3xl font-bold text-white mb-2">Lo-Fi Beats</h2>
-                    <p className="text-cyan-200 mb-6">Chill vibes for study and relaxation.</p>
-                    <button className="bg-white text-teal-900 px-6 py-2 rounded-full font-bold text-sm hover:bg-teal-100 transition-colors">Explore</button>
-                </div>
-                <img src="https://picsum.photos/600/400?random=21" className="absolute right-0 top-0 h-full w-2/3 object-cover opacity-30 group-hover:scale-105 transition-transform duration-700" alt="Featured" />
-            </div>
-        </div>
-
+        {/* Filter Controls Area */}
         <div className="space-y-4">
-            {/* Filter Tabs */}
+            {/* Main Filters */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {['all', 'favorites', 'sync-ready', 'exclusive', 'non-exclusive'].map(f => (
                     <button 
                         key={f}
                         onClick={() => setFilter(f)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold capitalize whitespace-nowrap transition-all flex items-center gap-2 ${
+                        className={`px-4 py-2 rounded-full text-sm font-bold capitalize whitespace-nowrap transition-all flex items-center gap-2 border ${
                             filter === f 
-                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md' 
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-md' 
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                     >
                         {f === 'favorites' && <Heart className={`w-3.5 h-3.5 ${filter === f ? 'fill-current' : ''}`} />}
@@ -233,8 +272,11 @@ export const MusicCatalog: React.FC = () => {
                 ))}
             </div>
 
-            {/* Genre Filter Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {/* Genre Pills */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wide mr-2 flex items-center gap-1">
+                    <ListFilter className="w-3 h-3" /> Genre:
+                </span>
                 <button
                     onClick={() => setGenreFilter('all')}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
@@ -243,7 +285,7 @@ export const MusicCatalog: React.FC = () => {
                         : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400 dark:hover:border-slate-500'
                     }`}
                 >
-                    All Genres
+                    All
                 </button>
                 {GENRES.map(g => (
                     <button 
@@ -270,15 +312,16 @@ export const MusicCatalog: React.FC = () => {
                             <th className="py-4 pl-6 w-12">#</th>
                             <th className="py-4">Title</th>
                             <th className="py-4">Genre</th>
-                            <th className="py-4">Tags</th>
                             <th className="py-4">BPM/Key</th>
+                            <th className="py-4 text-right">Plays</th>
+                            <th className="py-4 text-right">Earnings</th>
                             <th className="py-4 text-right pr-6">Duration</th>
                             <th className="py-4 w-28 text-right pr-6">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredTracks.length > 0 ? (
-                            filteredTracks.map((track, i) => {
+                        {sortedTracks.length > 0 ? (
+                            sortedTracks.map((track, i) => {
                                 const isFav = favorites.includes(track.id);
                                 const isExpanded = expandedTrackId === track.id;
                                 
@@ -297,34 +340,42 @@ export const MusicCatalog: React.FC = () => {
                                                     <div>
                                                         <span className="font-bold text-slate-900 dark:text-white text-sm block">{track.title}</span>
                                                         <span className="text-xs text-slate-500 dark:text-slate-400">{track.artist}</span>
+                                                        <div className="flex gap-1 mt-1">
+                                                            {track.mood_tags.slice(0,2).map(tag => (
+                                                                <span key={tag} className="text-[9px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded text-slate-500">
+                                                                    {tag}
+                                                                </span>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="py-3 text-slate-600 dark:text-slate-300 text-sm">{track.genre}</td>
-                                            <td className="py-3">
-                                                <div className="flex gap-1">
-                                                    {track.mood_tags.map(tag => (
-                                                        <span key={tag} className="text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full text-slate-500">
-                                                            {tag}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </td>
                                             <td className="py-3 text-slate-500 text-sm">{track.bpm} • {track.key}</td>
-                                            <td className="py-3 text-right pr-6 text-slate-500 text-sm font-mono flex flex-col items-end justify-center">
-                                                <span>{track.duration}</span>
-                                                <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                                    <Play className="w-2 h-2" /> {track.plays.toLocaleString()}
-                                                </span>
+                                            <td className="py-3 text-right text-slate-600 dark:text-slate-300 text-sm font-mono">
+                                                {track.plays.toLocaleString()}
+                                            </td>
+                                            <td className="py-3 text-right text-green-600 dark:text-green-400 text-sm font-mono font-bold">
+                                                ${track.earnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="py-3 text-right pr-6 text-slate-500 text-sm font-mono">
+                                                {track.duration}
                                             </td>
                                             <td className="py-3 pr-6">
                                                 <div className={`flex items-center justify-end gap-2 transition-opacity ${isFav || isExpanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                                     <button 
-                                                        onClick={(e) => toggleSyncEditor(e, track.id)}
-                                                        className={`p-2 rounded-lg transition-colors ${isExpanded ? 'text-cyan-500 bg-cyan-500/10' : 'text-slate-400 hover:text-cyan-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                                                        onClick={(e) => toggleExpanded(e, track.id, 'sync')}
+                                                        className={`p-2 rounded-lg transition-colors ${isExpanded && activeTab === 'sync' ? 'text-cyan-500 bg-cyan-500/10' : 'text-slate-400 hover:text-cyan-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                                                         title="Sync Points Editor"
                                                     >
                                                         <Scissors className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => toggleExpanded(e, track.id, 'details')}
+                                                        className={`p-2 rounded-lg transition-colors ${isExpanded && activeTab === 'details' ? 'text-purple-500 bg-purple-500/10' : 'text-slate-400 hover:text-purple-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                                                        title="Edit Track Details"
+                                                    >
+                                                        <Edit3 className="w-4 h-4" />
                                                     </button>
                                                     <button 
                                                         onClick={(e) => toggleFavorite(e, track.id)}
@@ -340,85 +391,198 @@ export const MusicCatalog: React.FC = () => {
                                             </td>
                                         </tr>
                                         
-                                        {/* Sync Points Editor Row */}
+                                        {/* Expanded Editor Row */}
                                         {isExpanded && (
                                             <tr className="bg-slate-50 dark:bg-slate-900/30 border-b border-slate-200 dark:border-slate-800">
-                                                <td colSpan={7} className="p-4">
+                                                <td colSpan={8} className="p-4">
                                                     <div className="bg-white dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-inner">
-                                                        <div className="flex justify-between items-center mb-4">
-                                                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                                                <Clock className="w-4 h-4 text-cyan-500" /> Sync Points & Cues
-                                                            </h4>
+                                                        {/* Tabs */}
+                                                        <div className="flex gap-4 border-b border-slate-100 dark:border-slate-800 mb-4 pb-2">
                                                             <button 
-                                                                onClick={() => handleAddSyncPoint(track.id)}
-                                                                className="text-xs flex items-center gap-1 bg-cyan-500 hover:bg-cyan-400 text-white px-3 py-1.5 rounded-md transition-colors"
+                                                                onClick={() => setActiveTab('details')}
+                                                                className={`text-xs font-bold uppercase tracking-wider pb-2 border-b-2 transition-colors ${activeTab === 'details' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                                                             >
-                                                                <Plus className="w-3 h-3" /> Add Point
+                                                                Track Details
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => setActiveTab('sync')}
+                                                                className={`text-xs font-bold uppercase tracking-wider pb-2 border-b-2 transition-colors ${activeTab === 'sync' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                                            >
+                                                                Sync Points
                                                             </button>
                                                         </div>
-                                                        
-                                                        {(!track.syncPoints || track.syncPoints.length === 0) ? (
-                                                            <div className="text-center py-6 text-slate-400 text-xs border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
-                                                                No sync points defined. Add cues for licensing opportunities.
-                                                            </div>
-                                                        ) : (
-                                                            <div className="space-y-2">
-                                                                <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-2">
-                                                                    <div className="col-span-2">Timestamp</div>
-                                                                    <div className="col-span-3">Cue Name</div>
-                                                                    <div className="col-span-6">Description</div>
-                                                                    <div className="col-span-1 text-center">Action</div>
-                                                                </div>
-                                                                {track.syncPoints.map((point, idx) => (
-                                                                    <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                                                                        <div className="col-span-2">
-                                                                            <input 
-                                                                                type="text" 
-                                                                                value={point.time}
-                                                                                onChange={(e) => handleUpdateSyncPoint(track.id, idx, 'time', e.target.value)}
-                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                                                                                placeholder="0:00"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-3">
-                                                                            <input 
-                                                                                type="text" 
-                                                                                value={point.label}
-                                                                                onChange={(e) => handleUpdateSyncPoint(track.id, idx, 'label', e.target.value)}
-                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                                                                                placeholder="e.g. Chorus"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-6">
-                                                                            <input 
-                                                                                type="text" 
-                                                                                value={point.description}
-                                                                                onChange={(e) => handleUpdateSyncPoint(track.id, idx, 'description', e.target.value)}
-                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:border-cyan-500"
-                                                                                placeholder="Description of the cue..."
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-1 text-center">
-                                                                            <button 
-                                                                                onClick={() => handleDeleteSyncPoint(track.id, idx)}
-                                                                                className="text-slate-400 hover:text-red-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+
+                                                        {/* DETAILS TAB */}
+                                                        {activeTab === 'details' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in">
+                                                                <div className="space-y-4">
+                                                                    <div>
+                                                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Track Title</label>
+                                                                        <input 
+                                                                            type="text" 
+                                                                            value={track.title}
+                                                                            onChange={(e) => handleUpdateTrack(track.id, 'title', e.target.value)}
+                                                                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Artist Name</label>
+                                                                        <input 
+                                                                            type="text" 
+                                                                            value={track.artist}
+                                                                            onChange={(e) => handleUpdateTrack(track.id, 'artist', e.target.value)}
+                                                                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="grid grid-cols-2 gap-4">
+                                                                        <div>
+                                                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Genre</label>
+                                                                            <select 
+                                                                                value={track.genre}
+                                                                                onChange={(e) => handleUpdateTrack(track.id, 'genre', e.target.value)}
+                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
                                                                             >
-                                                                                <Trash2 className="w-4 h-4" />
-                                                                            </button>
+                                                                                {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                                                                            </select>
+                                                                        </div>
+                                                                        <div>
+                                                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">License Type</label>
+                                                                            <select 
+                                                                                value={track.licenseType}
+                                                                                onChange={(e) => handleUpdateTrack(track.id, 'licenseType', e.target.value as any)}
+                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                                            >
+                                                                                {LICENSES.map(l => <option key={l} value={l}>{l.replace('-', ' ')}</option>)}
+                                                                            </select>
                                                                         </div>
                                                                     </div>
-                                                                ))}
+                                                                </div>
+                                                                
+                                                                <div className="space-y-4">
+                                                                    <div className="grid grid-cols-2 gap-4">
+                                                                        <div>
+                                                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">BPM</label>
+                                                                            <input 
+                                                                                type="number" 
+                                                                                value={track.bpm}
+                                                                                onChange={(e) => handleUpdateTrack(track.id, 'bpm', parseInt(e.target.value))}
+                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Key</label>
+                                                                            <input 
+                                                                                type="text" 
+                                                                                value={track.key}
+                                                                                onChange={(e) => handleUpdateTrack(track.id, 'key', e.target.value)}
+                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mood Tags (comma separated)</label>
+                                                                        <div className="relative">
+                                                                            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                                            <input 
+                                                                                type="text" 
+                                                                                value={track.mood_tags.join(', ')}
+                                                                                onChange={(e) => handleUpdateTrack(track.id, 'mood_tags', e.target.value.split(',').map(s => s.trim()))}
+                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="flex justify-end pt-2">
+                                                                        <button 
+                                                                            onClick={() => setExpandedTrackId(null)}
+                                                                            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-md text-xs font-bold transition-colors shadow-sm"
+                                                                        >
+                                                                            <Check className="w-3 h-3" /> Done Editing
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         )}
-                                                        
-                                                        {track.syncPoints && track.syncPoints.length > 0 && (
-                                                            <div className="mt-4 flex justify-end">
-                                                                <button 
-                                                                    onClick={() => setExpandedTrackId(null)}
-                                                                    className="flex items-center gap-1.5 text-xs font-bold text-green-600 dark:text-green-400 hover:text-green-500"
-                                                                >
-                                                                    <Save className="w-3 h-3" /> Save Changes
-                                                                </button>
+
+                                                        {/* SYNC TAB */}
+                                                        {activeTab === 'sync' && (
+                                                            <div className="animate-in fade-in">
+                                                                <div className="flex justify-between items-center mb-4">
+                                                                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                                                        <Clock className="w-4 h-4 text-cyan-500" /> Cue Points
+                                                                    </h4>
+                                                                    <button 
+                                                                        onClick={() => handleAddSyncPoint(track.id)}
+                                                                        className="text-xs flex items-center gap-1 bg-cyan-500 hover:bg-cyan-400 text-white px-3 py-1.5 rounded-md transition-colors"
+                                                                    >
+                                                                        <Plus className="w-3 h-3" /> Add Point
+                                                                    </button>
+                                                                </div>
+                                                                
+                                                                {(!track.syncPoints || track.syncPoints.length === 0) ? (
+                                                                    <div className="text-center py-6 text-slate-400 text-xs border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        No sync points defined. Add cues for licensing opportunities.
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="space-y-2">
+                                                                        <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-2">
+                                                                            <div className="col-span-2">Timestamp</div>
+                                                                            <div className="col-span-3">Cue Name</div>
+                                                                            <div className="col-span-6">Description</div>
+                                                                            <div className="col-span-1 text-center">Action</div>
+                                                                        </div>
+                                                                        {track.syncPoints.map((point, idx) => (
+                                                                            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                                                                                <div className="col-span-2">
+                                                                                    <input 
+                                                                                        type="text" 
+                                                                                        value={point.time}
+                                                                                        onChange={(e) => handleUpdateSyncPoint(track.id, idx, 'time', e.target.value)}
+                                                                                        className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                                                                                        placeholder="0:00"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="col-span-3">
+                                                                                    <input 
+                                                                                        type="text" 
+                                                                                        value={point.label}
+                                                                                        onChange={(e) => handleUpdateSyncPoint(track.id, idx, 'label', e.target.value)}
+                                                                                        className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                                                                                        placeholder="e.g. Chorus"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="col-span-6">
+                                                                                    <input 
+                                                                                        type="text" 
+                                                                                        value={point.description}
+                                                                                        onChange={(e) => handleUpdateSyncPoint(track.id, idx, 'description', e.target.value)}
+                                                                                        className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:border-cyan-500"
+                                                                                        placeholder="Description of the cue..."
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="col-span-1 text-center">
+                                                                                    <button 
+                                                                                        onClick={() => handleDeleteSyncPoint(track.id, idx)}
+                                                                                        className="text-slate-400 hover:text-red-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                                                    >
+                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {track.syncPoints && track.syncPoints.length > 0 && (
+                                                                    <div className="mt-4 flex justify-end">
+                                                                        <button 
+                                                                            onClick={() => setExpandedTrackId(null)}
+                                                                            className="flex items-center gap-1.5 text-xs font-bold text-green-600 dark:text-green-400 hover:text-green-500"
+                                                                        >
+                                                                            <Save className="w-3 h-3" /> Save Changes
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -430,7 +594,7 @@ export const MusicCatalog: React.FC = () => {
                             })
                         ) : (
                             <tr>
-                                <td colSpan={7} className="py-12 text-center text-slate-500">
+                                <td colSpan={8} className="py-12 text-center text-slate-500">
                                     {filter === 'favorites' ? (
                                         <div className="flex flex-col items-center">
                                             <Heart className="w-12 h-12 mb-4 opacity-20" />

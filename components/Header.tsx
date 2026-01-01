@@ -1,9 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, ChevronDown, Upload, Menu, Sun, Moon, Crown, LogOut, User as UserIcon, Settings, CreditCard, X, Loader2, Music, Play } from 'lucide-react';
+import { Bell, Search, ChevronDown, Upload, Menu, Sun, Moon, Crown, LogOut, User as UserIcon, Settings, CreditCard, X, Loader2, Music, Play, Wallet } from 'lucide-react';
 import { User, Track } from '../types';
 import { searchArtists, searchTracks, ChartmetricArtist, ChartmetricTrackResult } from '../services/chartmetricService';
+import { RapidApiAgent } from '../services/rapidApiService'; // Import the robust fallback agent
 import { usePlayer } from '../contexts/PlayerContext';
+import { useWallet } from '../contexts/WalletContext';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -27,7 +29,11 @@ const MOCK_NOTIFICATIONS = [
 export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme, user, onUpgrade, onLogout, onNavigate, onUpload, onArtistSelect }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showWalletMenu, setShowWalletMenu] = useState(false);
   
+  // Wallet State
+  const { walletAddress, isConnecting, connectTipLink, connectPhantom, disconnectWallet, walletType } = useWallet();
+
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
   const [artistResults, setArtistResults] = useState<ChartmetricArtist[]>([]);
@@ -38,9 +44,17 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const walletRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<number | null>(null);
 
   const { playTrack } = usePlayer();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
 
   // Click outside handler
   useEffect(() => {
@@ -53,6 +67,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
       }
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowResults(false);
+      }
+      if (walletRef.current && !walletRef.current.contains(event.target as Node)) {
+        setShowWalletMenu(false);
       }
     };
 
@@ -81,13 +98,29 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
       // Debounce search
       searchTimeoutRef.current = window.setTimeout(async () => {
           try {
-              // Parallel search for artists and tracks
+              // Try Chartmetric first
               const [artists, tracks] = await Promise.all([
                   searchArtists(query),
                   searchTracks(query)
               ]);
-              setArtistResults(artists);
-              setTrackResults(tracks);
+              
+              if (artists.length > 0 || tracks.length > 0) {
+                  setArtistResults(artists);
+                  setTrackResults(tracks);
+              } else {
+                  // Fallback to RapidAPI simulation if CM fails/empty
+                  const fallbackTracks = await RapidApiAgent.searchSpotify(query);
+                  // Map fallback tracks to result format
+                  const mapped = fallbackTracks.map(t => ({
+                      id: parseInt(t.id) || Date.now(), 
+                      name: t.title,
+                      artist_names: [t.artist],
+                      image_url: t.image,
+                      code2: ''
+                  }));
+                  setTrackResults(mapped as any);
+                  setArtistResults([]); 
+              }
           } catch (error) {
               console.error("Search failed", error);
           } finally {
@@ -215,9 +248,68 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
 
       {/* Right Actions */}
       <div className="flex items-center gap-4">
+        
+        {/* Wallet Connection */}
+        <div className="relative" ref={walletRef}>
+            {walletAddress ? (
+                <button 
+                    onClick={() => setShowWalletMenu(!showWalletMenu)}
+                    className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-full transition-colors text-xs font-bold text-slate-900 dark:text-slate-200"
+                >
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
+                </button>
+            ) : (
+                <button 
+                    onClick={() => setShowWalletMenu(!showWalletMenu)}
+                    disabled={isConnecting}
+                    className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-full text-xs font-bold hover:shadow-lg transition-all"
+                >
+                    {isConnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wallet className="w-3 h-3" />}
+                    Connect Wallet
+                </button>
+            )}
+
+            {/* Wallet Dropdown */}
+            {showWalletMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    {!walletAddress ? (
+                        <div className="p-2">
+                            <div className="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Select Wallet</div>
+                            <button 
+                                onClick={() => { connectTipLink(); setShowWalletMenu(false); }}
+                                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg transition-colors"
+                            >
+                                <img src="https://tiplink.io/favicon.ico" className="w-4 h-4 rounded-full" /> TipLink (Google)
+                            </button>
+                            <button 
+                                onClick={() => { connectPhantom(); setShowWalletMenu(false); }}
+                                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 rounded-lg transition-colors"
+                            >
+                                <img src="https://phantom.app/img/phantom-logo.svg" className="w-4 h-4" /> Phantom
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="p-2">
+                            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 mb-2">
+                                <p className="text-xs text-slate-500 mb-1">Connected with {walletType}</p>
+                                <p className="text-sm font-bold truncate">{walletAddress}</p>
+                            </div>
+                            <button 
+                                onClick={() => { disconnectWallet(); setShowWalletMenu(false); }}
+                                className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2 rounded-lg transition-colors"
+                            >
+                                <LogOut className="w-3 h-3" /> Disconnect
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+
         <button 
           onClick={toggleTheme}
-          className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+          className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors hidden sm:block"
         >
           {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>

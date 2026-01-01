@@ -25,8 +25,9 @@ export const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, use
       await authService.updateUserPlan(plan);
       
       if (user) {
-          // Track Sale
-          affiliateService.trackSale(user, price, invoiceId, `Plan Upgrade: ${plan}`);
+          // Track Sale via Affiliate Service
+          // We can optionally pass a commission rate override if needed, e.g., 40%
+          await affiliateService.trackSale(user, price, invoiceId);
       }
 
       onUpgrade(plan);

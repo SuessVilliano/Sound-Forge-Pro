@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
@@ -12,6 +13,9 @@
       data-affiliate data-program-id="0f5888c5-e5fe-4743-97fc-53f44b7ee7f0" 
       async>
     </script>
+
+    <!-- Google Cast SDK -->
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -37,6 +41,9 @@
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
+            },
+            animation: {
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
           },
         },
@@ -89,8 +96,11 @@
     "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
     "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
     "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
+    "firebase/analytics": "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js",
     "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
-    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0"
+    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
+    "@solana/web3.js": "https://esm.sh/@solana/web3.js@^1.98.4",
+    "@metaplex-foundation/js": "https://esm.sh/@metaplex-foundation/js@^0.20.1"
   }
 }
 </script>

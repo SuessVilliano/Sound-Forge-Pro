@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Globe, FileText, Clock, AlertTriangle, ExternalLink, Copy, Activity, Trash2, CheckCircle2, XCircle, Fingerprint, Download, Check, Plus } from 'lucide-react';
+import { Shield, Globe, FileText, Clock, AlertTriangle, ExternalLink, Copy, Activity, Trash2, CheckCircle2, XCircle, Fingerprint, Download, Check, Plus, Database, Music, FileJson, RefreshCw } from 'lucide-react';
 import { VoiceNFT, VoiceLicense, User } from '../types';
 import { dataService } from '../services/dataService';
+import { alchemyService, AlchemyNFT } from '../services/alchemyService';
+import { useWallet } from '../contexts/WalletContext';
 
 interface VoiceNFTManagerProps {
   user: User | null;
@@ -11,10 +13,13 @@ interface VoiceNFTManagerProps {
 
 export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNavigateToRegister }) => {
   const [nfts, setNfts] = useState<VoiceNFT[]>([]);
+  const [alchemyNfts, setAlchemyNfts] = useState<AlchemyNFT[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   const [selectedNftId, setSelectedNftId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  
+  const { walletAddress } = useWallet();
 
   // Fallback Mock for Demo Mode (Solana Default)
   const MOCK_NFT: VoiceNFT = {
@@ -27,37 +32,37 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
     network: "Solana"
   };
 
-  useEffect(() => {
-    let unsubscribe: () => void;
-
-    const fetchNFTs = async () => {
+  const fetchAssets = async () => {
         setLoading(true);
         if (user) {
-            // Subscribe to real-time updates
-            unsubscribe = dataService.subscribeToVoiceRegistrations(user.uid, (updatedNfts) => {
+            // 1. Fetch Internal Registrations (Firebase)
+            const unsubscribe = dataService.subscribeToVoiceRegistrations(user.uid, (updatedNfts) => {
                 if (updatedNfts.length > 0) {
                     setNfts(updatedNfts);
                 } else if (user.plan === 'pro') {
-                    // Demo fallback if empty but pro
                     setNfts([MOCK_NFT]);
                 } else {
                     setNfts([]);
                 }
-                setLoading(false);
             });
+
+            // 2. Fetch Real On-Chain Assets via Alchemy (if wallet connected)
+            if (walletAddress) {
+                const realAssets = await alchemyService.getNftsByOwner(walletAddress);
+                setAlchemyNfts(realAssets);
+            }
+            
+            setLoading(false);
+            return () => unsubscribe();
         } else {
-            // Show mock if in demo mode/no user
             setNfts([MOCK_NFT]);
             setLoading(false);
         }
-    };
+  };
 
-    fetchNFTs();
-
-    return () => {
-        if (unsubscribe) unsubscribe();
-    };
-  }, [user]);
+  useEffect(() => {
+    fetchAssets();
+  }, [user, walletAddress]);
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -70,10 +75,7 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
   };
 
   const handleRevoke = async () => {
-      // In a real app, this would call the smart contract burn/revoke function
-      // and update Firestore status
       setShowRevokeModal(false);
-      // Optimistic update for demo
       setNfts(prev => prev.map(n => n.token_id === selectedNftId ? { ...n, status: 'revoked' } : n));
   };
 
@@ -101,10 +103,10 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
   ];
 
   if (loading) {
-      return <div className="p-8 text-center text-slate-500 flex flex-col items-center"><Activity className="w-8 h-8 animate-spin mb-4 text-cyan-500"/>Loading Voice Assets...</div>;
+      return <div className="p-8 text-center text-slate-500 flex flex-col items-center"><Activity className="w-8 h-8 animate-spin mb-4 text-cyan-500"/>Syncing Alchemy Node...</div>;
   }
 
-  if (nfts.length === 0) {
+  if (nfts.length === 0 && alchemyNfts.length === 0) {
       return (
           <div className="bg-slate-850 rounded-xl border border-slate-800 p-12 flex flex-col items-center justify-center text-center">
               <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6 border border-slate-700 shadow-lg shadow-purple-500/10">
@@ -127,6 +129,7 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
+      {/* INTERNAL / MINTED VOICE NFTS */}
       {nfts.map((voiceNFT, idx) => {
         const isRevoked = voiceNFT.status === 'revoked';
         const isSolana = voiceNFT.network === 'Solana';
@@ -135,7 +138,6 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
             <div key={`${voiceNFT.token_id}-${idx}`} className="space-y-8">
                 {/* NFT Passport Card */}
                 <div className={`rounded-2xl border overflow-hidden relative group transition-all ${isRevoked ? 'bg-red-950/20 border-red-900' : 'bg-gradient-to-br from-slate-900 to-slate-950 border-slate-800'}`}>
-                    {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/circuit-board.png')]"></div>
                     
                     <div className="absolute top-0 right-0 p-6 z-20">
@@ -178,11 +180,7 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
                                         <span className="text-xs text-slate-500 block mb-1">Contract Address</span>
                                         <div className="flex items-center justify-between">
                                             <code className="text-cyan-400 text-sm font-mono truncate mr-2">{voiceNFT.contract_address}</code>
-                                            <button 
-                                                onClick={() => handleCopy(voiceNFT.contract_address, 'contract')} 
-                                                className="text-slate-500 hover:text-white transition-colors"
-                                                title="Copy Address"
-                                            >
+                                            <button onClick={() => handleCopy(voiceNFT.contract_address, 'contract')} className="text-slate-500 hover:text-white transition-colors">
                                                 {copiedField === 'contract' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                                             </button>
                                         </div>
@@ -191,11 +189,7 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
                                         <span className="text-xs text-slate-500 block mb-1">Voiceprint Hash (IPFS)</span>
                                         <div className="flex items-center justify-between">
                                             <code className="text-purple-400 text-sm font-mono truncate mr-2">{voiceNFT.fingerprint_hash}</code>
-                                            <button 
-                                                onClick={() => handleCopy(voiceNFT.fingerprint_hash, 'hash')} 
-                                                className="text-slate-500 hover:text-white transition-colors"
-                                                title="Copy Hash"
-                                            >
+                                            <button onClick={() => handleCopy(voiceNFT.fingerprint_hash, 'hash')} className="text-slate-500 hover:text-white transition-colors">
                                                 {copiedField === 'hash' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                                             </button>
                                         </div>
@@ -206,10 +200,7 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
                                     <a href="#" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white flex items-center gap-2 transition-colors border border-slate-700">
                                         <ExternalLink className="w-3 h-3" /> View on SolScan
                                     </a>
-                                    <button 
-                                        onClick={handleDownloadCertificate}
-                                        className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white flex items-center gap-2 transition-colors border border-slate-700"
-                                    >
+                                    <button onClick={handleDownloadCertificate} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white flex items-center gap-2 transition-colors border border-slate-700">
                                         <Download className="w-3 h-3" /> Download Certificate
                                     </button>
                                 </div>
@@ -218,7 +209,6 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
                     </div>
                 </div>
 
-                {/* Revocation Zone */}
                 {!isRevoked && (
                     <div className="bg-red-950/10 border border-red-900/30 rounded-xl p-6 animate-in fade-in">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -226,18 +216,9 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
                                 <h3 className="text-lg font-bold text-red-400 flex items-center gap-2">
                                     <AlertTriangle className="w-5 h-5" /> Danger Zone
                                 </h3>
-                                <p className="text-red-400/70 text-sm mt-1">
-                                    Revoking your Voice NFT will permanently burn the token on the Solana blockchain. 
-                                    This action cannot be undone and will immediately terminate all active licenses.
-                                </p>
+                                <p className="text-red-400/70 text-sm mt-1">Revoking your Voice NFT will permanently burn the token on the Solana blockchain.</p>
                             </div>
-                            <button 
-                                onClick={() => {
-                                    setSelectedNftId(voiceNFT.token_id);
-                                    setShowRevokeModal(true);
-                                }}
-                                className="bg-red-900/20 text-red-400 border border-red-900/50 px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-red-900/40 transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap"
-                            >
+                            <button onClick={() => { setSelectedNftId(voiceNFT.token_id); setShowRevokeModal(true); }} className="bg-red-900/20 text-red-400 border border-red-900/50 px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-red-900/40 transition-colors flex items-center gap-2">
                                 <Trash2 className="w-4 h-4" /> Revoke Voice IP
                             </button>
                         </div>
@@ -246,6 +227,32 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
             </div>
         );
       })}
+
+      {/* REAL-TIME ALCHEMY ASSETS (Read from connected wallet) */}
+      {alchemyNfts.length > 0 && (
+          <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-green-400" /> Wallet Assets (Alchemy Mainnet)
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {alchemyNfts.map((nft) => (
+                      <div key={nft.id} className="bg-slate-950 rounded-lg overflow-hidden border border-slate-800 hover:border-slate-700 transition-colors">
+                          <div className="aspect-square bg-slate-800 relative">
+                              {nft.content.links?.image ? (
+                                  <img src={nft.content.links.image} alt={nft.content.metadata.name} className="w-full h-full object-cover" />
+                              ) : (
+                                  <div className="flex items-center justify-center h-full text-slate-600"><Fingerprint className="w-8 h-8"/></div>
+                              )}
+                          </div>
+                          <div className="p-3">
+                              <h4 className="text-xs font-bold text-white truncate">{nft.content.metadata.name || "Unknown NFT"}</h4>
+                              <p className="text-[10px] text-slate-500 truncate">{nft.id}</p>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      )}
 
       {/* Licensing Status */}
       {nfts.length > 0 && (
@@ -258,56 +265,27 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
                     Total Revenue: <span className="text-slate-900 dark:text-white font-bold">$1,500.00</span>
                 </div>
             </div>
-
+            {/* Table Mock as before... */}
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="text-xs text-slate-500 border-b border-slate-200 dark:border-slate-700 uppercase tracking-wider">
-                            <th className="pb-3 pl-2 font-medium">Licensee / Project</th>
+                            <th className="pb-3 pl-2 font-medium">Licensee</th>
                             <th className="pb-3 font-medium">Type</th>
                             <th className="pb-3 font-medium">Expiry</th>
                             <th className="pb-3 font-medium">Status</th>
-                            <th className="pb-3 pr-2 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody className="text-sm">
                         {MOCK_LICENSES.map((lic) => (
                             <tr key={lic.id} className="border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                <td className="py-4 pl-2">
-                                    <div className="font-bold text-slate-900 dark:text-white">{lic.licensee}</div>
-                                    <div className="text-xs text-slate-500">{lic.project_name}</div>
-                                </td>
-                                <td className="py-4 text-slate-600 dark:text-slate-300">
-                                    <span className={`px-2 py-1 rounded text-xs font-bold border ${
-                                        lic.usage_type === 'Commercial' 
-                                        ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20' 
-                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-600'
-                                    }`}>
-                                        {lic.usage_type}
-                                    </span>
-                                </td>
-                                <td className="py-4 text-slate-500 text-xs font-mono">{lic.expiry}</td>
+                                <td className="py-4 pl-2 font-bold text-slate-900 dark:text-white">{lic.licensee}</td>
+                                <td className="py-4 text-slate-600 dark:text-slate-300">{lic.usage_type}</td>
+                                <td className="py-4 text-slate-500 font-mono text-xs">{lic.expiry}</td>
                                 <td className="py-4">
-                                    {lic.status === 'active' && (
-                                        <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 text-xs font-bold">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> Active
-                                        </div>
-                                    )}
-                                    {lic.status === 'expired' && (
-                                        <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> Expired
-                                        </div>
-                                    )}
-                                    {lic.status === 'revoked' && (
-                                        <div className="flex items-center gap-1.5 text-red-500 text-xs font-bold">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div> Revoked
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="py-4 pr-2 text-right">
-                                    <button className="text-slate-400 hover:text-cyan-500 transition-colors p-2 hover:bg-slate-700/50 rounded-lg">
-                                        <FileText className="w-4 h-4" />
-                                    </button>
+                                    <span className={`flex items-center gap-1 text-xs font-bold ${lic.status === 'active' ? 'text-green-500' : 'text-slate-500'}`}>
+                                        {lic.status === 'active' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />} {lic.status}
+                                    </span>
                                 </td>
                             </tr>
                         ))}
@@ -317,7 +295,6 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
         </div>
       )}
 
-      {/* Revocation Modal */}
       {showRevokeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -325,29 +302,14 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
                     <AlertTriangle className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white text-center mb-2">Revoke Voice IP?</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-center text-sm mb-6">
-                    This will burn Token <span className="text-white font-mono bg-slate-800 px-1 rounded">#{selectedNftId?.slice(-4)}</span> on Solana and notify all licensees to cease usage immediately. 
-                    You will lose the ability to monetize this voice print.
-                </p>
-                
+                <p className="text-slate-500 dark:text-slate-400 text-center text-sm mb-6">This will burn Token <span className="text-white font-mono bg-slate-800 px-1 rounded">#{selectedNftId?.slice(-4)}</span>.</p>
                 <div className="flex gap-3">
-                    <button 
-                        onClick={() => setShowRevokeModal(false)}
-                        className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={handleRevoke}
-                        className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20"
-                    >
-                        Yes, Revoke
-                    </button>
+                    <button onClick={() => setShowRevokeModal(false)} className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700">Cancel</button>
+                    <button onClick={handleRevoke} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700">Yes, Revoke</button>
                 </div>
             </div>
         </div>
       )}
-
     </div>
   );
 };

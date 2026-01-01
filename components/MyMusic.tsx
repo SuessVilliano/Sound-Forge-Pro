@@ -32,6 +32,34 @@ export const MyMusic: React.FC<MyMusicProps> = ({ user, setShowUploadModal }) =>
       localStorage.setItem('sf_track_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
+  // Sync across tabs and same-window components
+  useEffect(() => {
+    const syncFavoritesFromStorage = () => {
+        try {
+            const saved = localStorage.getItem('sf_track_favorites');
+            const newFavorites = saved ? JSON.parse(saved) : [];
+            setFavorites(newFavorites);
+        } catch (error) {
+            console.error('Error syncing favorites', error);
+        }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sf_track_favorites') {
+        syncFavoritesFromStorage();
+      }
+    };
+
+    // Listen for custom event from other components (Player, Catalog)
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('favoritesUpdated', syncFavoritesFromStorage);
+    
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('favoritesUpdated', syncFavoritesFromStorage);
+    };
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     const unsubscribe = dataService.subscribeToTracks(user.uid, (data) => {
@@ -69,9 +97,15 @@ export const MyMusic: React.FC<MyMusicProps> = ({ user, setShowUploadModal }) =>
 
   const toggleFavorite = (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      setFavorites(prev => 
-          prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
-      );
+      setFavorites(prev => {
+          const isFavorited = prev.includes(id);
+          const next = isFavorited ? prev.filter(fav => fav !== id) : [...prev, id];
+          // We set it to storage immediately to minimize race conditions 
+          localStorage.setItem('sf_track_favorites', JSON.stringify(next));
+          // Notify other components (Catalog, Player)
+          window.dispatchEvent(new Event('favoritesUpdated'));
+          return next;
+      });
   };
 
   const filteredTracks = tracks.filter(t => 

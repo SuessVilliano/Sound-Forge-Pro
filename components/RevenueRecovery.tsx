@@ -1,8 +1,35 @@
-import React from 'react';
-import { Search, CheckCircle, DollarSign, Eye, FileText, AlertCircle, Clock, ExternalLink, ShieldCheck } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { Search, CheckCircle, DollarSign, Eye, FileText, AlertCircle, Clock, ExternalLink, ShieldCheck, Loader2 } from 'lucide-react';
 import { PRO_PLATFORMS } from '../constants';
 
 export const RevenueRecovery: React.FC = () => {
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanComplete, setScanComplete] = useState(false);
+  const [stats, setStats] = useState({
+      found: 0,
+      pending: 0,
+      claimed: 0,
+      registered: 0
+  });
+
+  const handleScan = () => {
+      setIsScanning(true);
+      setScanComplete(false);
+      
+      // Simulate scan process
+      setTimeout(() => {
+          setStats({
+              found: 1240.50,
+              pending: 125.00,
+              claimed: 1115.50,
+              registered: 12
+          });
+          setIsScanning(false);
+          setScanComplete(true);
+      }, 3000);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -19,7 +46,7 @@ export const RevenueRecovery: React.FC = () => {
              <DollarSign className="w-6 h-6 text-green-400" />
            </div>
            <div>
-             <div className="text-2xl font-bold text-white">$0.00</div>
+             <div className="text-2xl font-bold text-white">${stats.found.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
              <div className="text-xs text-slate-500">Total Found</div>
            </div>
         </div>
@@ -28,7 +55,7 @@ export const RevenueRecovery: React.FC = () => {
              <Clock className="w-6 h-6 text-yellow-400" />
            </div>
            <div>
-             <div className="text-2xl font-bold text-white">$0.00</div>
+             <div className="text-2xl font-bold text-white">${stats.pending.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
              <div className="text-xs text-slate-500">Pending Claims</div>
            </div>
         </div>
@@ -37,7 +64,7 @@ export const RevenueRecovery: React.FC = () => {
              <CheckCircle className="w-6 h-6 text-cyan-400" />
            </div>
            <div>
-             <div className="text-2xl font-bold text-white">$0.00</div>
+             <div className="text-2xl font-bold text-white">${stats.claimed.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
              <div className="text-xs text-slate-500">Successfully Claimed</div>
            </div>
         </div>
@@ -46,7 +73,7 @@ export const RevenueRecovery: React.FC = () => {
              <ShieldCheck className="w-6 h-6 text-purple-400" />
            </div>
            <div>
-             <div className="text-2xl font-bold text-white">0</div>
+             <div className="text-2xl font-bold text-white">{stats.registered}</div>
              <div className="text-xs text-slate-500">Registered Works</div>
            </div>
         </div>
@@ -59,9 +86,16 @@ export const RevenueRecovery: React.FC = () => {
             <h3 className="text-lg font-bold text-white">Royalty Scanner</h3>
             <p className="text-xs text-slate-400">Scan major collection agencies and streaming platforms for unclaimed royalties</p>
           </div>
-          <button className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-colors">
-            <Search className="w-4 h-4" />
-            Start Scan
+          <button 
+            onClick={handleScan}
+            disabled={isScanning}
+            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isScanning ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Scanning...</>
+            ) : (
+                <><Search className="w-4 h-4" /> Start Scan</>
+            )}
           </button>
         </div>
 
@@ -109,16 +143,58 @@ export const RevenueRecovery: React.FC = () => {
       <div className="bg-slate-850 rounded-xl border border-slate-800 p-6 min-h-[300px] flex flex-col">
          <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-white">Royalty History</h3>
-            <button className="text-slate-400 hover:text-white text-sm flex items-center gap-2">
+            <button 
+                onClick={() => alert("Generating CSV Report...")}
+                className="text-slate-400 hover:text-white text-sm flex items-center gap-2 transition-colors"
+            >
                 <Eye className="w-4 h-4" /> View Reports
             </button>
          </div>
          
-         <div className="flex-1 flex flex-col items-center justify-center bg-slate-900/50 rounded-xl border border-dashed border-slate-800">
-            <DollarSign className="w-16 h-16 text-slate-700 mb-4" />
-            <h4 className="text-xl font-bold text-slate-400">No royalties found yet</h4>
-            <p className="text-slate-500 text-sm mt-2">Run your first scan to discover unclaimed royalties from your music</p>
-         </div>
+         {!scanComplete ? (
+             <div className="flex-1 flex flex-col items-center justify-center bg-slate-900/50 rounded-xl border border-dashed border-slate-800">
+                <DollarSign className="w-16 h-16 text-slate-700 mb-4" />
+                <h4 className="text-xl font-bold text-slate-400">No royalties found yet</h4>
+                <p className="text-slate-500 text-sm mt-2">Run your first scan to discover unclaimed royalties from your music</p>
+             </div>
+         ) : (
+             <div className="flex-1 bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
+                 <table className="w-full text-left text-sm text-slate-300">
+                     <thead className="bg-slate-800 text-xs uppercase font-bold text-slate-500">
+                         <tr>
+                             <th className="p-4">Date Found</th>
+                             <th className="p-4">Source</th>
+                             <th className="p-4">Track</th>
+                             <th className="p-4 text-right">Amount</th>
+                             <th className="p-4 text-center">Status</th>
+                         </tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-800">
+                         {[
+                             { date: 'Today', source: 'The MLC', track: 'Midnight City', amount: '$125.00', status: 'Pending' },
+                             { date: 'Yesterday', source: 'SoundExchange', track: 'Ocean Breeze', amount: '$450.20', status: 'Claimed' },
+                             { date: '2 days ago', source: 'BMI', track: 'Golden Hour', amount: '$665.30', status: 'Claimed' },
+                         ].map((row, i) => (
+                             <tr key={i} className="hover:bg-slate-800/50 transition-colors">
+                                 <td className="p-4">{row.date}</td>
+                                 <td className="p-4">{row.source}</td>
+                                 <td className="p-4 font-bold text-white">{row.track}</td>
+                                 <td className="p-4 text-right font-mono text-green-400">{row.amount}</td>
+                                 <td className="p-4 text-center">
+                                     <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                         row.status === 'Claimed' 
+                                         ? 'bg-green-500/10 text-green-400' 
+                                         : 'bg-yellow-500/10 text-yellow-400'
+                                     }`}>
+                                         {row.status}
+                                     </span>
+                                 </td>
+                             </tr>
+                         ))}
+                     </tbody>
+                 </table>
+             </div>
+         )}
       </div>
     </div>
   );

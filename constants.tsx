@@ -1,9 +1,9 @@
 
-import { Opportunity, Track, Course, Stats, Battle } from './types';
+import { Opportunity, Track, Course, Stats, Battle, User } from './types';
 import { 
   Music, LayoutDashboard, Zap, DollarSign, Briefcase, 
-  BookOpen, Sliders, BarChart2, User, Mail, Mic, 
-  Radio, Activity, Wand2, Video, MapPin, Disc, Star, Vote, ShoppingBag, Link, Swords, Send, UserPlus, TrendingUp
+  BookOpen, Sliders, BarChart2, User as UserIcon, Mail, Mic, 
+  Radio, Activity, Wand2, Video, MapPin, Disc, Star, Vote, ShoppingBag, Link, Swords, Send, UserPlus, TrendingUp, Users, Shield, Wallet
 } from 'lucide-react';
 
 export const APP_NAME = "SoundForge Pro";
@@ -20,6 +20,7 @@ export const VIEWS = {
   REVENUE: 'revenue',
   BRAND: 'brand',
   ACADEMY: 'academy',
+  COMMUNITY: 'community',
   MASTERING: 'mastering',
   ANALYTICS: 'analytics',
   PROFILE: 'profile',
@@ -30,13 +31,16 @@ export const VIEWS = {
   MONITORING: 'monitoring',
   SETTINGS: 'settings',
   LIVE_AGENT: 'live-agent',
-  AFFILIATES: 'affiliates'
+  AFFILIATES: 'affiliates',
+  SMART_WALLET: 'smart-wallet', // New Smart Wallet View
+  ADMIN: 'admin'
 };
 
 export const NAVIGATION_ITEMS = [
   { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
+  { id: VIEWS.SMART_WALLET, label: 'Smart Wallet', icon: Wallet, new: true }, // Added here
   { id: VIEWS.BATTLES, label: 'Battles Arena', icon: Swords, new: true, ai: true },
-  { id: VIEWS.CATALOG, label: 'Music Catalog', icon: Disc, new: true },
+  { id: VIEWS.CATALOG, label: 'Music Catalog', icon: Disc },
   { id: VIEWS.STUDIO, label: 'AI Studio', icon: Wand2, ai: true },
   { id: VIEWS.AR_DASHBOARD, label: 'A&R Suite', icon: Star, badge: 3 },
   { id: VIEWS.MY_MUSIC, label: 'My Music', icon: Music },
@@ -45,15 +49,16 @@ export const NAVIGATION_ITEMS = [
   { id: VIEWS.REVENUE, label: 'Revenue Recovery', icon: DollarSign },
   { id: VIEWS.BRAND, label: 'Brand Builder', icon: Briefcase },
   { id: VIEWS.ACADEMY, label: 'Music Academy', icon: BookOpen },
+  { id: VIEWS.COMMUNITY, label: 'Community', icon: Users },
   { id: VIEWS.MASTERING, label: 'Mastering', icon: Sliders },
   { id: VIEWS.ANALYTICS, label: 'Analytics', icon: BarChart2 },
-  { id: VIEWS.PROFILE, label: 'Artist Profile', icon: User },
+  { id: VIEWS.PROFILE, label: 'Artist Profile', icon: UserIcon },
   { id: VIEWS.CRM, label: 'Marketing CRM', icon: Mail },
   { id: VIEWS.VOICE, label: 'Voice Marketplace', icon: Mic, ai: true },
   { id: VIEWS.DISTRIBUTION, label: 'Music Distribution', icon: Radio },
   { id: VIEWS.DAO, label: 'DAO Governance', icon: Vote, new: true },
   { id: VIEWS.AFFILIATES, label: 'Affiliates', icon: Link, new: true },
-  { id: VIEWS.MONITORING, label: 'AI Monitoring', icon: Activity, ai: true },
+  { id: VIEWS.MONITORING, label: 'AI Monitoring', icon: Activity, ai: true, adminOnly: true }, // Restricted to Admin
 ];
 
 export const MOCK_STATS: Stats = {
@@ -300,6 +305,63 @@ export const MOCK_COURSES: Course[] = [
     { id: 'c6', title: 'Touring Logistics', category: 'Business', difficulty: 'Intermediate', duration: '1h 30m', lessons: 6, progress: 0, price: 0, image: 'https://picsum.photos/400/225?random=6' },
 ];
 
+export const FEATURED_ARTISTS: User[] = [
+    {
+        uid: 'feat_1',
+        displayName: 'Luna Ray',
+        email: 'luna@example.com',
+        photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+        plan: 'pro',
+        voiceShieldEnabled: true,
+        walletBalance: 0,
+        isFeatured: true,
+        bio: 'Ethereal pop vocals and futuristic sound design. Featured in Cyberpunk 2077 radio.',
+        location: 'Tokyo, JP',
+        role: 'artist',
+        rates: {
+            voiceLicense: 800,
+            featureVerse: 1500,
+            mixMaster: 300
+        }
+    },
+    {
+        uid: 'feat_2',
+        displayName: 'K-Os Theory',
+        email: 'kos@example.com',
+        photoURL: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80',
+        plan: 'label',
+        voiceShieldEnabled: true,
+        walletBalance: 0,
+        isFeatured: true,
+        bio: 'Heavy bass producer and sound engineer. Credits include top EDM labels.',
+        location: 'Berlin, DE',
+        role: 'producer',
+        rates: {
+            voiceLicense: 0,
+            featureVerse: 0,
+            beatLease: 250,
+            mixMaster: 500
+        }
+    },
+    {
+        uid: 'feat_3',
+        displayName: 'Aria V',
+        email: 'aria@example.com',
+        photoURL: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80',
+        plan: 'pro',
+        voiceShieldEnabled: true,
+        walletBalance: 0,
+        isFeatured: true,
+        bio: 'Soulful R&B songwriter. I write hooks that stick in your head for days.',
+        location: 'London, UK',
+        role: 'artist',
+        rates: {
+            voiceLicense: 600,
+            featureVerse: 900
+        }
+    }
+];
+
 export const PLACEMENT_PLATFORMS = [
   { name: "Songtradr", url: "https://soundforge.biz/go/songtradr" },
   { name: "Artlist", url: "https://soundforge.biz/go/artlist" },
@@ -333,5 +395,9 @@ export const MASTERING_STYLES = [
     { id: 'modern_pop', name: 'Modern Pop', description: 'Bright, punchy, and loud. Perfect for Spotify.' },
     { id: 'warm_vintage', name: 'Warm Vintage', description: 'Analog warmth with soft highs and rich mids.' },
     { id: 'club_banger', name: 'Club Banger', description: 'Maximum loudness and bass emphasis.' },
-    { id: 'cinematic', name: 'Cinematic', description: 'Wide dynamic range and spatial clarity.' }
+    { id: 'cinematic', name: 'Cinematic', description: 'Wide dynamic range and spatial clarity.' },
+    { id: 'vocal_crisp', name: 'Vocal Clarity', description: 'Enhances presence and removes mud from isolated vocals.' },
+    { id: 'instrumental_open', name: 'Open Instrumental', description: 'Widens stereo image and preserves dynamic range.' },
+    { id: 'live_concert', name: 'Live Concert', description: 'Balances crowd noise and adds stadium reverb ambiance.' },
+    { id: 'custom', name: 'Custom AI Agent', description: 'Describe exactly what you want using natural language.' }
 ];

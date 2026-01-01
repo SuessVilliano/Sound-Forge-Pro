@@ -2,9 +2,9 @@
 import React from 'react';
 import { 
   Music, Zap, DollarSign, Globe, ShieldCheck, 
-  Play, ArrowRight, BarChart2, Wand2, CheckCircle2, Layout, User, ChevronDown, HelpCircle, Lock, Mic, Radio
+  Play, ArrowRight, BarChart2, Wand2, CheckCircle2, Layout, User, ChevronDown, HelpCircle, Lock, Mic, Radio, Star
 } from 'lucide-react';
-import { APP_NAME } from '../constants';
+import { APP_NAME, FEATURED_ARTISTS } from '../constants';
 
 interface LandingPageProps {
   onOpenAuth: () => void;
@@ -129,9 +129,57 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
         </div>
       </section>
 
+      {/* --- FEATURED SPOTLIGHT --- */}
+      <section className="py-24 bg-slate-950 border-t border-slate-800 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+              <div className="text-center mb-16">
+                  <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
+                      <Star className="w-3 h-3" /> Creator Spotlight
+                  </div>
+                  <h2 className="text-3xl md:text-5xl font-bold mb-6">Discover Featured Talent</h2>
+                  <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+                      Top-tier artists, producers, and vocalists ready to collaborate.
+                  </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {FEATURED_ARTISTS.map((artist) => (
+                      <div key={artist.uid} onClick={onOpenAuth} className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl border border-slate-800 hover:border-amber-500/30 transition-all cursor-pointer group overflow-hidden shadow-2xl shadow-black/50">
+                          <div className="h-48 relative overflow-hidden">
+                              <img src={artist.photoURL} alt={artist.displayName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                              <div className="absolute top-3 right-3 bg-amber-500/90 backdrop-blur text-slate-950 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg">
+                                  Featured
+                              </div>
+                          </div>
+                          <div className="p-6 relative -mt-12">
+                              <div className="w-20 h-20 rounded-full border-4 border-slate-900 overflow-hidden shadow-xl mb-4">
+                                  <img src={artist.photoURL} className="w-full h-full object-cover" />
+                              </div>
+                              <h3 className="text-2xl font-bold text-white mb-1 group-hover:text-amber-400 transition-colors">{artist.displayName}</h3>
+                              <p className="text-slate-400 text-sm mb-4 line-clamp-2">{artist.bio}</p>
+                              
+                              <div className="flex flex-wrap gap-2 mb-6">
+                                  <span className="px-2 py-1 rounded bg-slate-800 text-slate-300 text-xs font-bold uppercase">{artist.role}</span>
+                                  {artist.rates?.voiceLicense ? (
+                                      <span className="px-2 py-1 rounded bg-green-900/30 text-green-400 border border-green-500/20 text-xs font-bold">Voice: ${artist.rates.voiceLicense}</span>
+                                  ) : null}
+                              </div>
+
+                              <button className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
+                                  View Profile <ArrowRight className="w-4 h-4" />
+                              </button>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      </section>
+
       {/* Deep Dive 1: VoiceShield */}
-      <section className="py-24 border-t border-slate-800 bg-slate-950 overflow-hidden relative">
-          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-green-500/10 rounded-full blur-[100px] -z-10"></div>
+      <section className="py-24 border-t border-slate-800 bg-slate-900 overflow-hidden relative">
+          <div className="absolute top-1/2 right-0 -translate-x-1/2 w-[500px] h-[500px] bg-green-500/10 rounded-full blur-[100px] -z-10"></div>
           <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div className="relative order-2 lg:order-1">
                   <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl blur-lg opacity-30 transform rotate-3"></div>
@@ -184,7 +232,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
 
       {/* Deep Dive 2: Sync Agent */}
       <section className="py-24 border-t border-slate-800 bg-slate-900 overflow-hidden relative">
-          <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] -z-10"></div>
+          <div className="absolute top-1/2 left-0 -translate-x-1/2 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] -z-10"></div>
           <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div>
                   <div className="inline-block px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-bold mb-6">
@@ -366,6 +414,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
                         <li><button className="hover:text-cyan-400 transition-colors">Pricing</button></li>
                         <li><button className="hover:text-cyan-400 transition-colors">VoiceShield™</button></li>
                         <li><button className="hover:text-cyan-400 transition-colors">Distribution</button></li>
+                        <li><button onClick={onOpenAuth} className="hover:text-cyan-400 transition-colors">Battles Arena</button></li>
                     </ul>
                 </div>
                 <div>
@@ -375,6 +424,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
                         <li><button className="hover:text-cyan-400 transition-colors">Academy</button></li>
                         <li><button className="hover:text-cyan-400 transition-colors">Help Center</button></li>
                         <li><button className="hover:text-cyan-400 transition-colors">Community</button></li>
+                        <li><button onClick={onOpenAuth} className="hover:text-cyan-400 transition-colors">Affiliate Program</button></li>
                     </ul>
                 </div>
                 <div>
