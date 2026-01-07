@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { DollarSign, Play, Activity, TrendingUp, Upload, CheckCircle, User, ArrowRight, Shield, Coins, Zap, Star, Layout, Crown } from 'lucide-react';
+// Added Music to the lucide-react imports to fix line 43 error
+import { DollarSign, Play, Activity, TrendingUp, Upload, CheckCircle, User, ArrowRight, Shield, Coins, Zap, Star, Layout, Crown, Music } from 'lucide-react';
 import { User as UserType, Stats, Opportunity } from '../types';
 
 interface DashboardViewProps {
@@ -24,13 +25,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Command Center</h1>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Artist Hub</h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm">Welcome back, <span className="text-cyan-500 font-black">{user.displayName}</span></p>
         </div>
         <div className="flex gap-3">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-5 py-2 flex items-center gap-2 shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Global Node Status: Optimal</span>
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Active & Protected</span>
             </div>
         </div>
       </div>
@@ -40,23 +41,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Main Financial Card */}
           <div className="lg:col-span-3 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden border border-white/5">
               <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-                  <Coins className="w-96 h-96 -rotate-12" />
+                  <Music className="w-96 h-96 -rotate-12" />
               </div>
               
               <div className="relative z-10 flex flex-col md:flex-row justify-between h-full gap-12">
                   <div className="flex-1">
                     <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-6">
-                        <Crown className="w-3 h-3" /> Digital Asset Valuation
+                        <Crown className="w-3 h-3" /> Total Artist Earnings
                     </div>
-                    <div className="text-7xl font-black tracking-tighter mb-4">$124,500<span className="text-2xl text-slate-500">.00</span></div>
+                    <div className="text-7xl font-black tracking-tighter mb-4">${stats.totalEarnings.toLocaleString()}<span className="text-2xl text-slate-500">.00</span></div>
                     <div className="flex gap-8">
                         <div>
-                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Inbound Royalties</div>
-                            <div className="text-2xl font-bold text-green-400">+${stats.totalEarnings.toLocaleString()}</div>
+                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Streams</div>
+                            <div className="text-2xl font-bold text-green-400">{stats.totalStreams.toLocaleString()}</div>
                         </div>
                         <div>
-                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Assets On-Ledger</div>
-                            <div className="text-2xl font-bold text-cyan-400">12 Records</div>
+                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Protected Tracks</div>
+                            <div className="text-2xl font-bold text-cyan-400">12 Active</div>
                         </div>
                     </div>
                   </div>
@@ -75,10 +76,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </svg>
                           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                               <span className="text-3xl font-black tracking-tighter">{Math.round(repPercent)}%</span>
-                              <span className="text-[8px] font-bold uppercase text-slate-500">Trust Score</span>
+                              <span className="text-[8px] font-bold uppercase text-slate-500">Progress</span>
                           </div>
                       </div>
-                      <div className="mt-4 text-[10px] font-black text-indigo-300 uppercase tracking-widest">Level 4 Creator</div>
+                      <div className="mt-4 text-[10px] font-black text-indigo-300 uppercase tracking-widest">Level: Rising Star</div>
                   </div>
               </div>
           </div>
@@ -90,11 +91,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="p-3 bg-cyan-500/10 rounded-2xl">
                           <Shield className="w-6 h-6 text-cyan-500" />
                       </div>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identity</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security</span>
                   </div>
                   <div>
-                      <h3 className="font-bold dark:text-white">Voice Shield™</h3>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">Your biometric DNA is secured on Solana.</p>
+                      <h3 className="font-bold dark:text-white uppercase tracking-tight">VoiceShield™</h3>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">Your vocal DNA is protected on the Solana ledger.</p>
                   </div>
                   <button onClick={() => onNavigate('voice')} className="mt-4 py-2.5 w-full text-[10px] font-black uppercase tracking-widest text-white bg-slate-900 dark:bg-slate-800 hover:bg-cyan-500 transition-all rounded-xl">
                       Manage IP
@@ -102,11 +103,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               <div className="bg-cyan-500 rounded-[2rem] p-6 shadow-2xl shadow-cyan-500/20 group cursor-pointer overflow-hidden relative" onClick={onUpgrade}>
-                  <div className="absolute -right-4 -top-4 opacity-10 group-hover:rotate-12 transition-transform duration-700">
-                      <Zap className="w-24 h-24 text-slate-950" />
-                  </div>
-                  <h3 className="text-slate-950 font-black text-lg">Go Artist Pro</h3>
-                  <p className="text-slate-900/60 text-xs font-bold leading-relaxed mt-1">Unlock 100% royalties and institutional pitching.</p>
+                  <h3 className="text-slate-950 font-black text-lg uppercase tracking-tight">Go Pro</h3>
+                  <p className="text-slate-900/60 text-xs font-bold leading-relaxed mt-1">Unlock 100% royalties and your own AI marketing team.</p>
                   <ArrowRight className="w-5 h-5 text-slate-950 mt-4 group-hover:translate-x-2 transition-transform" />
               </div>
           </div>
@@ -118,14 +116,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="lg:col-span-8 space-y-8">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm">
                   <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6 flex items-center gap-2">
-                      <Layout className="w-5 h-5 text-indigo-500" /> Infrastructure Access
+                      <Layout className="w-5 h-5 text-indigo-500" /> Artist Toolkit
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {[
-                        { title: "Authenticate DNA", desc: "Protect your vocal likeness.", icon: Shield, col: "text-purple-500", bg: "bg-purple-500/10", view: "voice" },
-                        { title: "Smart Vault", desc: "Manage institutional records.", icon: Coins, col: "text-amber-500", bg: "bg-amber-500/10", view: "smart-wallet" },
-                        { title: "Match Directives", desc: "Sonic AI match analysis.", icon: Zap, col: "text-cyan-500", bg: "bg-cyan-500/10", view: "opportunities" },
-                        { title: "Portfolio Release", desc: "Deploy assets to stores.", icon: Upload, col: "text-green-500", bg: "bg-green-500/10", view: "distribution" }
+                        { title: "Voice Market", desc: "License your voice avatar.", icon: Shield, col: "text-purple-500", bg: "bg-purple-500/10", view: "voice" },
+                        { title: "Smart Wallet", desc: "Manage your cash & tokens.", icon: Coins, col: "text-amber-500", bg: "bg-amber-500/10", view: "smart-wallet" },
+                        { title: "Sync Placements", desc: "Found 12 matches for you.", icon: Zap, col: "text-cyan-500", bg: "bg-cyan-500/10", view: "opportunities" },
+                        { title: "Distribution", desc: "Release to Spotify/TikTok.", icon: Upload, col: "text-green-500", bg: "bg-green-500/10", view: "distribution" }
                       ].map((act, i) => (
                           <button key={i} onClick={() => onNavigate(act.view)} className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/50 transition-all text-left group">
                               <div className={`p-4 rounded-xl ${act.bg} ${act.col} group-hover:scale-110 transition-transform`}>
@@ -133,7 +131,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                               </div>
                               <div>
                                   <div className="font-black text-slate-900 dark:text-white text-sm uppercase tracking-tight">{act.title}</div>
-                                  <div className="text-xs text-slate-500 font-medium">{act.desc}</div>
+                                  <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{act.desc}</div>
                               </div>
                           </button>
                       ))}
@@ -141,11 +139,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
           </div>
 
-          {/* Right Col: Live Ledger Feed */}
+          {/* Right Col: Sync Ledger */}
           <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 flex flex-col shadow-sm">
               <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Ledger Feed</h3>
-                  <button onClick={() => onNavigate('smart-wallet')} className="text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:underline">Full Log</button>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Sync Opportunities</h3>
+                  <button onClick={() => onNavigate('opportunities')} className="text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:underline">See All</button>
               </div>
               
               <div className="space-y-4 overflow-y-auto flex-1 max-h-[400px] pr-2 custom-scrollbar">
@@ -153,11 +151,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div key={op.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-cyan-500/50 transition-all cursor-pointer group">
                           <div className="flex justify-between items-start mb-2">
                               <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{op.usage_type}</span>
-                              <span className="text-green-500 text-[8px] font-black border border-green-500/20 px-2 py-0.5 rounded uppercase">Verified</span>
+                              <span className="text-green-500 text-[8px] font-black border border-green-500/20 px-2 py-0.5 rounded uppercase">{op.match_score}% Match</span>
                           </div>
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white line-clamp-1">{op.brief_title}</h4>
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white line-clamp-1 uppercase tracking-tight">{op.brief_title}</h4>
                           <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                              <span className="text-[10px] font-mono font-bold text-indigo-500">${op.payout_min} - ${op.payout_max}</span>
+                              <span className="text-[10px] font-mono font-bold text-indigo-500">Up to ${op.payout_max}</span>
                               <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-cyan-500 group-hover:translate-x-1 transition-all" />
                           </div>
                       </div>

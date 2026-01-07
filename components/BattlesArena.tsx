@@ -168,7 +168,7 @@ export const BattlesArena: React.FC = () => {
                                   </div>
                                   <div className="absolute top-4 left-4 flex gap-2">
                                       {battle.status === 'Live' && <span className="bg-red-600 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase animate-pulse">Live</span>}
-                                      <span className="bg-slate-950/60 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase">{battle.type}</span>
+                                      <span className="bg-slate-950/60 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase tracking-widest">{battle.type}</span>
                                   </div>
                               </div>
                               <div className="p-6">
@@ -230,6 +230,9 @@ export const BattlesArena: React.FC = () => {
               <div className="flex items-center gap-6">
                   <button onClick={() => setView('lobby')} className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">← Exit Arena</button>
                   <h2 className="font-black uppercase tracking-tight text-xl">{activeBattle.title}</h2>
+                  <div className="hidden lg:flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
+                      <span className="text-[10px] font-black uppercase text-indigo-400">{activeBattle.type} Challenge</span>
+                  </div>
               </div>
               <div className="flex items-center gap-6">
                   <div className="text-red-500 font-black text-sm uppercase flex items-center gap-2">
@@ -240,26 +243,50 @@ export const BattlesArena: React.FC = () => {
 
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               <div className="flex-1 relative flex flex-col items-center justify-center p-12 overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-black to-black">
-                  <div className="grid grid-cols-2 gap-24 relative z-10 w-full max-w-5xl">
+                  <div className="grid grid-cols-2 gap-12 lg:gap-24 relative z-10 w-full max-w-5xl">
                       {activeBattle.participants.map((p, i) => (
                           <div key={p.id} className="flex flex-col items-center gap-8">
-                              <div className={`relative group w-64 h-64 rounded-full p-1 border-4 transition-all duration-700 ${isPlaying === p.id ? 'border-cyan-400 scale-105 shadow-[0_0_50px_rgba(6,182,212,0.3)]' : 'border-slate-800 grayscale opacity-40 hover:grayscale-0 hover:opacity-100'}`}>
-                                  <img src={p.image} className="w-full h-full rounded-full object-cover" />
-                                  <button onClick={() => handlePlay(p)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-all">
-                                      {isPlaying === p.id ? <Pause className="w-12 h-12 fill-white" /> : <Play className="w-12 h-12 fill-white ml-2" />}
-                                  </button>
+                              <div className="relative">
+                                  <div className={`relative group w-48 h-48 lg:w-64 lg:h-64 rounded-full p-1 border-4 transition-all duration-700 ${isPlaying === p.id ? 'border-cyan-400 scale-105 shadow-[0_0_50px_rgba(6,182,212,0.3)]' : 'border-slate-800 grayscale opacity-40 hover:grayscale-0 hover:opacity-100'}`}>
+                                      <img src={p.image} className="w-full h-full rounded-full object-cover" />
+                                      <button onClick={() => handlePlay(p)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-all">
+                                          {isPlaying === p.id ? <Pause className="w-12 h-12 fill-white" /> : <Play className="w-12 h-12 fill-white ml-2" />}
+                                      </button>
+                                  </div>
+                                  
+                                  {/* Identity Badge */}
+                                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-slate-900 border border-white/20 rounded-full px-4 py-1 flex items-center gap-2 shadow-xl whitespace-nowrap">
+                                      {p.isAi ? (
+                                          <>
+                                            <Bot className="w-3 h-3 text-purple-400" />
+                                            <span className="text-[9px] font-black uppercase text-purple-400 tracking-widest">AI Entity</span>
+                                          </>
+                                      ) : (
+                                          <>
+                                            <User className="w-3 h-3 text-cyan-400" />
+                                            <span className="text-[9px] font-black uppercase text-cyan-400 tracking-widest">Human Artist</span>
+                                          </>
+                                      )}
+                                  </div>
                               </div>
+
                               <div className="text-center">
-                                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">{p.artistName}</h3>
-                                  <p className="text-cyan-500 font-bold uppercase text-xs tracking-widest mb-6">{p.trackTitle}</p>
-                                  <button onClick={() => handleVote(p.id)} disabled={!!userVote} className={`px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest transition-all ${userVote === p.id ? 'bg-green-500 text-slate-950' : 'bg-white text-slate-950 hover:scale-105 active:scale-95 disabled:opacity-30'}`}>
-                                      {userVote === p.id ? 'Voted' : 'Vote Now'}
+                                  <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter mb-2">{p.artistName}</h3>
+                                  <p className="text-cyan-500 font-bold uppercase text-[10px] tracking-widest mb-6">{p.trackTitle}</p>
+                                  
+                                  <div className="bg-slate-900/50 backdrop-blur border border-white/5 p-4 rounded-2xl mb-6 min-w-[160px]">
+                                      <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Benchmarking</div>
+                                      <div className="text-2xl font-black text-white">{p.votes.toLocaleString()} <span className="text-[10px] text-slate-600">PTS</span></div>
+                                  </div>
+
+                                  <button onClick={() => handleVote(p.id)} disabled={!!userVote} className={`px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-xl ${userVote === p.id ? 'bg-green-500 text-slate-950' : 'bg-white text-slate-950 hover:scale-105 active:scale-95 disabled:opacity-30'}`}>
+                                      {userVote === p.id ? 'Identity Verified' : 'Confirm Consensus'}
                                   </button>
                               </div>
                           </div>
                       ))}
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                          <span className="text-[120px] font-black italic text-slate-900/50 select-none">VS</span>
+                          <span className="text-[80px] lg:text-[120px] font-black italic text-slate-900/30 select-none tracking-tighter">CROSSOVER</span>
                       </div>
                   </div>
               </div>
@@ -282,7 +309,7 @@ export const BattlesArena: React.FC = () => {
                   </div>
                   <form onSubmit={handleSendMessage} className="p-4 bg-slate-950 border-t border-white/5 flex gap-2">
                       <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Reaction..." className="flex-1 bg-slate-900 border-none rounded-xl px-4 py-3 text-xs text-white outline-none focus:ring-1 ring-cyan-500" />
-                      <button type="submit" className="p-3 bg-cyan-600 rounded-xl text-white hover:bg-cyan-500 transition-colors"><Send className="w-4 h-4" /></button>
+                      <button type="submit" className="p-3 bg-cyan-600 rounded-xl text-white hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-500/20"><Send className="w-4 h-4" /></button>
                   </form>
               </div>
           </div>

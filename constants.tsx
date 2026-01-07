@@ -40,28 +40,28 @@ export const VIEWS = {
 
 export const NAVIGATION_ITEMS = [
   { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-  { id: VIEWS.STAFF, label: 'Staff', icon: MessageSquare, ai: true, badge: 3 },
+  { id: VIEWS.STAFF, label: 'AI Staff', icon: MessageSquare, ai: true, badge: 3 },
   { id: VIEWS.SMART_WALLET, label: 'Smart Wallet', icon: Wallet, new: true },
-  { id: VIEWS.BATTLES, label: 'Battles Arena', icon: Swords, new: true, ai: true },
+  { id: VIEWS.BATTLES, label: 'Music Battles', icon: Swords, new: true, ai: true },
   { id: VIEWS.CATALOG, label: 'Music Catalog', icon: Disc },
   { id: VIEWS.STUDIO, label: 'AI Studio', icon: Wand2, ai: true },
-  { id: VIEWS.AR_DASHBOARD, label: 'A&R Suite', icon: Star, badge: 3 },
-  { id: VIEWS.MY_MUSIC, label: 'My Music', icon: Music },
-  { id: VIEWS.OPPORTUNITIES, label: 'Opportunities', icon: Zap, badge: 8 },
-  { id: VIEWS.TOURING, label: 'Touring', icon: MapPin, ai: true },
+  { id: VIEWS.AR_DASHBOARD, label: 'A&R Dashboard', icon: Star, badge: 3 },
+  { id: VIEWS.MY_MUSIC, label: 'My Library', icon: Music },
+  { id: VIEWS.OPPORTUNITIES, label: 'Sync Ops', icon: Zap, badge: 8 },
+  { id: VIEWS.TOURING, label: 'Gig Finder', icon: MapPin, ai: true },
   { id: VIEWS.REVENUE, label: 'Revenue Recovery', icon: DollarSign },
   { id: VIEWS.BRAND, label: 'Brand Builder', icon: Briefcase },
-  { id: VIEWS.ACADEMY, label: 'Music Academy', icon: BookOpen },
+  { id: VIEWS.ACADEMY, label: 'Academy', icon: BookOpen },
   { id: VIEWS.COMMUNITY, label: 'Community', icon: Users },
-  { id: VIEWS.MASTERING, label: 'Mastering', icon: Sliders },
-  { id: VIEWS.ANALYTICS, label: 'Analytics', icon: BarChart2 },
-  { id: VIEWS.PROFILE, label: 'Site Builder', icon: UserIcon },
-  { id: VIEWS.CRM, label: 'Marketing CRM', icon: Mail },
-  { id: VIEWS.VOICE, label: 'Voice Marketplace', icon: Mic, ai: true },
-  { id: VIEWS.DISTRIBUTION, label: 'Music Distribution', icon: Radio },
-  { id: VIEWS.DAO, label: 'DAO Governance', icon: Vote, new: true },
+  { id: VIEWS.MASTERING, label: 'AI Mastering', icon: Sliders },
+  { id: VIEWS.ANALYTICS, label: 'Insights', icon: BarChart2 },
+  { id: VIEWS.PROFILE, label: 'My Artist Page', icon: UserIcon },
+  { id: VIEWS.CRM, label: 'Fan CRM', icon: Mail },
+  { id: VIEWS.VOICE, label: 'Voice Market', icon: Mic, ai: true },
+  { id: VIEWS.DISTRIBUTION, label: 'Distribution', icon: Radio },
+  { id: VIEWS.DAO, label: 'DAO', icon: Vote, new: true },
   { id: VIEWS.AFFILIATES, label: 'Affiliates', icon: Link, new: true },
-  { id: VIEWS.MONITORING, label: 'AI Monitoring', icon: Activity, ai: true, adminOnly: true },
+  { id: VIEWS.MONITORING, label: 'System Monitor', icon: Activity, ai: true, adminOnly: true },
 ];
 
 export const MOCK_STATS: Stats = {
@@ -72,7 +72,7 @@ export const MOCK_STATS: Stats = {
   earningsGrowth: 12.5,
   streamsGrowth: 8.2,
   opportunitiesNew: true,
-  artistLevel: "Rising Artist",
+  artistLevel: "Rising Star",
   xp: 1250,
   nextLevelXp: 2000
 };
@@ -81,8 +81,8 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
   {
     id: 'op1',
     source_platform: 'songtradr',
-    brief_title: 'Summer Travel Vlog',
-    description: 'Upbeat, energetic pop track for travel content.',
+    brief_title: 'Upbeat Track for Travel Commercial',
+    description: 'High-energy electronic or pop track needed for a global airline campaign.',
     usage_type: 'Ad',
     duration_required: 120,
     payout_min: 500,
@@ -90,13 +90,13 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     deadline_datetime: new Date(Date.now() + 86400000 * 3).toISOString(),
     submission_status: 'matched',
     match_score: 92,
-    mood_tags: ['Upbeat', 'Summer', 'Pop']
+    mood_tags: ['Uplifting', 'Travel', 'Energy']
   },
   {
     id: 'op2',
     source_platform: 'artlist',
-    brief_title: 'Tech Review Background',
-    description: 'Clean, minimal electronic beat for gadget reviews.',
+    brief_title: 'Minimal Tech Background',
+    description: 'Looking for subtle, clean electronic loops for tech review videos.',
     usage_type: 'Ad',
     duration_required: 180,
     payout_min: 300,
@@ -104,57 +104,73 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     deadline_datetime: new Date(Date.now() + 86400000 * 7).toISOString(),
     submission_status: 'open',
     match_score: 85,
-    mood_tags: ['Electronic', 'Minimal', 'Tech']
+    mood_tags: ['Clean', 'Tech', 'Minimal']
   }
 ];
 
 export const MOCK_BATTLES: Battle[] = [
     {
         id: 'b1',
-        title: 'The AI Summer Showdown',
-        description: 'Show off your best AI-assisted summer hits.',
-        type: 'AI Only',
+        title: 'The Turing Test Challenge',
+        description: 'Can you spot the AI? A human-produced track vs a pure generative model.',
+        type: 'Hybrid',
         genre: 'Pop',
         status: 'Live',
         endTime: new Date(Date.now() + 3600000).toISOString(),
-        totalVotes: 1240,
-        listeners: 45,
-        config: { rewards: { cash: 500, xp: 1000 }, customRules: ['AI Vocals Only'] },
+        totalVotes: 4210,
+        listeners: 156,
+        config: { rewards: { cash: 1000, xp: 2500 }, customRules: ['Blind Listen Only'] },
         participants: [
-            { id: 'p1', artistName: 'SynthWave Queen', isAi: true, trackTitle: 'Neon Sunset', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=400&q=80', votes: 640 },
-            { id: 'p2', artistName: 'Digital Dave', isAi: true, trackTitle: 'Pixel Beach', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', image: 'https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&w=400&q=80', votes: 600 }
+            { id: 'p1', artistName: 'Artist Anonymous', isAi: false, trackTitle: 'Heart in a Box', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', image: 'https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&w=400&q=80', votes: 2150 },
+            { id: 'p2', artistName: 'Model-X Gen3', isAi: true, trackTitle: 'Neural Pulse', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=400&q=80', votes: 2060 }
         ]
     },
     {
         id: 'b2',
-        title: 'Underground Beat Duel',
-        description: 'Hard-hitting industrial beats. No vocals allowed.',
-        type: 'Beat',
-        genre: 'Industrial',
+        title: 'Cyber-Beat Showdown',
+        description: 'AI agents competing for the most innovative rhythm profile.',
+        type: 'AI Only',
+        genre: 'Trap',
         status: 'Voting',
         endTime: new Date(Date.now() + 7200000).toISOString(),
-        totalVotes: 850,
-        listeners: 12,
-        config: { rewards: { cash: 200, xp: 500 }, customRules: ['Instrumental Only'] },
+        totalVotes: 1240,
+        listeners: 45,
+        config: { rewards: { cash: 500, xp: 1000 }, customRules: ['Neural Assets Only'] },
         participants: [
-            { id: 'p3', artistName: 'Iron Forge', isAi: false, trackTitle: 'Steel Pulse', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80', votes: 450 },
-            { id: 'p4', artistName: 'Rust Mechanic', isAi: false, trackTitle: 'Valve Grind', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', image: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?auto=format&fit=crop&w=400&q=80', votes: 400 }
+            { id: 'p3', artistName: 'Synthetic Operator', isAi: true, trackTitle: 'Logic Gate', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', image: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?auto=format&fit=crop&w=400&q=80', votes: 640 },
+            { id: 'p4', artistName: 'Neural Node 04', isAi: true, trackTitle: 'Data Stream', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', votes: 600 }
         ]
     },
     {
         id: 'b3',
-        title: 'Vocaloid vs Human',
-        description: 'Can you tell who is the AI? Hybrid singing competition.',
+        title: 'Vocal Identity Duel',
+        description: 'Authorized AI voice clone vs the human artist. Who captures the soul?',
         type: 'Hybrid',
-        genre: 'J-Pop',
+        genre: 'R&B',
+        status: 'Live',
+        endTime: new Date(Date.now() + 1800000).toISOString(),
+        totalVotes: 8900,
+        listeners: 312,
+        config: { rewards: { cash: 2500, xp: 5000 }, customRules: ['VoiceShield Verified'] },
+        participants: [
+            { id: 'p5', artistName: 'Alex Rivera', isAi: false, trackTitle: 'Authentic Love', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80', votes: 4500 },
+            { id: 'p6', artistName: 'Alex-AI (V3)', isAi: true, trackTitle: 'Digital Reflection', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', votes: 4400 }
+        ]
+    },
+    {
+        id: 'b4',
+        title: 'Traditionalist Showcase',
+        description: 'Acoustic mastery. No AI assistance permitted. Pure human talent.',
+        type: 'Human Only',
+        genre: 'Acoustic',
         status: 'Upcoming',
         endTime: new Date(Date.now() + 86400000).toISOString(),
         totalVotes: 0,
         listeners: 0,
-        config: { rewards: { cash: 1000, xp: 2000 }, customRules: ['Blind Judging'] },
+        config: { rewards: { cash: 1500, xp: 2000 }, customRules: ['Zero AI Stems'] },
         participants: [
-            { id: 'p5', artistName: 'Miku Spirit', isAi: true, trackTitle: 'Digital Rain', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', votes: 0 },
-            { id: 'p6', artistName: 'Hana Solo', isAi: false, trackTitle: 'Human Nature', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', image: 'https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&w=400&q=80', votes: 0 }
+            { id: 'p7', artistName: 'Luna Shade', isAi: false, trackTitle: 'Unplugged Reality', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80', votes: 0 },
+            { id: 'p8', artistName: 'Ghost Writer', isAi: false, trackTitle: 'Analog Heart', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', image: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80', votes: 0 }
         ]
     }
 ];
@@ -164,23 +180,13 @@ export const FEATURED_ARTISTS: Partial<User>[] = [
         uid: 'f1',
         displayName: 'Alex Rivera',
         photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-        bio: 'Alternative pop artist known for ethereal vocals and experimental production.',
         role: 'artist',
         isFeatured: true
     },
     {
         uid: 'f2',
-        displayName: 'Luna Shadow',
+        displayName: 'Luna Shade',
         photoURL: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
-        bio: 'Electronic producer bridging the gap between underground techno and melodic ambient.',
-        role: 'producer',
-        isFeatured: true
-    },
-    {
-        uid: 'f3',
-        displayName: 'Marcus Vane',
-        photoURL: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-        bio: 'Award-winning songwriter focusing on cinematic scores and urban storytelling.',
         role: 'producer',
         isFeatured: true
     }
@@ -189,67 +195,40 @@ export const FEATURED_ARTISTS: Partial<User>[] = [
 export const PRO_PLATFORMS = [
     { name: 'ASCAP', url: 'https://www.ascap.com', type: 'PRO' },
     { name: 'BMI', url: 'https://www.bmi.com', type: 'PRO' },
-    { name: 'SESAC', url: 'https://www.sesac.com', type: 'PRO' },
     { name: 'SoundExchange', url: 'https://www.soundexchange.com', type: 'CMO' },
-    { name: 'The MLC', url: 'https://www.themlc.com', type: 'Mechanical' }
+    { name: 'The MLC', url: 'https://www.themlc.com', type: 'Royalties' }
 ];
 
 export const DISTRIBUTION_PARTNERS = [
     { name: 'Spotify', icon: Music },
     { name: 'Apple Music', icon: Music },
-    { name: 'TikTok', icon: Music },
-    { name: 'YouTube Music', icon: Music },
-    { name: 'Amazon Music', icon: Music },
-    { name: 'Tidal', icon: Music }
+    { name: 'TikTok', icon: Music }
 ];
 
 export const CAMPAIGN_TEMPLATES = [
     {
         id: 'c1',
-        title: 'Album Launch Blast',
-        description: 'Multi-channel announcement for your latest project.',
+        title: 'New Single Blast',
+        description: 'Announce your new release to all your fans across email and SMS.',
         icon: Zap,
         bg: 'bg-cyan-500/10',
         color: 'text-cyan-400',
-        steps: ['Announcement Email', 'Release Day SMS', 'Follow-up Visualizer']
-    },
-    {
-        id: 'c2',
-        title: 'New Fan Welcome',
-        description: 'Automated journey for new mailing list subscribers.',
-        icon: Users,
-        bg: 'bg-purple-500/10',
-        color: 'text-purple-400',
-        steps: ['Welcome Note', 'Free Download', 'Store Discount']
-    },
-    {
-        id: 'c3',
-        title: 'Merch Drop Hype',
-        description: 'Visual-heavy campaign for limited physical releases.',
-        icon: DollarSign,
-        bg: 'bg-green-500/10',
-        color: 'text-green-400',
-        steps: ['Teaser Post', 'Drop Alert', 'Low Stock Reminder']
+        steps: ['Fan Email', 'SMS Alert', 'Social Teaser']
     }
 ];
 
 export const MASTERING_STYLES = [
-    { id: 'modern_pop', name: 'Modern Pop', description: 'Crisp highs, controlled lows, and industry standard loudness.' },
-    { id: 'club_banger', name: 'Club Banger', description: 'Aggressive compression and bass enhancement for big systems.' },
-    { id: 'warm_vintage', name: 'Warm Vintage', description: 'Analog saturation and subtle dynamic range preservation.' },
-    { id: 'custom', name: 'Custom AI', description: 'Provide specific instructions for your unique sound.' }
+    { id: 'modern_pop', name: 'Modern Pop', description: 'Bright, loud, and punchy. Perfect for radio and streaming.' },
+    { id: 'club_banger', name: 'Club Banger', description: 'Aggressive bass and compression for the heavy systems.' },
+    { id: 'warm_vintage', name: 'Warm Vintage', description: 'Analog-style saturation and softer peaks for an organic feel.' }
 ];
 
 export const PLACEMENT_PLATFORMS = [
     { name: 'Songtradr', url: 'https://www.songtradr.com' },
-    { name: 'Artlist', url: 'https://artlist.io' },
-    { name: 'Musicbed', url: 'https://www.musicbed.com' },
-    { name: 'Epidemic Sound', url: 'https://www.epidemicsound.com' },
-    { name: 'Taxi', url: 'https://www.taxi.com' }
+    { name: 'Music Gateway', url: 'https://www.musicgateway.com' }
 ];
 
 export const MOCK_COURSES = [
-    { id: 1, title: 'Sync Licensing Masterclass', category: 'Business', duration: '4h 30m', lessons: 12, image: 'https://picsum.photos/400/250?random=101' },
-    { id: 2, title: 'Advanced AI Production', category: 'Studio', duration: '6h 15m', lessons: 24, image: 'https://picsum.photos/400/250?random=102' },
-    { id: 3, title: 'TikTok Growth Strategy', category: 'Marketing', duration: '3h 00m', lessons: 8, image: 'https://picsum.photos/400/250?random=103' }
+    { id: 1, title: 'Mastering Sync Licensing', category: 'Business', duration: '4h 30m', lessons: 12, image: 'https://picsum.photos/400/250?random=101' },
+    { id: 2, title: 'AI Production Secrets', category: 'Production', duration: '6h 15m', lessons: 24, image: 'https://picsum.photos/400/250?random=102' }
 ];
