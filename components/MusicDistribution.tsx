@@ -1,6 +1,5 @@
-
 import React, { useState, useRef } from 'react';
-import { CheckCircle2, Bot, ArrowLeft, Upload, Server, ShieldCheck, Globe, Zap, Music2, Plus, Trash2, Image as ImageIcon, AlertCircle, Database, Lock, Disc, Layers, Copy, Check } from 'lucide-react';
+import { CheckCircle2, Bot, ArrowLeft, Upload, Server, ShieldCheck, Globe, Zap, Music2, Plus, Trash2, Image as ImageIcon, AlertCircle, Database, Lock, Disc, Layers, Copy, Check, Calendar, HardDrive, FileAudio, X } from 'lucide-react';
 import { DISTRIBUTION_PARTNERS } from '../constants';
 import { DistributionRelease, DistributionTrack } from '../types';
 import { dataService } from '../services/dataService';
@@ -13,30 +12,21 @@ const SERVICES_LIST = [
 ];
 
 const GENRES = ["Pop", "Hip Hop", "R&B", "Rock", "Electronic", "Latin", "Country", "Jazz", "Classical", "Folk", "Reggae", "Blues", "Alternative"];
-const LANGUAGES = ["English", "Spanish", "French", "German", "Japanese", "Korean", "Portuguese", "Chinese"];
-
-// Webhooks
-const WEBHOOK_PROD = "https://apps.taskmagic.com/api/v1/webhooks/PwEfXVx4XIQd5Z6GFbQdI";
-const WEBHOOK_TEST = "https://apps.taskmagic.com/api/v1/webhooks/PwEfXVx4XIQd5Z6GFbQdI/test";
 
 export const MusicDistribution: React.FC = () => {
   const [view, setView] = useState<'dashboard' | 'setup' | 'new-release' | 'agent-processing'>('dashboard');
   const user = authService.getCurrentUser();
-  
-  // Agent State
   const [agentLogs, setAgentLogs] = useState<string[]>([]);
   const [agentProgress, setAgentProgress] = useState(0);
-
-  // Setup State
   const [releaseType, setReleaseType] = useState<'Single' | 'Album'>('Single');
   const [trackCount, setTrackCount] = useState(1);
 
-  // Form State
   const [release, setRelease] = useState<DistributionRelease>({
+      id: `rel_${Date.now()}`,
       title: '',
       artistName: user?.displayName || '',
       releaseDate: new Date().toISOString().split('T')[0],
-      recordLabel: 'SoundForge Records',
+      recordLabel: 'Sound Merge Records',
       copyrightYear: new Date().getFullYear().toString(),
       copyrightOwner: user?.displayName || '',
       pLineYear: new Date().getFullYear().toString(),
@@ -54,10 +44,9 @@ export const MusicDistribution: React.FC = () => {
       optBlockchainStorage: false
   });
 
-  // Track file inputs Refs (Array)
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const trackFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Initialize tracks based on setup
   const startRelease = () => {
       const initialTracks: DistributionTrack[] = Array.from({ length: trackCount }).map((_, i) => ({
           id: `t${Date.now()}_${i}`,
@@ -66,44 +55,20 @@ export const MusicDistribution: React.FC = () => {
           isExplicit: false,
           isRadioEdit: false,
           writerType: 'original',
-          songwriters: [],
+          songwriters: [user?.displayName || ''],
           producers: '',
           performers: user?.displayName || '',
           originalArtist: ''
       }));
-
       setRelease(prev => ({ ...prev, tracks: initialTracks }));
       setView('new-release');
   };
 
-  // Helper to handle cover art upload
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
           const url = URL.createObjectURL(file);
           setRelease({ ...release, albumCover: file, coverUrl: url });
-      }
-  };
-
-  // Helper for Track Management
-  const addTrack = () => {
-      const newTrack: DistributionTrack = {
-          id: `t${Date.now()}_new`,
-          title: '',
-          isInstrumental: false,
-          isExplicit: false,
-          isRadioEdit: false,
-          writerType: 'original',
-          songwriters: [],
-          producers: '',
-          performers: release.artistName,
-      };
-      setRelease(prev => ({ ...prev, tracks: [...prev.tracks, newTrack] }));
-  };
-
-  const removeTrack = (id: string) => {
-      if (release.tracks.length > 1) {
-          setRelease(prev => ({ ...prev, tracks: prev.tracks.filter(t => t.id !== id) }));
       }
   };
 
@@ -114,45 +79,27 @@ export const MusicDistribution: React.FC = () => {
       }));
   };
 
-  const handleTrackFileUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTrackFileUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-          setRelease(prev => {
-              const newTracks = [...prev.tracks];
-              newTracks[index] = { ...newTracks[index], audioFile: file };
-              
-              // Auto-fill title from filename if empty
-              if (!newTracks[index].title) {
-                  newTracks[index].title = file.name.replace(/\.[^/.]+$/, "");
-              }
-              return { ...prev, tracks: newTracks };
-          });
+          updateTrack(id, 'audioFile', file);
+          // Auto-fill title if empty
+          const track = release.tracks.find(t => t.id === id);
+          if (track && !track.title) {
+              updateTrack(id, 'title', file.name.replace(/\.[^/.]+$/, ""));
+          }
       }
-  };
-
-  // Bulk Apply Helper
-  const applyToAll = (field: keyof DistributionTrack, value: any) => {
-      if (!value) return;
-      setRelease(prev => ({
-          ...prev,
-          tracks: prev.tracks.map(t => ({ ...t, [field]: value }))
-      }));
-      alert(`Applied "${value}" to all tracks.`);
   };
 
   const handleSubmit = async () => {
-      if (!release.title || !release.artistName) {
-          alert("Please fill in Release Title and Artist Name.");
+      if (!release.title || !release.artistName || !release.albumCover) {
+          alert("Release title, artist name, and album cover are mandatory.");
           return;
       }
-      if (!release.albumCover) {
-          alert("Please upload cover art.");
-          return;
-      }
-      // Check if all tracks have audio
-      const missingAudio = release.tracks.findIndex(t => !t.audioFile);
-      if (missingAudio >= 0) {
-          alert(`Track ${missingAudio + 1} is missing an audio file.`);
+      
+      const missingFiles = release.tracks.some(t => !t.audioFile);
+      if (missingFiles) {
+          alert("Please upload audio files for all tracks.");
           return;
       }
       
@@ -160,76 +107,16 @@ export const MusicDistribution: React.FC = () => {
       setAgentLogs([]);
       setAgentProgress(0);
 
-      // --- WEBHOOK TRANSMISSION ---
-      try {
-          const payload = {
-              releaseId: `rel_${Date.now()}`,
-              user: {
-                  uid: user?.uid,
-                  email: user?.email,
-                  name: user?.displayName
-              },
-              releaseData: {
-                  title: release.title,
-                  artist: release.artistName,
-                  type: releaseType,
-                  upc: release.upc || 'AUTO',
-                  genre: release.primaryGenre,
-                  label: release.recordLabel,
-                  trackCount: release.tracks.length
-              },
-              tracks: release.tracks.map(t => ({
-                  title: t.title,
-                  isrc: t.isrc || 'AUTO',
-                  writers: t.songwriters,
-                  producers: t.producers,
-                  isExplicit: t.isExplicit
-              })),
-              timestamp: new Date().toISOString(),
-              source: 'SoundForge Pro v2.5'
-          };
-
-          // FIRE AND FORGET WEBHOOK (Non-blocking but logged)
-          fetch(WEBHOOK_PROD, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-          }).then(res => {
-              console.log("Webhook Sent:", res.status);
-          }).catch(err => {
-              console.error("Webhook Error:", err);
-          });
-
-      } catch(e) {
-          console.error("Payload construction error", e);
-      }
-
-      // Simulate the AI Agent Backend Workflow
       const steps = [
-          { msg: "Agent Initialized: Analyzing Release Metadata...", time: 1000 },
-          { msg: `Sending Metadata to Distribution Partners...`, time: 1000 },
-          { msg: "Validating Cover Art Specs (3000x3000px)...", time: 1000 },
-          { msg: "Connecting to DSP Gateways...", time: 1500 },
-          { msg: "Logging in as SoundForge Label Admin...", time: 800 },
-          { msg: `Uploading "${release.title}" Assets to S3...`, time: 2000 },
-          { msg: "Assigning UPC/EAN Codes...", time: 1000 },
-          { msg: "Registering Songwriter Credits...", time: 1200 },
+          { msg: "Agent Initialized: Analyzing Metadata...", time: 1000 },
+          { msg: "Connecting to Global Distribution Partners...", time: 1000 },
+          { msg: "Validating Artwork Specs (Institutional Grade)...", time: 1000 },
+          { msg: "Logging in as Sound Merge Label Admin...", time: 800 },
+          { msg: `Uploading "${release.title}" Assets to CDN...`, time: 2000 },
+          { msg: "Assigning UPC/EAN Rights Codes...", time: 1000 },
+          { msg: "Securing Copyright Record on Ledger...", time: 1200 },
+          { msg: "Final Delivery Queued.", time: 500 }
       ];
-
-      // Insert Blockchain steps if selected
-      if (release.optBlockchainStorage) {
-          steps.push(
-              { msg: "Encrypting Assets for Lighthouse Storage...", time: 1500 },
-              { msg: "Uploading to IPFS/Filecoin Network...", time: 2000 },
-              { msg: "Minting Copyright Proof on Solana...", time: 1500 },
-              { msg: "Blockchain Verification Complete. CID Generated.", time: 800 }
-          );
-      }
-
-      steps.push(
-          { msg: "Submitting Final Release Package...", time: 1000 },
-          { msg: "Success: Release Queued for Global Delivery.", time: 500 }
-      );
 
       for (let i = 0; i < steps.length; i++) {
           await new Promise(r => setTimeout(r, steps[i].time));
@@ -238,466 +125,350 @@ export const MusicDistribution: React.FC = () => {
       }
 
       await dataService.submitRelease(user?.uid || 'guest', release);
-      await new Promise(r => setTimeout(r, 1000));
-      alert("Success! Your release has been submitted to the stores.");
-      setView('dashboard');
+      setTimeout(() => {
+          alert("Submission complete! Assets are processing.");
+          setView('dashboard');
+      }, 1000);
   };
 
-  // ----------------------------------------------------------------------
-  // AGENT PROCESSING VIEW
-  // ----------------------------------------------------------------------
   if (view === 'agent-processing') {
       return (
           <div className="flex flex-col items-center justify-center min-h-[600px] max-w-3xl mx-auto space-y-8 animate-in fade-in">
-              <div className="relative">
-                  <div className="w-32 h-32 bg-slate-900 rounded-full border-4 border-cyan-500/30 flex items-center justify-center relative z-10 shadow-[0_0_50px_rgba(6,182,212,0.2)]">
-                      <Bot className="w-16 h-16 text-cyan-400 animate-pulse" />
-                  </div>
-                  <div className="absolute inset-0 border border-slate-800 rounded-full animate-[spin_4s_linear_infinite]"></div>
-                  <div className="absolute -inset-4 border border-dashed border-slate-800 rounded-full animate-[spin_10s_linear_infinite_reverse]"></div>
+              <div className="w-32 h-32 bg-slate-900 rounded-full border-4 border-cyan-500/30 flex items-center justify-center relative shadow-2xl">
+                  <Bot className="w-16 h-16 text-cyan-400 animate-pulse" />
               </div>
               <div className="text-center">
-                  <h2 className="text-2xl font-bold text-white mb-2">SoundForge AI Agent Working</h2>
-                  <p className="text-slate-400">Automating submission to 150+ stores. Sit back and relax.</p>
+                  <h2 className="text-2xl font-bold text-white mb-2">Sound Merge AI Agent Active</h2>
+                  <p className="text-slate-400">Deploying your assets to the global network.</p>
               </div>
-              <div className="w-full bg-slate-950 rounded-xl border border-slate-800 p-6 font-mono text-xs md:text-sm shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-purple-500" style={{ width: `${agentProgress}%`, transition: 'width 0.5s ease' }}></div>
-                  <div className="h-64 overflow-y-auto custom-scrollbar space-y-2">
+              <div className="w-full bg-slate-950 rounded-xl border border-slate-800 p-6 font-mono text-xs shadow-2xl">
+                  <div className="h-64 overflow-y-auto space-y-2 custom-scrollbar">
                       {agentLogs.map((log, i) => (
-                          <div key={i} className="flex gap-3 text-green-400/90 animate-in slide-in-from-left-2 fade-in">
-                              <span className="text-slate-600 select-none">[{new Date().toLocaleTimeString()}]</span>
+                          <div key={i} className="text-green-400/90 flex gap-3">
+                              <span className="text-slate-600">[{new Date().toLocaleTimeString()}]</span>
                               <span className="flex-1">{log}</span>
-                              {i === agentLogs.length - 1 && <span className="w-2 h-4 bg-green-500 animate-pulse"></span>}
                           </div>
                       ))}
                   </div>
               </div>
+              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div className="bg-cyan-500 h-full transition-all duration-500" style={{ width: `${agentProgress}%` }}></div>
+              </div>
           </div>
       );
   }
 
-  // ----------------------------------------------------------------------
-  // SETUP VIEW
-  // ----------------------------------------------------------------------
   if (view === 'setup') {
       return (
-          <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-300 py-10">
+          <div className="max-w-2xl mx-auto space-y-8 py-10 animate-in fade-in">
+              <button onClick={() => setView('dashboard')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+                  <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+              </button>
               <div className="text-center">
-                  <h1 className="text-3xl font-bold text-white mb-2">Start New Release</h1>
-                  <p className="text-slate-400">Choose your release format to configure the agent.</p>
+                <h1 className="text-3xl font-black text-white uppercase tracking-tight">New Ledger Release</h1>
+                <p className="text-slate-500 mt-2">Choose the format for your global deployment.</p>
               </div>
-
               <div className="grid grid-cols-2 gap-6">
-                  <div 
-                    onClick={() => { setReleaseType('Single'); setTrackCount(1); }}
-                    className={`cursor-pointer rounded-2xl border-2 p-8 flex flex-col items-center gap-4 transition-all ${releaseType === 'Single' ? 'bg-cyan-500/10 border-cyan-500' : 'bg-slate-900 border-slate-800 hover:border-slate-600'}`}
-                  >
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center ${releaseType === 'Single' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
-                          <Disc className="w-8 h-8" />
-                      </div>
-                      <h3 className={`text-xl font-bold ${releaseType === 'Single' ? 'text-white' : 'text-slate-300'}`}>Single</h3>
-                      <p className="text-xs text-slate-500 text-center">1 Track</p>
+                  <div onClick={() => { setReleaseType('Single'); setTrackCount(1); }} className={`cursor-pointer rounded-2xl border-2 p-8 flex flex-col items-center gap-4 transition-all hover:scale-105 ${releaseType === 'Single' ? 'bg-cyan-500/10 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.2)]' : 'bg-slate-900 border-slate-800'}`}>
+                      <Disc className={`w-10 h-10 ${releaseType === 'Single' ? 'text-cyan-400' : 'text-slate-600'}`} />
+                      <h3 className="text-xl font-bold text-white uppercase">Single</h3>
+                      <p className="text-xs text-center text-slate-500">1 Track • Quick Deploy</p>
                   </div>
-
-                  <div 
-                    onClick={() => { setReleaseType('Album'); setTrackCount(5); }}
-                    className={`cursor-pointer rounded-2xl border-2 p-8 flex flex-col items-center gap-4 transition-all ${releaseType === 'Album' ? 'bg-purple-500/10 border-purple-500' : 'bg-slate-900 border-slate-800 hover:border-slate-600'}`}
-                  >
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center ${releaseType === 'Album' ? 'bg-purple-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                          <Layers className="w-8 h-8" />
-                      </div>
-                      <h3 className={`text-xl font-bold ${releaseType === 'Album' ? 'text-white' : 'text-slate-300'}`}>Album / EP</h3>
-                      <p className="text-xs text-slate-500 text-center">2+ Tracks</p>
+                  <div onClick={() => { setReleaseType('Album'); setTrackCount(5); }} className={`cursor-pointer rounded-2xl border-2 p-8 flex flex-col items-center gap-4 transition-all hover:scale-105 ${releaseType === 'Album' ? 'bg-purple-500/10 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'bg-slate-900 border-slate-800'}`}>
+                      <Layers className={`w-10 h-10 ${releaseType === 'Album' ? 'text-purple-400' : 'text-slate-600'}`} />
+                      <h3 className="text-xl font-bold text-white uppercase">Album / EP</h3>
+                      <p className="text-xs text-center text-slate-500">Up to 20 Tracks • Full Collection</p>
                   </div>
               </div>
-
+              
               {releaseType === 'Album' && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col items-center">
-                      <label className="text-sm font-bold text-slate-400 mb-4">How many tracks?</label>
-                      <div className="flex items-center gap-6">
-                          <button onClick={() => setTrackCount(Math.max(2, trackCount - 1))} className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center">
-                              <span className="text-xl font-bold">-</span>
-                          </button>
-                          <div className="text-4xl font-bold text-white w-16 text-center">{trackCount}</div>
-                          <button onClick={() => setTrackCount(Math.min(50, trackCount + 1))} className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center">
-                              <span className="text-xl font-bold">+</span>
-                          </button>
-                      </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Number of Tracks</label>
+                      <input 
+                        type="number" min="2" max="20" 
+                        value={trackCount} 
+                        onChange={(e) => setTrackCount(parseInt(e.target.value))}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500"
+                      />
                   </div>
               )}
 
-              <div className="flex gap-4">
-                  <button onClick={() => setView('dashboard')} className="flex-1 py-4 rounded-xl font-bold text-slate-400 hover:text-white transition-colors">
-                      Cancel
-                  </button>
-                  <button onClick={startRelease} className="flex-1 py-4 rounded-xl bg-white text-slate-950 font-bold hover:bg-slate-200 transition-colors shadow-lg">
-                      Start Release
-                  </button>
-              </div>
+              <button onClick={startRelease} className="w-full py-4 rounded-xl bg-white text-slate-950 font-black uppercase tracking-widest hover:bg-slate-200 transition-all shadow-xl">
+                  Start Release Process
+              </button>
           </div>
       );
   }
 
-  // ----------------------------------------------------------------------
-  // NEW RELEASE FORM
-  // ----------------------------------------------------------------------
   if (view === 'new-release') {
       return (
-          <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300 pb-20">
-              <div className="flex items-center gap-4 border-b border-slate-800 pb-6">
-                  <button onClick={() => setView('setup')} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-                      <ArrowLeft className="w-6 h-6 text-slate-400" />
+          <div className="max-w-5xl mx-auto space-y-10 py-6 animate-in slide-in-from-bottom-4 duration-500">
+              <div className="flex justify-between items-center">
+                  <button onClick={() => setView('setup')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+                      <ArrowLeft className="w-4 h-4" /> Change Format
                   </button>
-                  <div>
-                      <h1 className="text-2xl font-bold text-white">Global Distribution</h1>
-                      <p className="text-slate-400 text-sm">Create a new {releaseType} for Spotify, Apple Music, and 150+ stores.</p>
-                  </div>
+                  <h1 className="text-xl font-black text-white uppercase tracking-widest">Release Metadata Terminal</h1>
+                  <div className="w-20"></div>
               </div>
 
-              {/* 1. Release Info */}
-              <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-                  <div className="bg-slate-950 px-6 py-4 border-b border-slate-800">
-                      <h3 className="font-bold text-white flex items-center gap-2"><Globe className="w-4 h-4 text-cyan-500"/> Release Details</h3>
-                  </div>
-                  <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                      {/* Cover Art */}
-                      <div className="lg:col-span-1">
-                          <label className="block text-xs font-bold text-slate-400 mb-2 uppercase">Artwork</label>
-                          <div className="relative aspect-square bg-slate-800 rounded-xl border-2 border-dashed border-slate-700 hover:border-cyan-500 transition-colors flex flex-col items-center justify-center cursor-pointer group overflow-hidden">
-                              {release.coverUrl ? (
-                                  <img src={release.coverUrl} alt="Cover" className="w-full h-full object-cover" />
-                              ) : (
-                                  <>
-                                      <ImageIcon className="w-12 h-12 text-slate-600 mb-2 group-hover:text-cyan-500 transition-colors" />
-                                      <span className="text-xs text-slate-500 font-bold">Upload Cover</span>
-                                      <span className="text-[10px] text-slate-600 mt-1">3000 x 3000px (JPG/PNG)</span>
-                                  </>
-                              )}
-                              <input type="file" accept="image/*" onChange={handleCoverUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                          </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left Column: Cover & Main Info */}
+                  <div className="lg:col-span-1 space-y-6">
+                      <div 
+                        onClick={() => coverInputRef.current?.click()}
+                        className="aspect-square bg-slate-900 border-2 border-dashed border-slate-700 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-cyan-500 transition-all overflow-hidden relative group"
+                      >
+                          {release.coverUrl ? (
+                              <>
+                                <img src={release.coverUrl} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <span className="text-white font-bold text-sm">Change Cover</span>
+                                </div>
+                              </>
+                          ) : (
+                              <>
+                                <ImageIcon className="w-12 h-12 text-slate-700 mb-2 group-hover:text-cyan-500 transition-colors" />
+                                <p className="text-slate-500 text-xs font-bold uppercase px-6">Upload High-Res Artwork</p>
+                                <p className="text-[10px] text-slate-600 mt-1">3000x3000px JPG/PNG</p>
+                              </>
+                          )}
+                          <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={handleCoverUpload} />
                       </div>
 
-                      {/* Info Fields */}
-                      <div className="lg:col-span-2 space-y-6">
+                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                           <div>
-                              <label className="block text-xs font-bold text-slate-400 mb-1">Release Title</label>
+                              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Release Title</label>
                               <input 
-                                type="text" 
-                                placeholder="Album or Single Title"
                                 value={release.title}
                                 onChange={e => setRelease({...release, title: e.target.value})}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none font-bold text-lg"
+                                placeholder="My New Project"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-cyan-500 outline-none" 
                               />
                           </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">Artist Name</label>
-                                  <input 
-                                    type="text" 
-                                    value={release.artistName}
-                                    onChange={e => setRelease({...release, artistName: e.target.value})}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                                  />
-                              </div>
-                              <div>
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">Release Date</label>
-                                  <input 
-                                    type="date" 
-                                    value={release.releaseDate}
-                                    onChange={e => setRelease({...release, releaseDate: e.target.value})}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                                  />
-                              </div>
+                          <div>
+                              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Artist Name</label>
+                              <input 
+                                value={release.artistName}
+                                onChange={e => setRelease({...release, artistName: e.target.value})}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-cyan-500 outline-none" 
+                              />
                           </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                               <div>
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">Primary Genre</label>
+                                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Primary Genre</label>
                                   <select 
                                     value={release.primaryGenre}
                                     onChange={e => setRelease({...release, primaryGenre: e.target.value})}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-cyan-500 outline-none"
                                   >
                                       {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
                                   </select>
                               </div>
                               <div>
-                                  <label className="block text-xs font-bold text-slate-400 mb-1">Language</label>
-                                  <select 
-                                    value={release.language}
-                                    onChange={e => setRelease({...release, language: e.target.value})}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                                  >
-                                      {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
-                                  </select>
+                                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Release Date</label>
+                                  <input 
+                                    type="date"
+                                    value={release.releaseDate}
+                                    onChange={e => setRelease({...release, releaseDate: e.target.value})}
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none" 
+                                  />
                               </div>
                           </div>
-
                           <div>
-                              <label className="block text-xs font-bold text-slate-400 mb-1">Record Label</label>
+                              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Label Name</label>
                               <input 
-                                type="text" 
                                 value={release.recordLabel}
                                 onChange={e => setRelease({...release, recordLabel: e.target.value})}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-cyan-500 outline-none font-mono" 
                               />
                           </div>
                       </div>
                   </div>
-              </div>
 
-              {/* 3. Tracklist */}
-              <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-                  <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                      <h3 className="font-bold text-white flex items-center gap-2"><Music2 className="w-4 h-4 text-green-500"/> Tracklist ({release.tracks.length})</h3>
-                      <button onClick={addTrack} className="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
-                          <Plus className="w-3 h-3" /> Add Track
-                      </button>
-                  </div>
-                  <div className="p-6 space-y-4">
-                      {release.tracks.map((track, index) => (
-                          <div key={track.id} className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-6 relative">
-                              <div className="flex justify-between items-center mb-4">
-                                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide bg-slate-900 px-2 py-1 rounded">Track {index + 1}</span>
+                  {/* Right Column: Tracks */}
+                  <div className="lg:col-span-2 space-y-6">
+                      <div className="flex justify-between items-center">
+                          <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
+                              <Music2 className="w-5 h-5 text-cyan-400" /> Tracks ({release.tracks.length})
+                          </h3>
+                          {releaseType === 'Album' && (
+                              <button 
+                                onClick={() => {
+                                    const newTrack: DistributionTrack = {
+                                        id: `t${Date.now()}`,
+                                        title: '',
+                                        isInstrumental: false,
+                                        isExplicit: false,
+                                        isRadioEdit: false,
+                                        writerType: 'original',
+                                        songwriters: [user?.displayName || ''],
+                                        producers: '',
+                                        performers: user?.displayName || '',
+                                        originalArtist: ''
+                                    };
+                                    setRelease({...release, tracks: [...release.tracks, newTrack]});
+                                }}
+                                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                              >
+                                  <Plus className="w-3 h-3" /> Add Track
+                              </button>
+                          )}
+                      </div>
+
+                      <div className="space-y-4">
+                          {release.tracks.map((track, idx) => (
+                              <div key={track.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative group animate-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${idx * 100}ms` }}>
+                                  <div className="flex flex-col md:flex-row gap-6">
+                                      {/* Audio Upload Area */}
+                                      <div 
+                                        onClick={() => trackFileRefs.current[idx]?.click()}
+                                        className={`w-full md:w-32 h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all shrink-0 ${track.audioFile ? 'bg-cyan-500/5 border-cyan-500' : 'bg-slate-950 border-slate-800 hover:border-slate-600'}`}
+                                      >
+                                          {track.audioFile ? (
+                                              <div className="text-cyan-400 flex flex-col items-center p-2">
+                                                  <FileAudio className="w-8 h-8 mb-1" />
+                                                  <span className="text-[8px] font-bold truncate max-w-[80px]">{track.audioFile.name}</span>
+                                              </div>
+                                          ) : (
+                                              <>
+                                                <Upload className="w-6 h-6 text-slate-700 mb-1" />
+                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">WAV</span>
+                                              </>
+                                          )}
+                                          <input 
+                                            type="file" 
+                                            ref={el => trackFileRefs.current[idx] = el}
+                                            className="hidden" 
+                                            accept="audio/wav,audio/mpeg" 
+                                            onChange={(e) => handleTrackFileUpload(track.id, e)} 
+                                          />
+                                      </div>
+
+                                      <div className="flex-1 space-y-4">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                              <div>
+                                                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Track Title</label>
+                                                  <input 
+                                                    value={track.title}
+                                                    onChange={e => updateTrack(track.id, 'title', e.target.value)}
+                                                    placeholder="Track Title"
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none" 
+                                                  />
+                                              </div>
+                                              <div>
+                                                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">ISRC (Optional)</label>
+                                                  <input 
+                                                    value={track.isrc || ''}
+                                                    onChange={e => updateTrack(track.id, 'isrc', e.target.value)}
+                                                    placeholder="US-ABC-25-00001"
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none font-mono" 
+                                                  />
+                                              </div>
+                                          </div>
+                                          
+                                          <div className="flex flex-wrap gap-4 items-center">
+                                              <label className="flex items-center gap-2 cursor-pointer">
+                                                  <input 
+                                                    type="checkbox" 
+                                                    checked={track.isExplicit}
+                                                    onChange={e => updateTrack(track.id, 'isExplicit', e.target.checked)}
+                                                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-cyan-500" 
+                                                  />
+                                                  <span className="text-xs font-bold text-slate-400 uppercase">Explicit</span>
+                                              </label>
+                                              <label className="flex items-center gap-2 cursor-pointer">
+                                                  <input 
+                                                    type="checkbox" 
+                                                    checked={track.isInstrumental}
+                                                    onChange={e => updateTrack(track.id, 'isInstrumental', e.target.checked)}
+                                                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-cyan-500" 
+                                                  />
+                                                  <span className="text-xs font-bold text-slate-400 uppercase">Instrumental</span>
+                                              </label>
+                                              <div className="h-4 w-px bg-slate-800"></div>
+                                              <button className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest">Contributors +</button>
+                                          </div>
+                                      </div>
+                                  </div>
+                                  
                                   {release.tracks.length > 1 && (
-                                      <button onClick={() => removeTrack(track.id)} className="text-slate-500 hover:text-red-500 transition-colors">
+                                      <button 
+                                        onClick={() => setRelease({...release, tracks: release.tracks.filter(t => t.id !== track.id)})}
+                                        className="absolute top-4 right-4 text-slate-700 hover:text-red-500 transition-colors"
+                                      >
                                           <Trash2 className="w-4 h-4" />
                                       </button>
                                   )}
                               </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                  
-                                  {/* Left Col: Core Metadata */}
-                                  <div className="space-y-4">
-                                      <div>
-                                          <label className="block text-xs font-bold text-slate-400 mb-1">Track Title</label>
-                                          <input 
-                                            type="text" 
-                                            value={track.title}
-                                            onChange={e => updateTrack(track.id, 'title', e.target.value)}
-                                            className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                          />
-                                      </div>
-                                      
-                                      <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                              <label className="block text-xs font-bold text-slate-400 mb-1">Version (Optional)</label>
-                                              <input 
-                                                type="text" 
-                                                placeholder="Radio Edit"
-                                                value={track.version || ''}
-                                                onChange={e => updateTrack(track.id, 'version', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                              />
-                                          </div>
-                                          <div>
-                                              <label className="block text-xs font-bold text-slate-400 mb-1">ISRC (Optional)</label>
-                                              <input 
-                                                type="text" 
-                                                placeholder="Auto-generate"
-                                                value={track.isrc || ''}
-                                                onChange={e => updateTrack(track.id, 'isrc', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                              />
-                                          </div>
-                                      </div>
+                          ))}
+                      </div>
 
-                                      <div>
-                                          <label className="block text-xs font-bold text-slate-400 mb-1">Audio File (WAV/FLAC)</label>
-                                          <div className={`border-2 border-dashed border-slate-600 rounded-lg p-3 flex items-center justify-between transition-colors ${track.audioFile ? 'bg-green-500/10 border-green-500/30' : 'bg-slate-900 hover:border-cyan-500'}`}>
-                                              <div className="flex items-center gap-3 overflow-hidden">
-                                                  <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${track.audioFile ? 'bg-green-500 text-slate-950' : 'bg-slate-700 text-slate-400'}`}>
-                                                      {track.audioFile ? <CheckCircle2 className="w-4 h-4" /> : <Music2 className="w-4 h-4" />}
-                                                  </div>
-                                                  <div className="min-w-0">
-                                                      <p className={`text-sm font-bold truncate ${track.audioFile ? 'text-green-400' : 'text-slate-400'}`}>
-                                                          {track.audioFile ? track.audioFile.name : "No file selected"}
-                                                      </p>
-                                                      {track.audioFile && <p className="text-[10px] text-slate-500">{(track.audioFile.size / 1024 / 1024).toFixed(2)} MB</p>}
-                                                  </div>
-                                              </div>
-                                              <button 
-                                                onClick={() => trackFileRefs.current[index]?.click()}
-                                                className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded font-bold transition-colors whitespace-nowrap"
-                                              >
-                                                  {track.audioFile ? 'Change' : 'Select File'}
-                                              </button>
-                                              <input 
-                                                type="file" 
-                                                accept="audio/*" 
-                                                className="hidden" 
-                                                ref={el => trackFileRefs.current[index] = el}
-                                                onChange={(e) => handleTrackFileUpload(index, e)}
-                                              />
-                                          </div>
-                                      </div>
-                                  </div>
-
-                                  {/* Right Col: Credits & Flags */}
-                                  <div className="space-y-4">
-                                      <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                              <div className="flex justify-between items-center mb-1">
-                                                  <label className="block text-xs font-bold text-slate-400">Performers</label>
-                                                  {index === 0 && (
-                                                      <button onClick={() => applyToAll('performers', track.performers)} className="text-[10px] text-cyan-500 hover:underline flex items-center gap-0.5"><Copy className="w-2.5 h-2.5"/> All</button>
-                                                  )}
-                                              </div>
-                                              <input 
-                                                type="text" 
-                                                value={track.performers}
-                                                onChange={e => updateTrack(track.id, 'performers', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                              />
-                                          </div>
-                                          <div>
-                                              <div className="flex justify-between items-center mb-1">
-                                                  <label className="block text-xs font-bold text-slate-400">Producers</label>
-                                                  {index === 0 && (
-                                                      <button onClick={() => applyToAll('producers', track.producers)} className="text-[10px] text-cyan-500 hover:underline flex items-center gap-0.5"><Copy className="w-2.5 h-2.5"/> All</button>
-                                                  )}
-                                              </div>
-                                              <input 
-                                                type="text" 
-                                                value={track.producers || ''}
-                                                onChange={e => updateTrack(track.id, 'producers', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                              />
-                                          </div>
-                                      </div>
-
-                                      <div>
-                                          <div className="flex justify-between items-center mb-1">
-                                              <label className="block text-xs font-bold text-slate-400">Songwriters (Legal Names)</label>
-                                              {index === 0 && (
-                                                  <button onClick={() => applyToAll('songwriters', track.songwriters)} className="text-[10px] text-cyan-500 hover:underline flex items-center gap-0.5"><Copy className="w-2.5 h-2.5"/> All</button>
-                                              )}
-                                          </div>
-                                          <input 
-                                            type="text" 
-                                            placeholder="Separated by comma"
-                                            value={track.songwriters.join(', ')}
-                                            onChange={e => updateTrack(track.id, 'songwriters', e.target.value.split(', '))}
-                                            className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                          />
-                                      </div>
-
-                                      <div className="flex flex-wrap gap-4 pt-2">
-                                          <label className="flex items-center gap-2 cursor-pointer bg-slate-900 px-3 py-1.5 rounded border border-slate-700">
-                                              <input 
-                                                type="checkbox" 
-                                                checked={track.isExplicit} 
-                                                onChange={e => updateTrack(track.id, 'isExplicit', e.target.checked)}
-                                                className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
-                                              />
-                                              <span className="text-xs text-slate-300">Explicit</span>
-                                          </label>
-                                          <label className="flex items-center gap-2 cursor-pointer bg-slate-900 px-3 py-1.5 rounded border border-slate-700">
-                                              <input 
-                                                type="checkbox" 
-                                                checked={track.writerType === 'cover'} 
-                                                onChange={e => updateTrack(track.id, 'writerType', e.target.checked ? 'cover' : 'original')}
-                                                className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
-                                              />
-                                              <span className="text-xs text-slate-300">Cover Song</span>
-                                          </label>
-                                      </div>
-
-                                      {/* Cover Song Logic */}
-                                      {track.writerType === 'cover' && (
-                                          <div className="animate-in fade-in slide-in-from-top-2">
-                                              <label className="block text-xs font-bold text-slate-400 mb-1">Original Performing Artist</label>
-                                              <input 
-                                                type="text" 
-                                                placeholder="Who originally performed this?"
-                                                value={track.originalArtist || ''}
-                                                onChange={e => updateTrack(track.id, 'originalArtist', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded p-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                                              />
-                                          </div>
-                                      )}
-                                  </div>
-                              </div>
+                      {/* Final Actions */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                          <div className="text-left">
+                              <h4 className="text-white font-bold text-lg mb-1">Global Distribution Ready</h4>
+                              <p className="text-slate-500 text-sm">Your assets will be delivered to 150+ stores simultaneously.</p>
                           </div>
-                      ))}
+                          <button 
+                            onClick={handleSubmit}
+                            className="w-full md:w-auto px-10 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-xl shadow-cyan-500/20"
+                          >
+                              Authorize Deployment
+                          </button>
+                      </div>
                   </div>
-              </div>
-
-              {/* 4. Store Selection & Footer */}
-              <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-                  <h3 className="font-bold text-white mb-4 flex items-center gap-2"><Server className="w-4 h-4 text-cyan-500"/> Stores & Services</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {SERVICES_LIST.map(store => (
-                          <div key={store} className="flex items-center gap-2">
-                              <input type="checkbox" checked readOnly className="rounded border-slate-700 bg-slate-800 text-cyan-500" />
-                              <span className="text-sm text-slate-300">{store}</span>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-
-              {/* Submit Action */}
-              <div className="flex justify-end pt-4 border-t border-slate-800">
-                  <button 
-                    onClick={handleSubmit}
-                    className="bg-green-500 hover:bg-green-400 text-slate-950 px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-green-500/20 transition-all flex items-center gap-2"
-                  >
-                      {release.optBlockchainStorage ? <Lock className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />} 
-                      {release.optBlockchainStorage ? 'Secure & Submit' : 'Submit to Stores'}
-                  </button>
               </div>
           </div>
       );
   }
 
-  // ----------------------------------------------------------------------
-  // DASHBOARD VIEW
-  // ----------------------------------------------------------------------
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Hero */}
-      <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl p-10 flex justify-between items-center relative overflow-hidden border border-white/10 shadow-2xl">
-          <div className="relative z-10">
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white mb-4 border border-white/20">
-                  <Zap className="w-3 h-3 text-yellow-400" /> AI-Powered Label Services
+      <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-[2.5rem] p-12 flex flex-col lg:flex-row justify-between items-center relative overflow-hidden border border-white/10 shadow-2xl">
+          <div className="relative z-10 text-center lg:text-left lg:max-w-2xl">
+              <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white mb-6">
+                  <Zap className="w-3 h-3 text-yellow-400" /> AI-Powered Asset Deployment
               </div>
-              <h2 className="text-3xl font-bold text-white mb-3">SoundForge Global Distribution</h2>
-              <p className="text-indigo-100 text-base mb-8 max-w-xl leading-relaxed">
-                  We are your label now. Our AI agents automate the submission process to Spotify, Apple Music, and 150+ stores. Keep 100% of your royalties.
+              <h2 className="text-5xl font-black text-white mb-4 tracking-tight">Deploy Your Music Globally.</h2>
+              <p className="text-indigo-100 text-lg mb-10 leading-relaxed">
+                  Our AI agents automate metadata optimization and institutional submission to 150+ stores. Sound Merge handles the complexity so you can focus on creation.
               </p>
-              <div className="flex gap-4">
-                  <button 
-                    onClick={() => setView('setup')}
-                    className="bg-white text-indigo-950 px-8 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2 hover:scale-105"
-                  >
-                      <Upload className="w-4 h-4" /> Distribute New Release
-                  </button>
-                  <button className="px-6 py-3 rounded-full font-bold text-white border border-white/30 hover:bg-white/10 transition-colors">
-                      View My Catalog
-                  </button>
-              </div>
+              <button 
+                onClick={() => setView('setup')} 
+                className="bg-white text-indigo-950 px-10 py-4 rounded-full font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 hover:scale-105 transition-all mx-auto lg:mx-0"
+              >
+                  <Upload className="w-5 h-5" /> Start New Release
+              </button>
           </div>
-          <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-          <Globe className="absolute -right-10 -bottom-10 w-96 h-96 text-indigo-500/30 animate-pulse-slow" />
+          <div className="mt-12 lg:mt-0 relative">
+             <Globe className="w-80 h-80 text-indigo-500/20 animate-pulse-slow shrink-0" />
+             <div className="absolute inset-0 flex items-center justify-center">
+                 <ShieldCheck className="w-20 h-20 text-cyan-400 opacity-60" />
+             </div>
+          </div>
       </div>
 
-      {/* Legacy Partners */}
-      <div>
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">External Partners (Legacy)</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 opacity-70 hover:opacity-100 transition-opacity">
-             {DISTRIBUTION_PARTNERS.map((partner, i) => (
-                 <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-4 flex items-center gap-3">
-                     <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
-                         <Music2 className="w-4 h-4 text-slate-500" />
-                     </div>
-                     <div>
-                         <h4 className="font-bold text-white text-sm">{partner.name}</h4>
-                         <span className="text-xs text-slate-500 block">External Link</span>
-                     </div>
-                 </div>
-             ))}
+      {/* Release History Section */}
+      <div className="space-y-6">
+          <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Recent Deployments</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                  { title: "Neon Sunset", date: "2 days ago", status: "Delivered", color: "text-green-400", type: "Single" },
+                  { title: "Dream State EP", date: "1 week ago", status: "In Review", color: "text-yellow-400", type: "Album" },
+                  { title: "Midnight City", date: "1 month ago", status: "Delivered", color: "text-green-400", type: "Single" },
+                  { title: "Lost in Code", date: "2 months ago", status: "Live", color: "text-cyan-400", type: "Single" }
+              ].map((item, i) => (
+                  <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl hover:border-cyan-500/50 transition-all cursor-pointer group">
+                      <div className="flex justify-between items-start mb-4">
+                          <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl group-hover:bg-cyan-500/10 transition-colors">
+                              {item.type === 'Single' ? <Disc className="w-6 h-6 text-slate-400 group-hover:text-cyan-400" /> : <Layers className="w-6 h-6 text-slate-400 group-hover:text-purple-400" />}
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${item.color}`}>{item.status}</span>
+                      </div>
+                      <h4 className="font-bold text-slate-900 dark:text-white mb-1 group-hover:text-cyan-400 transition-colors">{item.title}</h4>
+                      <p className="text-xs text-slate-500">{item.date} • {item.type}</p>
+                  </div>
+              ))}
           </div>
       </div>
     </div>

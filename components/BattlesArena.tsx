@@ -25,26 +25,19 @@ export const BattlesArena: React.FC = () => {
   const [newBattleGenre, setNewBattleGenre] = useState('Pop');
 
   // --- ARENA STATE ---
-  const [isPlaying, setIsPlaying] = useState<string | null>(null); // ID of participant playing
-  const [timeLeft, setTimeLeft] = useState(300); // 5 mins mock
+  const [isPlaying, setIsPlaying] = useState<string | null>(null); 
+  const [timeLeft, setTimeLeft] = useState(300); 
   const [userVote, setUserVote] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Tabbed Interface State
   const [activeTab, setActiveTab] = useState<'chat' | 'info' | 'stats'>('chat');
-  
-  // Chat State
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{id: string, user: string, text: string, isSystem?: boolean}[]>([
-      { id: '1', user: 'System', text: 'Welcome to the arena! Keep it clean.', isSystem: true },
-      { id: '2', user: 'BeatMaker99', text: 'Blue side has crazy 808s!' },
-      { id: '3', user: 'SarahJ', text: 'Red side vocals are cleaner tho.' },
+      { id: '1', user: 'System', text: 'Welcome to the arena! The crowd is hype.', isSystem: true },
   ]);
 
-  // AI Commentary State (Marquee)
   const [tickerComment, setTickerComment] = useState("Battle in progress...");
 
-  // Initialize Audio
   useEffect(() => {
       if (!audioRef.current) {
           audioRef.current = new Audio();
@@ -57,7 +50,6 @@ export const BattlesArena: React.FC = () => {
       };
   }, []);
 
-  // Timer Countdown
   useEffect(() => {
       if (view === 'arena' && timeLeft > 0) {
           const timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
@@ -65,24 +57,15 @@ export const BattlesArena: React.FC = () => {
       }
   }, [view, timeLeft]);
 
-  // AI Commentary Interval
   useEffect(() => {
       if (view === 'arena' && activeBattle) {
           const interval = setInterval(async () => {
               if (activeBattle.participants.length < 2) return;
-              
               const p1 = activeBattle.participants[0]?.artistName || 'Artist 1';
               const p2 = activeBattle.participants[1]?.artistName || 'Artist 2';
-              const context = isPlaying ? "Music is pumping" : "Crowd is waiting";
-              
-              const comment = await generateBattleCommentary(activeBattle.genre, p1, p2, context);
+              const comment = await generateBattleCommentary(activeBattle.genre, p1, p2, isPlaying ? "Sonic impact rising" : "Tension building");
               setTickerComment(comment);
-              
-              // Occasionally add to chat
-              if (Math.random() > 0.7) {
-                  setChatMessages(prev => [...prev, { id: `ai_${Date.now()}`, user: 'SoundForge AI', text: comment, isSystem: true }]);
-              }
-          }, 10000); 
+          }, 15000); 
           return () => clearInterval(interval);
       }
   }, [view, activeBattle, isPlaying]);
@@ -95,47 +78,8 @@ export const BattlesArena: React.FC = () => {
       setUserVote(null);
   };
 
-  const handleNotify = (battleId: string) => {
-      alert("Notification set! We'll alert you when the battle begins.");
-  };
-
-  const handleCreateBattle = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!newBattleTitle) {
-          alert("Please give your battle a title.");
-          return;
-      }
-
-      // Create dummy placeholders for new battles
-      const placeholder1: BattleParticipant = {
-          id: `p_${Date.now()}_1`, artistName: "Waiting...", isAi: false, trackTitle: "-", audioUrl: "", image: "https://picsum.photos/400/400?grayscale", votes: 0
-      };
-      const placeholder2: BattleParticipant = {
-          id: `p_${Date.now()}_2`, artistName: "Waiting...", isAi: true, trackTitle: "-", audioUrl: "", image: "https://picsum.photos/400/400?grayscale", votes: 0
-      };
-
-      const newBattle: Battle = {
-          id: `bat_${Date.now()}`,
-          title: newBattleTitle,
-          description: "Custom battle created by user.",
-          type: newConfig.format,
-          genre: newBattleGenre,
-          status: 'Upcoming',
-          endTime: new Date(Date.now() + 86400000).toISOString(),
-          totalVotes: 0,
-          listeners: 0,
-          config: { ...newConfig },
-          participants: [placeholder1, placeholder2] // Initialize with slots
-      };
-
-      setBattles([newBattle, ...battles]);
-      setShowCreateModal(false);
-      alert("Battle Created! Challengers can now join.");
-  };
-
   const handlePlay = (participant: BattleParticipant) => {
       if (!audioRef.current || !participant.audioUrl) return;
-
       if (isPlaying === participant.id) {
           audioRef.current.pause();
           setIsPlaying(null);
@@ -149,8 +93,7 @@ export const BattlesArena: React.FC = () => {
   const handleVote = (participantId: string) => {
       if (userVote) return;
       setUserVote(participantId);
-      // Add "Voted" message to chat
-      setChatMessages(prev => [...prev, { id: `sys_${Date.now()}`, user: 'You', text: 'Voted successfully!', isSystem: true }]);
+      setChatMessages(prev => [...prev, { id: `sys_${Date.now()}`, user: 'You', text: 'Cast a vote!', isSystem: true }]);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -160,316 +103,117 @@ export const BattlesArena: React.FC = () => {
       setChatInput('');
   };
 
-  const formatTime = (s: number) => {
-      const min = Math.floor(s / 60);
-      const sec = s % 60;
-      return `${min}:${sec < 10 ? '0' : ''}${sec}`;
-  };
-
   const getTimeRemaining = (endTime: string) => {
-      const end = new Date(endTime).getTime();
-      const now = new Date().getTime();
-      const diff = end - now;
-      if (diff <= 0) return "0m";
-      
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      
-      if (hours > 24) return `${Math.floor(hours/24)}d left`;
-      if (hours > 0) return `${hours}h ${minutes}m`;
-      return `${minutes}m left`;
+      const diff = new Date(endTime).getTime() - new Date().getTime();
+      if (diff <= 0) return "Ended";
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
   const getCardStyles = (status: string) => {
       switch(status) {
-          case 'Live': return 'bg-slate-900 border-red-500/50 shadow-lg shadow-red-500/10 hover:shadow-red-500/20 hover:border-red-500';
-          case 'Voting': return 'bg-slate-900 border-purple-500/50 shadow-lg shadow-purple-500/10 hover:shadow-purple-500/20 hover:border-purple-500';
-          case 'Upcoming': return 'bg-slate-900 border-blue-500/30 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10';
-          case 'Ended': return 'bg-slate-900 border-slate-800 opacity-75 hover:opacity-100 hover:border-slate-600 grayscale hover:grayscale-0';
-          default: return 'bg-slate-900 border-slate-800 hover:border-cyan-500/50';
+          case 'Live': return 'border-red-500/50 shadow-red-500/5 hover:border-red-500';
+          case 'Voting': return 'border-purple-500/50 shadow-purple-500/5 hover:border-purple-500';
+          default: return 'border-slate-800 hover:border-cyan-500/50';
       }
   };
 
-  // --- LOBBY VIEW ---
   if (view === 'lobby') {
-      const filteredBattles = battles.filter(b => filter === 'All' || b.status === filter || b.type.includes(filter));
+      const filteredBattles = battles.filter(b => 
+          filter === 'All' || 
+          b.status === filter || 
+          b.type === filter ||
+          b.genre === filter
+      );
 
       return (
-          <div className="space-y-8 animate-in fade-in pb-20 relative">
-              {/* Hero */}
-              <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 h-64 md:h-80 flex flex-col justify-center items-center text-center p-6 shadow-2xl">
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20"></div>
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-950/90"></div>
-                  
-                  <div className="relative z-10 max-w-3xl">
-                      <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 md:mb-6 animate-pulse">
-                          <Swords className="w-4 h-4" /> Live Arena
+          <div className="space-y-8 animate-in fade-in pb-20">
+              <div className="relative rounded-[2.5rem] overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-64 flex flex-col justify-center p-12 shadow-2xl">
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-10 pointer-events-none"></div>
+                  <div className="relative z-10">
+                      <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 animate-pulse">
+                          <Swords className="w-3 h-3" /> Live Arena Active
                       </div>
-                      <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 tracking-tight leading-tight">
-                          Where Music Competes.<br/>
-                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">The Crowd Decides.</span>
-                      </h1>
-                      <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 mt-6 md:mt-8">
-                          <button 
-                            onClick={() => setShowCreateModal(true)}
-                            className="bg-white text-slate-950 px-6 md:px-8 py-3 rounded-full font-bold hover:bg-slate-200 transition-colors shadow-lg shadow-white/10 flex items-center justify-center gap-2"
-                          >
-                              <Plus className="w-5 h-5" /> Create Battle
-                          </button>
-                          <button className="bg-slate-800 text-white border border-slate-700 px-6 md:px-8 py-3 rounded-full font-bold hover:bg-slate-700 transition-colors">
-                              Watch Live
-                          </button>
-                      </div>
+                      <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-4">The Merge Arena</h1>
+                      <p className="text-slate-500 text-sm max-w-md">The proving ground for AI and human creators. Secure your reputation and earn $MERGE rewards.</p>
                   </div>
+                  <button onClick={() => setShowCreateModal(true)} className="absolute top-12 right-12 bg-slate-950 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform shadow-xl shadow-black/20">
+                      <Plus className="w-4 h-4" /> Start Battle
+                  </button>
               </div>
 
               {/* Filters */}
-              <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide items-center -mx-4 px-4 md:mx-0 md:px-0">
-                  <button 
-                      onClick={() => setFilter('All')}
-                      className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                          filter === 'All' 
-                          ? 'bg-cyan-500 text-slate-950 shadow-md' 
-                          : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
-                      }`}
-                  >
-                      All
-                  </button>
-                  
-                  <div className="w-px h-6 bg-slate-800 mx-2 shrink-0"></div>
-
-                  {['Live', 'Upcoming', 'Ended'].map(f => (
-                      <button 
-                          key={f}
-                          onClick={() => setFilter(f)}
-                          className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                              filter === f 
-                              ? 'bg-cyan-500 text-slate-950 shadow-md' 
-                              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
-                          }`}
-                      >
-                          {f}
-                      </button>
-                  ))}
-
-                  <div className="w-px h-6 bg-slate-800 mx-2 shrink-0"></div>
-
-                  {['AI Only', 'Human Only', 'Hybrid', 'Cover', 'Beat', 'DJ'].map(f => (
-                      <button 
-                          key={f}
-                          onClick={() => setFilter(f)}
-                          className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                              filter === f 
-                              ? 'bg-purple-500 text-white shadow-md' 
-                              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
-                          }`}
-                      >
-                          {f}
-                      </button>
+              <div className="flex flex-wrap gap-2 items-center">
+                  <button onClick={() => setFilter('All')} className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${filter === 'All' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>All Arena</button>
+                  <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-2"></div>
+                  {['Live', 'Voting', 'Upcoming', 'AI Only', 'Hybrid', 'Beat'].map(f => (
+                      <button key={f} onClick={() => setFilter(f)} className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${filter === f ? 'bg-cyan-500 text-slate-950' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>{f}</button>
                   ))}
               </div>
 
-              {/* Battle Grid (Cards) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredBattles.map(battle => (
-                      <div 
-                          key={battle.id} 
-                          onClick={() => battle.status === 'Upcoming' ? handleNotify(battle.id) : enterBattle(battle)}
-                          className={`rounded-xl overflow-hidden transition-all duration-300 group relative cursor-pointer flex flex-col border ${getCardStyles(battle.status)}`}
-                      >
-                          {/* Card Header / Visuals */}
-                          <div className="h-48 bg-slate-800 relative overflow-hidden">
-                              <div className="absolute inset-0 flex">
-                                  {battle.participants[0] && (
-                                      <img src={battle.participants[0].image} className="w-1/2 h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-105" />
-                                  )}
-                                  {battle.participants[1] && (
-                                      <img src={battle.participants[1].image} className="w-1/2 h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-105" />
-                                  )}
-                              </div>
-                              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent"></div>
-                              
-                              {/* VS Circle */}
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                                  <div className="w-10 h-10 bg-slate-950/80 backdrop-blur border border-white/10 rounded-full flex items-center justify-center font-black italic text-white text-sm shadow-xl group-hover:scale-110 transition-transform">
-                                      VS
+              {/* Battle Grid */}
+              {filteredBattles.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {filteredBattles.map(battle => (
+                          <div key={battle.id} onClick={() => enterBattle(battle)} className={`bg-white dark:bg-slate-900 border rounded-[2rem] overflow-hidden group cursor-pointer transition-all hover:scale-[1.02] ${getCardStyles(battle.status)}`}>
+                              <div className="h-44 relative bg-slate-800">
+                                  <div className="absolute inset-0 flex">
+                                      <img src={battle.participants[0]?.image} className="w-1/2 h-full object-cover opacity-60" />
+                                      <img src={battle.participants[1]?.image} className="w-1/2 h-full object-cover opacity-60" />
+                                  </div>
+                                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="bg-slate-950/80 border border-white/20 w-10 h-10 rounded-full flex items-center justify-center font-black italic text-xs">VS</div>
+                                  </div>
+                                  <div className="absolute top-4 left-4 flex gap-2">
+                                      {battle.status === 'Live' && <span className="bg-red-600 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase animate-pulse">Live</span>}
+                                      <span className="bg-slate-950/60 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase">{battle.type}</span>
                                   </div>
                               </div>
-
-                              {/* Badges Top Left */}
-                              <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2">
-                                  {battle.status === 'Live' && (
-                                      <span className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide bg-red-600 text-white animate-pulse flex items-center gap-1 shadow-sm">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-white"></span> Live
-                                      </span>
-                                  )}
-                                  {battle.status === 'Voting' && (
-                                      <span className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide bg-purple-600 text-white flex items-center gap-1 shadow-sm">
-                                          <Vote className="w-3 h-3" /> Voting
-                                      </span>
-                                  )}
-                                  {battle.status === 'Upcoming' && (
-                                      <span className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide bg-blue-600 text-white flex items-center gap-1 shadow-sm">
-                                          <Calendar className="w-3 h-3" /> Soon
-                                      </span>
-                                  )}
-                                  {battle.status === 'Ended' && (
-                                      <span className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide bg-slate-700 text-slate-300 flex items-center gap-1 shadow-sm">
-                                          Ended
-                                      </span>
-                                  )}
-                                  <span className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide bg-slate-950/60 text-white border border-white/10 backdrop-blur">
-                                      {battle.type}
-                                  </span>
-                              </div>
-                          </div>
-
-                          {/* Card Body */}
-                          <div className="p-5 flex-1 flex flex-col">
-                              <div className="mb-1">
-                                  <span className="text-xs font-bold text-cyan-500 uppercase tracking-wider mb-1 block">{battle.genre}</span>
-                                  <h3 className="font-bold text-white text-xl group-hover:text-cyan-400 transition-colors line-clamp-1">{battle.title}</h3>
-                              </div>
-                              <p className="text-xs text-slate-400 mb-4 line-clamp-2">
-                                  {battle.description} 
-                                  {battle.config.rewards.cash ? <span className="text-green-400 block mt-1 font-bold">Prize: ${battle.config.rewards.cash}</span> : null}
-                              </p>
-
-                              {/* NEW: Participant Stats */}
-                              {battle.participants.some(p => p.creativityScore || p.soundScore) && (
-                                  <div className="mt-auto mb-4 space-y-2 bg-black/20 p-2 rounded-lg border border-white/5">
-                                      {battle.participants.map(p => (
-                                          <div key={p.id} className="flex justify-between items-center text-[10px] text-slate-400">
-                                              <div className="flex items-center gap-2">
-                                                  <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
-                                                  <span className="font-bold truncate max-w-[100px] text-slate-300">{p.artistName}</span>
-                                              </div>
-                                              <div className="flex gap-3">
-                                                  {p.creativityScore && (
-                                                      <div className="flex items-center gap-1" title="Creativity Score">
-                                                          <span className="text-purple-400">🎨</span>
-                                                          <span className="font-mono">{p.creativityScore}</span>
-                                                      </div>
-                                                  )}
-                                                  {p.soundScore && (
-                                                      <div className="flex items-center gap-1" title="Sound Score">
-                                                          <span className="text-cyan-400">🔊</span>
-                                                          <span className="font-mono">{p.soundScore}</span>
-                                                      </div>
-                                                  )}
-                                              </div>
-                                          </div>
-                                      ))}
+                              <div className="p-6">
+                                  <div className="flex justify-between items-start mb-2">
+                                      <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight line-clamp-1">{battle.title}</h3>
+                                      <span className="text-[10px] font-black text-cyan-500 uppercase">{battle.genre}</span>
                                   </div>
-                              )}
-                              
-                              {/* Footer Stats */}
-                              <div className="mt-auto pt-4 border-t border-slate-800/50 flex justify-between items-center text-xs font-medium text-slate-500">
-                                  {/* Left: Time Status */}
-                                  <div className="flex items-center gap-2">
-                                      {battle.status === 'Live' ? (
-                                          <span className="flex items-center gap-1.5 text-red-400 bg-red-400/10 px-2 py-1 rounded">
-                                              <Clock className="w-3.5 h-3.5" /> 
-                                              {getTimeRemaining(battle.endTime)}
+                                  <p className="text-xs text-slate-500 line-clamp-2 mb-6">{battle.description}</p>
+                                  <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-800">
+                                      <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                          <Clock className="w-3 h-3" /> {getTimeRemaining(battle.endTime)}
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                          <span className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase">
+                                              <Headphones className="w-3 h-3" /> {battle.listeners}
                                           </span>
-                                      ) : battle.status === 'Voting' ? (
-                                          <span className="flex items-center gap-1.5 text-purple-400 bg-purple-400/10 px-2 py-1 rounded">
-                                              <Clock className="w-3.5 h-3.5" /> 
-                                              {getTimeRemaining(battle.endTime)} left
+                                          <span className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase">
+                                              <Vote className="w-3 h-3" /> {battle.totalVotes}
                                           </span>
-                                      ) : battle.status === 'Upcoming' ? (
-                                          <span className="flex items-center gap-1.5 text-blue-400 bg-blue-400/10 px-2 py-1 rounded">
-                                              <Calendar className="w-3.5 h-3.5" /> 
-                                              {new Date(battle.endTime).toLocaleDateString()}
-                                          </span>
-                                      ) : (
-                                          <span className="flex items-center gap-1.5 text-slate-400 bg-slate-800 px-2 py-1 rounded">
-                                              <CheckCircle2 className="w-3.5 h-3.5" /> Ended
-                                          </span>
-                                      )}
-                                  </div>
-
-                                  {/* Right: Counts */}
-                                  <div className="flex items-center gap-3">
-                                      {battle.status === 'Live' ? (
-                                          <span className="flex items-center gap-1 text-slate-300">
-                                              <Headphones className="w-3.5 h-3.5 text-slate-500" /> {battle.listeners}
-                                          </span>
-                                      ) : (
-                                          <span className="flex items-center gap-1 text-slate-300">
-                                              <Vote className="w-3.5 h-3.5 text-slate-500" /> {battle.totalVotes}
-                                          </span>
-                                      )}
+                                      </div>
                                   </div>
                               </div>
                           </div>
-                      </div>
-                  ))}
-              </div>
+                      ))}
+                  </div>
+              ) : (
+                  <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] text-slate-500">
+                      <Music className="w-12 h-12 mb-4 opacity-20" />
+                      <p className="font-bold">No battles found matching this filter.</p>
+                      <button onClick={() => setFilter('All')} className="text-cyan-500 text-xs font-black uppercase mt-2 hover:underline">Clear Filters</button>
+                  </div>
+              )}
 
-              {/* Create Battle Modal */}
+              {/* Create Modal */}
               {showCreateModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
-                          <button 
-                              onClick={() => setShowCreateModal(false)}
-                              className="absolute top-4 right-4 text-slate-500 hover:text-white"
-                          >
-                              <X className="w-6 h-6" />
-                          </button>
-                          
-                          <div className="p-6 md:p-8">
-                              <h2 className="text-2xl font-bold text-white mb-6">Create New Battle</h2>
-                              
-                              <form onSubmit={handleCreateBattle} className="space-y-6">
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-400 mb-2">Battle Title</label>
-                                      <input 
-                                          type="text" 
-                                          value={newBattleTitle}
-                                          onChange={(e) => setNewBattleTitle(e.target.value)}
-                                          placeholder="e.g. Best 808s in Town"
-                                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"
-                                      />
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                          <label className="block text-xs font-bold text-slate-400 mb-2">Format</label>
-                                          <select 
-                                              value={newConfig.format}
-                                              onChange={(e) => setNewConfig({...newConfig, format: e.target.value as any})}
-                                              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"
-                                          >
-                                              <option value="Hybrid">Hybrid (AI vs Human)</option>
-                                              <option value="AI Only">AI Only</option>
-                                              <option value="Human Only">Human Only</option>
-                                              <option value="Beat">Beat Battle</option>
-                                          </select>
-                                      </div>
-                                      <div>
-                                          <label className="block text-xs font-bold text-slate-400 mb-2">Genre</label>
-                                          <select 
-                                              value={newBattleGenre}
-                                              onChange={(e) => setNewBattleGenre(e.target.value)}
-                                              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"
-                                          >
-                                              <option value="Pop">Pop</option>
-                                              <option value="Hip Hop">Hip Hop</option>
-                                              <option value="Trap">Trap</option>
-                                              <option value="R&B">R&B</option>
-                                              <option value="Electronic">Electronic</option>
-                                          </select>
-                                      </div>
-                                  </div>
-
-                                  <button 
-                                      type="submit"
-                                      className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg transition-colors"
-                                  >
-                                      Launch Arena
-                                  </button>
-                              </form>
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
+                      <div className="bg-slate-900 border border-slate-800 rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative">
+                          <button onClick={() => setShowCreateModal(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white"><X className="w-6 h-6"/></button>
+                          <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-6">Initialize Battle</h2>
+                          <div className="space-y-4">
+                              <input placeholder="Battle Title" value={newBattleTitle} onChange={e => setNewBattleTitle(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white font-bold outline-none focus:border-indigo-500" />
+                              <select className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white font-bold outline-none">
+                                  <option>Pop</option><option>Hip Hop</option><option>Trap</option><option>Lo-Fi</option>
+                              </select>
+                              <button onClick={() => { setBattles([ { id: `b_${Date.now()}`, title: newBattleTitle || 'New Battle', description: 'User created battle.', type: 'Hybrid', genre: 'Pop', status: 'Live', endTime: new Date(Date.now() + 3600000).toISOString(), totalVotes: 0, listeners: 1, config: { rewards: { cash: 100, xp: 500 }, customRules: [] }, participants: [] }, ...battles]); setShowCreateModal(false); }} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl shadow-lg shadow-indigo-500/20 uppercase tracking-widest text-xs">Authorize Arena Deployment</button>
                           </div>
                       </div>
                   </div>
@@ -478,199 +222,68 @@ export const BattlesArena: React.FC = () => {
       );
   }
 
-  // --- BATTLE ARENA VIEW ---
   if (!activeBattle) return null;
 
   return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col fixed inset-0 z-50">
-          {/* Top Bar */}
-          <div className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
-              <div className="flex items-center gap-4">
-                  <button onClick={() => setView('lobby')} className="text-slate-400 hover:text-white font-bold text-sm">
-                      ← Exit
-                  </button>
-                  <div className="h-6 w-px bg-slate-800 hidden md:block"></div>
-                  <div>
-                      <h2 className="font-bold text-sm md:text-lg flex items-center gap-2">
-                          {activeBattle.title}
-                          <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded uppercase animate-pulse">Live</span>
-                      </h2>
-                  </div>
+      <div className="min-h-screen bg-black text-white flex flex-col fixed inset-0 z-[100] animate-in slide-in-from-bottom-4">
+          <div className="h-16 bg-slate-900 border-b border-white/5 flex items-center justify-between px-8">
+              <div className="flex items-center gap-6">
+                  <button onClick={() => setView('lobby')} className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">← Exit Arena</button>
+                  <h2 className="font-black uppercase tracking-tight text-xl">{activeBattle.title}</h2>
               </div>
-              <div className="flex items-center gap-3 md:gap-6">
-                  <div className="hidden md:flex items-center gap-2 text-slate-400 text-sm">
-                      <Clock className="w-4 h-4" /> {formatTime(timeLeft)}
-                  </div>
-                  <div className="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full text-xs font-mono">
-                      <Headphones className="w-3 h-3 text-cyan-400" /> {activeBattle.listeners + 1}
+              <div className="flex items-center gap-6">
+                  <div className="text-red-500 font-black text-sm uppercase flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> {tickerComment}
                   </div>
               </div>
           </div>
 
-          {/* AI Commentary Ticker */}
-          <div className="bg-slate-950 border-b border-slate-800 py-1 overflow-hidden relative shrink-0">
-              <div className="whitespace-nowrap animate-[marquee_20s_linear_infinite] text-xs font-mono text-cyan-400/80">
-                  <span className="mx-4">🤖 AI Commentary: {tickerComment}</span>
-                  <span className="mx-4 text-slate-600">///</span>
-                  <span className="mx-4">🤖 AI Commentary: {tickerComment}</span>
-                  <span className="mx-4 text-slate-600">///</span>
-                  <span className="mx-4">🤖 AI Commentary: {tickerComment}</span>
-              </div>
-          </div>
-
-          {/* Main Stage Container (Responsive Split) */}
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-              
-              {/* STAGE AREA (Top/Left) */}
-              <div className="flex-1 bg-slate-950 relative flex flex-col overflow-y-auto md:overflow-hidden min-h-[50%] md:min-h-0">
-                  {/* Visualizer Background Placeholder */}
-                  <div className="absolute inset-0 overflow-hidden opacity-30 pointer-events-none">
-                      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-gradient-to-r from-red-500/20 via-transparent to-blue-500/20 animate-spin-slow duration-[20s]`}></div>
-                  </div>
-
-                  {/* Players */}
-                  <div className="flex-1 flex flex-col md:flex-row items-center justify-center p-4 md:p-12 gap-8 md:gap-16 z-10">
-                      {activeBattle.participants.map((p, i) => {
-                          const isRed = i === 0;
-                          const colorClass = isRed ? 'text-red-500' : 'text-blue-500';
-                          const bgClass = isRed ? 'bg-red-500' : 'bg-blue-500';
-                          const playing = isPlaying === p.id;
-
-                          return (
-                              <div key={p.id} className="flex flex-col items-center gap-4 md:gap-6 relative w-full md:w-auto">
-                                  {/* Avatar Circle with Pulse */}
-                                  <div className="relative group">
-                                      {/* Responsive Avatar Size: smaller on mobile */}
-                                      <div className={`w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 rounded-full border-4 ${isRed ? 'border-red-500' : 'border-blue-500'} p-1 relative z-10 bg-slate-900`}>
-                                          <img src={p.image} className="w-full h-full rounded-full object-cover" />
-                                          
-                                          {/* Play Overlay */}
-                                          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => handlePlay(p)}>
-                                              {playing ? <Pause className="w-8 h-8 md:w-12 md:h-12 text-white" /> : <Play className="w-8 h-8 md:w-12 md:h-12 text-white ml-1 md:ml-2" />}
-                                          </div>
-                                      </div>
-                                      {/* Audio Visualizer Ring (Fake) */}
-                                      {playing && (
-                                          <div className={`absolute -inset-4 rounded-full border-2 ${isRed ? 'border-red-500/50' : 'border-blue-500/50'} animate-ping opacity-20`}></div>
-                                      )}
-                                  </div>
-
-                                  <div className="text-center">
-                                      <h3 className="text-xl md:text-2xl font-bold text-white mb-1">{p.artistName}</h3>
-                                      <p className={`text-xs md:text-sm font-bold ${colorClass} uppercase tracking-wider`}>{p.trackTitle}</p>
-                                      
-                                      <div className="mt-4 flex gap-4 justify-center">
-                                          <button 
-                                              onClick={() => handleVote(p.id)}
-                                              disabled={!!userVote}
-                                              className={`px-6 py-2 rounded-full font-bold text-sm flex items-center gap-2 transition-all ${
-                                                  userVote === p.id 
-                                                  ? 'bg-white text-slate-900' 
-                                                  : userVote 
-                                                      ? 'bg-slate-800 text-slate-500 opacity-50' 
-                                                      : `${bgClass} text-white hover:scale-105 shadow-lg`
-                                              }`}
-                                          >
-                                              {userVote === p.id ? <CheckCircle2 className="w-4 h-4" /> : <Vote className="w-4 h-4" />}
-                                              {userVote === p.id ? 'Voted' : 'Vote'}
-                                          </button>
-                                      </div>
-                                  </div>
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+              <div className="flex-1 relative flex flex-col items-center justify-center p-12 overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-black to-black">
+                  <div className="grid grid-cols-2 gap-24 relative z-10 w-full max-w-5xl">
+                      {activeBattle.participants.map((p, i) => (
+                          <div key={p.id} className="flex flex-col items-center gap-8">
+                              <div className={`relative group w-64 h-64 rounded-full p-1 border-4 transition-all duration-700 ${isPlaying === p.id ? 'border-cyan-400 scale-105 shadow-[0_0_50px_rgba(6,182,212,0.3)]' : 'border-slate-800 grayscale opacity-40 hover:grayscale-0 hover:opacity-100'}`}>
+                                  <img src={p.image} className="w-full h-full rounded-full object-cover" />
+                                  <button onClick={() => handlePlay(p)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-full transition-all">
+                                      {isPlaying === p.id ? <Pause className="w-12 h-12 fill-white" /> : <Play className="w-12 h-12 fill-white ml-2" />}
+                                  </button>
                               </div>
-                          );
-                      })}
-                      
-                      {/* VS Divider - Hidden on mobile to save vertical space */}
-                      <div className="hidden md:flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                          <div className="text-6xl font-black italic text-slate-800 select-none opacity-50">VS</div>
+                              <div className="text-center">
+                                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">{p.artistName}</h3>
+                                  <p className="text-cyan-500 font-bold uppercase text-xs tracking-widest mb-6">{p.trackTitle}</p>
+                                  <button onClick={() => handleVote(p.id)} disabled={!!userVote} className={`px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest transition-all ${userVote === p.id ? 'bg-green-500 text-slate-950' : 'bg-white text-slate-950 hover:scale-105 active:scale-95 disabled:opacity-30'}`}>
+                                      {userVote === p.id ? 'Voted' : 'Vote Now'}
+                                  </button>
+                              </div>
+                          </div>
+                      ))}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                          <span className="text-[120px] font-black italic text-slate-900/50 select-none">VS</span>
                       </div>
                   </div>
               </div>
 
-              {/* SIDEBAR: CHAT & STATS (Bottom/Right) */}
-              <div className="w-full md:w-80 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col shrink-0 h-[50%] md:h-auto">
-                  <div className="flex border-b border-slate-800 shrink-0">
-                      <button 
-                          onClick={() => setActiveTab('chat')}
-                          className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${activeTab === 'chat' ? 'text-cyan-400 border-b-2 border-cyan-400 bg-slate-800' : 'text-slate-500 hover:text-white'}`}
-                      >
-                          Live Chat
-                      </button>
-                      <button 
-                          onClick={() => setActiveTab('stats')}
-                          className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${activeTab === 'stats' ? 'text-cyan-400 border-b-2 border-cyan-400 bg-slate-800' : 'text-slate-500 hover:text-white'}`}
-                      >
-                          Stats
-                      </button>
+              {/* Sidebar: Chat */}
+              <div className="w-80 bg-slate-900 border-l border-white/5 flex flex-col shrink-0">
+                  <div className="p-6 border-b border-white/5 bg-slate-950">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Crowd Reaction</h4>
                   </div>
-
-                  {activeTab === 'chat' ? (
-                      <div className="flex-1 flex flex-col overflow-hidden">
-                          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                              {chatMessages.map((msg) => (
-                                  <div key={msg.id} className={`text-sm ${msg.isSystem ? 'text-center my-4 opacity-70' : ''}`}>
-                                      {msg.isSystem ? (
-                                          <span className="text-xs bg-slate-800 text-cyan-400 px-2 py-1 rounded-full border border-cyan-900">{msg.text}</span>
-                                      ) : (
-                                          <p>
-                                              <span className="font-bold text-slate-400 mr-2">{msg.user}:</span>
-                                              <span className="text-slate-200">{msg.text}</span>
-                                          </p>
-                                      )}
-                                  </div>
-                              ))}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                      {chatMessages.map(msg => (
+                          <div key={msg.id} className="text-xs">
+                              {msg.isSystem ? (
+                                  <div className="text-center py-2 text-indigo-400 font-bold uppercase tracking-tighter opacity-70">/// {msg.text}</div>
+                              ) : (
+                                  <p><span className="font-black text-slate-500 mr-2 uppercase">{msg.user}</span> <span className="text-slate-300">{msg.text}</span></p>
+                              )}
                           </div>
-                          <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-800 bg-slate-950 flex gap-2 shrink-0">
-                              <input 
-                                  type="text" 
-                                  value={chatInput}
-                                  onChange={(e) => setChatInput(e.target.value)}
-                                  placeholder="Say something..."
-                                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-                              />
-                              <button type="submit" className="bg-cyan-600 p-2 rounded-lg text-white hover:bg-cyan-500">
-                                  <Send className="w-4 h-4" />
-                              </button>
-                          </form>
-                      </div>
-                  ) : (
-                      <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-                          <div>
-                              <h4 className="text-xs font-bold text-slate-500 uppercase mb-4">Live Voting</h4>
-                              <div className="space-y-4">
-                                  {activeBattle.participants.map((p, i) => {
-                                      const total = activeBattle.totalVotes || 1; // avoid div by 0
-                                      const percent = Math.round(((p.votes + (userVote === p.id ? 1 : 0)) / total) * 100);
-                                      const isRed = i === 0;
-                                      
-                                      return (
-                                          <div key={p.id}>
-                                              <div className="flex justify-between text-xs mb-1">
-                                                  <span className="font-bold text-white">{p.artistName}</span>
-                                                  <span className="text-slate-400">{percent}%</span>
-                                              </div>
-                                              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                                                  <div className={`h-full ${isRed ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${percent}%` }}></div>
-                                              </div>
-                                          </div>
-                                      );
-                                  })}
-                              </div>
-                          </div>
-
-                          <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
-                              <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Battle Info</h4>
-                              <p className="text-xs text-slate-300 mb-2">{activeBattle.description}</p>
-                              <div className="flex flex-wrap gap-2">
-                                  {activeBattle.config.customRules.map((rule, i) => (
-                                      <span key={i} className="text-[10px] bg-slate-900 border border-slate-600 px-2 py-1 rounded text-slate-400">
-                                          {rule}
-                                      </span>
-                                  ))}
-                              </div>
-                          </div>
-                      </div>
-                  )}
+                      ))}
+                  </div>
+                  <form onSubmit={handleSendMessage} className="p-4 bg-slate-950 border-t border-white/5 flex gap-2">
+                      <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Reaction..." className="flex-1 bg-slate-900 border-none rounded-xl px-4 py-3 text-xs text-white outline-none focus:ring-1 ring-cyan-500" />
+                      <button type="submit" className="p-3 bg-cyan-600 rounded-xl text-white hover:bg-cyan-500 transition-colors"><Send className="w-4 h-4" /></button>
+                  </form>
               </div>
           </div>
       </div>

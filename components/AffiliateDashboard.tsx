@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DollarSign, Copy, ExternalLink, Link as LinkIcon, Users, TrendingUp, Check, ArrowRight, MousePointer, UserPlus, CreditCard } from 'lucide-react';
 import { affiliateService } from '../services/affiliateService';
@@ -45,14 +44,14 @@ export const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ user }) 
               <div className="inline-flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
                   <DollarSign className="w-3 h-3" /> Affiliate Program
               </div>
-              <h1 className="text-4xl font-bold text-white mb-4">Partner with SoundForge</h1>
+              <h1 className="text-4xl font-bold text-white mb-4">Partner with Sound Merge</h1>
               <p className="text-indigo-200 text-lg mb-8 leading-relaxed">
                   Earn 40% recurring revenue for every artist you refer. Track your performance and payouts directly through our partner, PushLapGrowth.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
                   <a 
-                    href="https://soundforge.pushlapgrowth.com/" 
+                    href="https://soundmerge.pushlapgrowth.com/" 
                     target="_blank" 
                     rel="noreferrer"
                     className="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
@@ -60,7 +59,7 @@ export const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ user }) 
                       Apply Now <ArrowRight className="w-4 h-4" />
                   </a>
                   <a 
-                    href="https://soundforge.pushlapgrowth.com/" 
+                    href="https://soundmerge.pushlapgrowth.com/" 
                     target="_blank" 
                     rel="noreferrer"
                     className="bg-white/10 backdrop-blur border border-white/20 text-white px-8 py-3 rounded-full font-bold flex items-center justify-center gap-2 hover:bg-white/20 transition-all"

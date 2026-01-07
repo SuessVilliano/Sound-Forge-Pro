@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Play, Heart, Download, Edit3, Music, Scissors, Plus, Trash2, Clock, Save, ArrowUpDown, DollarSign, ListFilter, Tag, FileText, Check } from 'lucide-react';
+import { Search, Filter, Play, Heart, Download, Edit3, Music, Scissors, Plus, Trash2, Clock, Save, ArrowUpDown, DollarSign, ListFilter, Tag, FileText, Check, Youtube, Video } from 'lucide-react';
 import { Track } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { dataService } from '../services/dataService';
@@ -31,6 +31,7 @@ const INITIAL_CATALOG: CatalogTrack[] = [
         earnings: 1250.45, 
         image: 'https://picsum.photos/300/300?random=10', 
         audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 
+        videoUrl: 'https://www.youtube.com/watch?v=L_jWHffIx5E',
         licenseType: 'sync-ready', 
         genre: 'Electronic',
         syncPoints: [
@@ -40,7 +41,7 @@ const INITIAL_CATALOG: CatalogTrack[] = [
     },
     { id: 'c2', title: 'Golden Hour', artist: 'Solar Beats', bpm: 95, key: 'C', mood_tags: ['Chill', 'Lo-Fi'], duration: '2:30', plays: 89000, earnings: 450.20, image: 'https://picsum.photos/300/300?random=11', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', licenseType: 'exclusive', genre: 'Hip Hop', syncPoints: [] },
     { id: 'c3', title: 'Cyber War', artist: 'Glitch Mob', bpm: 140, key: 'Dm', mood_tags: ['Dark', 'Industrial'], duration: '4:10', plays: 45000, earnings: 890.00, image: 'https://picsum.photos/300/300?random=12', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', licenseType: 'non-exclusive', genre: 'Electronic', syncPoints: [] },
-    { id: 'c4', title: 'Ocean Breeze', artist: 'Acoustic Soul', bpm: 85, key: 'G', mood_tags: ['Acoustic', 'Happy'], duration: '3:15', plays: 67000, earnings: 320.50, image: 'https://picsum.photos/300/300?random=13', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', licenseType: 'sync-ready', genre: 'Acoustic', syncPoints: [] },
+    { id: 'c4', title: 'Ocean Breeze', artist: 'Acoustic Soul', bpm: 85, key: 'G', mood_tags: ['Acoustic', 'Happy'], duration: '3:15', plays: 67000, earnings: 320.50, image: 'https://picsum.photos/300/300?random=13', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', licenseType: 'sync-ready', genre: 'Acoustic', syncPoints: [] },
     { id: 'c5', title: 'Summer Love', artist: 'The Starlets', bpm: 120, key: 'F', mood_tags: ['Fun', 'Summer'], duration: '3:10', plays: 12000, earnings: 50.10, image: 'https://picsum.photos/300/300?random=14', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', licenseType: 'sync-ready', genre: 'Pop', syncPoints: [] },
     { id: 'c6', title: 'Gritty Road', artist: 'Black Rebel', bpm: 145, key: 'E', mood_tags: ['Distorted', 'Heavy'], duration: '2:50', plays: 3000, earnings: 10.05, image: 'https://picsum.photos/300/300?random=15', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', licenseType: 'non-exclusive', genre: 'Rock', syncPoints: [] },
 ];
@@ -82,7 +83,6 @@ export const MusicCatalog: React.FC = () => {
   const { playTrack } = usePlayer();
 
   // Persist to LocalStorage whenever favorites change AND dispatch event
-  // Using a separate effect to ensure any change to favorites state is synced
   useEffect(() => {
       localStorage.setItem('sf_track_favorites', JSON.stringify(favorites));
   }, [favorites]);
@@ -105,7 +105,6 @@ export const MusicCatalog: React.FC = () => {
       }
     };
 
-    // Listen for custom event from other components (Player, My Music)
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('favoritesUpdated', syncFavoritesFromStorage);
     
@@ -120,10 +119,7 @@ export const MusicCatalog: React.FC = () => {
       setFavorites(prev => {
           const isFavorited = prev.includes(id);
           const next = isFavorited ? prev.filter(fav => fav !== id) : [...prev, id];
-          // We set it to storage immediately to minimize race conditions 
-          // but the useEffect above will also handle it.
           localStorage.setItem('sf_track_favorites', JSON.stringify(next));
-          // Notify other components (Player, My Music)
           window.dispatchEvent(new Event('favoritesUpdated'));
           return next;
       });
@@ -196,7 +192,6 @@ export const MusicCatalog: React.FC = () => {
         return favorites.includes(t.id) && matchesSearch && matchesGenre;
     }
     
-    // Exact match for license type or 'all'
     const matchesLicense = filter === 'all' || t.licenseType === filter;
     return matchesLicense && matchesSearch && matchesGenre;
   });
@@ -221,7 +216,7 @@ export const MusicCatalog: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-end gap-4">
             <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Music Catalog</h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-2">Discover sync-ready tracks from top AI artists.</p>
+                <p className="text-slate-500 dark:text-slate-400 mt-2">Discover sync-ready tracks and videos from top AI artists.</p>
             </div>
             
             <div className="flex gap-2 items-center">
@@ -254,7 +249,6 @@ export const MusicCatalog: React.FC = () => {
 
         {/* Filter Controls Area */}
         <div className="space-y-4">
-            {/* Main Filters */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {['all', 'favorites', 'sync-ready', 'exclusive', 'non-exclusive'].map(f => (
                     <button 
@@ -272,7 +266,6 @@ export const MusicCatalog: React.FC = () => {
                 ))}
             </div>
 
-            {/* Genre Pills */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide mr-2 flex items-center gap-1">
                     <ListFilter className="w-3 h-3" /> Genre:
@@ -324,6 +317,7 @@ export const MusicCatalog: React.FC = () => {
                             sortedTracks.map((track, i) => {
                                 const isFav = favorites.includes(track.id);
                                 const isExpanded = expandedTrackId === track.id;
+                                const hasVideo = !!track.videoUrl;
                                 
                                 return (
                                     <React.Fragment key={track.id}>
@@ -336,7 +330,14 @@ export const MusicCatalog: React.FC = () => {
                                             </td>
                                             <td className="py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <img src={track.image} alt={track.title} className="w-10 h-10 rounded-md object-cover bg-slate-800" />
+                                                    <div className="relative">
+                                                        <img src={track.image} alt={track.title} className="w-10 h-10 rounded-md object-cover bg-slate-800" />
+                                                        {hasVideo && (
+                                                            <div className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full p-0.5 shadow-sm border border-slate-900" title="Video available">
+                                                                <Video className="w-2.5 h-2.5" />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div>
                                                         <span className="font-bold text-slate-900 dark:text-white text-sm block">{track.title}</span>
                                                         <span className="text-xs text-slate-500 dark:text-slate-400">{track.artist}</span>
@@ -434,6 +435,21 @@ export const MusicCatalog: React.FC = () => {
                                                                             className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
                                                                         />
                                                                     </div>
+                                                                    <div>
+                                                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
+                                                                            <Youtube className="w-3 h-3 text-red-500" /> YouTube Video Link
+                                                                        </label>
+                                                                        <input 
+                                                                            type="text" 
+                                                                            value={track.videoUrl || ''}
+                                                                            onChange={(e) => handleUpdateTrack(track.id, 'videoUrl', e.target.value)}
+                                                                            placeholder="https://www.youtube.com/watch?v=..."
+                                                                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-red-500 font-mono"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <div className="space-y-4">
                                                                     <div className="grid grid-cols-2 gap-4">
                                                                         <div>
                                                                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Genre</label>
@@ -456,9 +472,6 @@ export const MusicCatalog: React.FC = () => {
                                                                             </select>
                                                                         </div>
                                                                     </div>
-                                                                </div>
-                                                                
-                                                                <div className="space-y-4">
                                                                     <div className="grid grid-cols-2 gap-4">
                                                                         <div>
                                                                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">BPM</label>
@@ -480,16 +493,15 @@ export const MusicCatalog: React.FC = () => {
                                                                         </div>
                                                                     </div>
                                                                     <div>
-                                                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mood Tags (comma separated)</label>
-                                                                        <div className="relative">
-                                                                            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                                            <input 
-                                                                                type="text" 
-                                                                                value={track.mood_tags.join(', ')}
-                                                                                onChange={(e) => handleUpdateTrack(track.id, 'mood_tags', e.target.value.split(',').map(s => s.trim()))}
-                                                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
-                                                                            />
-                                                                        </div>
+                                                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
+                                                                            <Tag className="w-3 h-3" /> Mood Tags
+                                                                        </label>
+                                                                        <input 
+                                                                            type="text" 
+                                                                            value={track.mood_tags.join(', ')}
+                                                                            onChange={(e) => handleUpdateTrack(track.id, 'mood_tags', e.target.value.split(',').map(s => s.trim()))}
+                                                                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                                        />
                                                                     </div>
                                                                     
                                                                     <div className="flex justify-end pt-2">
@@ -497,7 +509,7 @@ export const MusicCatalog: React.FC = () => {
                                                                             onClick={() => setExpandedTrackId(null)}
                                                                             className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-md text-xs font-bold transition-colors shadow-sm"
                                                                         >
-                                                                            <Check className="w-3 h-3" /> Done Editing
+                                                                            <Check className="w-3 h-3" /> Save Changes
                                                                         </button>
                                                                     </div>
                                                                 </div>

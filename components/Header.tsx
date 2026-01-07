@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, ChevronDown, Upload, Menu, Sun, Moon, Crown, LogOut, User as UserIcon, Settings, CreditCard, X, Loader2, Music, Play, Wallet, Zap, Plus, Swords } from 'lucide-react';
+import { Bell, Search, ChevronDown, Upload, Menu, Sun, Moon, Crown, LogOut, User as UserIcon, Settings, CreditCard, X, Loader2, Music, Play, Wallet, Zap, Plus, Swords, CheckCircle2, MessageSquare, AlertCircle } from 'lucide-react';
 import { User, Track } from '../types';
 import { searchArtists, searchTracks, ChartmetricArtist, ChartmetricTrackResult } from '../services/chartmetricService';
 import { RapidApiAgent } from '../services/rapidApiService'; 
@@ -18,6 +18,12 @@ interface HeaderProps {
   onUpload: () => void;
   onArtistSelect?: (artistId: number) => void;
 }
+
+const MOCK_NOTIFICATIONS = [
+    { id: 1, title: 'New Sync Match', text: 'AI found a match for "Midnight City" with Netflix.', type: 'match', time: '2m ago', read: false },
+    { id: 2, title: 'Royalties Received', text: '◎0.45 SOL deposited from SoundExchange.', type: 'payment', time: '1h ago', read: false },
+    { id: 3, title: 'VoiceShield Alert', text: 'Unauthorized clone detected on TikTok.', type: 'alert', time: '5h ago', read: true },
+];
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme, user, onUpgrade, onLogout, onNavigate, onUpload, onArtistSelect }) => {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -38,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
   const searchRef = useRef<HTMLDivElement>(null);
   const walletRef = useRef<HTMLDivElement>(null);
   const quickActionRef = useRef<HTMLDivElement>(null);
+  const notifyRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -46,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) setShowResults(false);
       if (walletRef.current && !walletRef.current.contains(event.target as Node)) setShowWalletMenu(false);
       if (quickActionRef.current && !quickActionRef.current.contains(event.target as Node)) setShowQuickActions(false);
+      if (notifyRef.current && !notifyRef.current.contains(event.target as Node)) setShowNotifications(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -66,6 +74,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
           } catch (error) { console.error(error); } finally { setIsSearching(false); }
       }, 500);
   };
+
+  const unreadCount = MOCK_NOTIFICATIONS.filter(n => !n.read).length;
 
   return (
     <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between transition-colors duration-200">
@@ -148,6 +158,55 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
                     </button>
                     <button onClick={() => { onNavigate('battles'); setShowQuickActions(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800">
                         <Swords className="w-4 h-4 text-red-500" /> Start Battle
+                    </button>
+                </div>
+            )}
+        </div>
+
+        {/* NOTIFICATIONS */}
+        <div className="relative" ref={notifyRef}>
+            <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm relative"
+            >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900">
+                        {unreadCount}
+                    </span>
+                )}
+            </button>
+            {showNotifications && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-between items-center">
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Activity Log</h4>
+                        <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">Real-time</span>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                        {MOCK_NOTIFICATIONS.map((n) => (
+                            <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${!n.read ? 'bg-cyan-500/5' : ''}`}>
+                                <div className="flex items-start gap-3">
+                                    <div className={`p-2 rounded-lg shrink-0 ${
+                                        n.type === 'match' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' :
+                                        n.type === 'payment' ? 'bg-green-100 dark:bg-green-900/30 text-green-600' :
+                                        'bg-red-100 dark:bg-red-900/30 text-red-600'
+                                    }`}>
+                                        {n.type === 'match' && <Zap className="w-4 h-4" />}
+                                        {n.type === 'payment' && <CreditCard className="w-4 h-4" />}
+                                        {/* Added AlertCircle from lucide-react */}
+                                        {n.type === 'alert' && <AlertCircle className="w-4 h-4" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h5 className="font-bold text-xs text-slate-900 dark:text-white truncate">{n.title}</h5>
+                                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.text}</p>
+                                        <span className="text-[10px] text-slate-400 mt-2 block font-mono uppercase">{n.time}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button className="w-full py-3 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-slate-950 transition-colors border-t border-slate-100 dark:border-slate-800">
+                        View All Notifications
                     </button>
                 </div>
             )}

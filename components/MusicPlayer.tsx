@@ -89,6 +89,13 @@ export const MusicPlayer: React.FC = () => {
     else videoEl.pause();
   }, [currentTrackIndex, isPlaying, queue, isCasting, showYoutube]);
 
+  // Reset showYoutube when track changes if track has no video
+  useEffect(() => {
+    if (currentTrack && !currentTrack.videoUrl) {
+      setShowYoutube(false);
+    }
+  }, [currentTrackIndex, queue]);
+
   useEffect(() => {
       if (videoRef.current) videoRef.current.volume = isMuted ? 0 : volume;
   }, [volume, isMuted]);
@@ -158,6 +165,7 @@ export const MusicPlayer: React.FC = () => {
 
   if (!currentTrack) return null;
   const isVideoTrack = currentTrack.audioUrl?.endsWith('.mp4') || currentTrack.audioUrl?.startsWith('data:video');
+  const hasYoutube = !!currentTrack.videoUrl;
 
   return (
     <>
@@ -172,7 +180,17 @@ export const MusicPlayer: React.FC = () => {
 
               <div className="relative z-20 p-8 flex justify-between items-center text-white">
                   <button onClick={() => setIsExpanded(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all"><ChevronDown className="w-6 h-6" /></button>
-                  <span className="text-[10px] font-black tracking-widest uppercase opacity-40">Secure Stream Engine</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-black tracking-widest uppercase opacity-40">Secure Stream Engine</span>
+                    {hasYoutube && (
+                        <button 
+                            onClick={() => setShowYoutube(!showYoutube)}
+                            className={`mt-2 flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${showYoutube ? 'bg-red-600 border-red-500 text-white' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'}`}
+                        >
+                            <Youtube className="w-4 h-4" /> {showYoutube ? 'Show Visualizer' : 'Watch Video'}
+                        </button>
+                    )}
+                  </div>
                   <button onClick={() => clearQueue()} className="p-3 bg-white/5 hover:bg-red-500/20 rounded-full border border-white/10 transition-all"><X className="w-6 h-6" /></button>
               </div>
 

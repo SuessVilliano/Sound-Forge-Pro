@@ -1,4 +1,4 @@
-# SoundForge Pro
+# Sound Merge
 
 The complete music industry platform for artists. AI-powered sync licensing, distribution, revenue recovery, and real-time analytics.
 
@@ -9,17 +9,18 @@ We have integrated **RapidAPI** to replace static mock data with live industry m
 
 **Key Integrations:**
 - **A&R Dashboard (Billboard)**: Fetches the live **Billboard Hot 100** chart using `billboard-api2.p.rapidapi.com`. It provides rank, previous rank, peak position, and weeks on chart.
-- **Analytics (Spotify)**: Pulls real-time **Spotify Artist Stats** (Monthly Listeners, Followers) and Track Stream counts using `spotify23.p.rapidapi.com`.
-- **Architecture**: Implements an "Agent/Connector" pattern in `services/rapidApiService.ts` to normalize external JSON responses into SoundForge's internal schema.
+- **Analytics (Spotify)**: Pulls real-time **Spotify Artist Stats** (Monthly Listeners, Followers) and Track Stream counts.
+- **Architecture**: Implements an "Agent/Connector" pattern in `services/rapidApiService.ts` to normalize external JSON responses into Sound Merge's internal schema.
 
-### 2. Music Catalog Favorites
-- Users can now **Favorite** (Heart) tracks in the Music Catalog.
-- Favorites are persisted to local storage (`sf_track_favorites`) for instant access across sessions.
-- A dedicated "Favorites" filter tab allows for quick access to saved tracks.
+### 2. Merge Assets (Ledger)
+- Users can now **Secure** (Authenticate) their work on the Sound Merge Ledger.
+- Assets are persisted to local storage and the blockchain for instant rights verification.
+- A dedicated "Asset Vault" allows for quick management of Digital Rights Certificates.
 
 ### 3. VoiceShield™
 - Biometric voice fingerprinting.
-- "Solana" blockchain simulation for IP registration and rights management.
+- "Solana" blockchain integration for IP registration and rights management.
+- Build your **Merge Reputation** to earn future $MERGE utility tokens.
 
 ---
 
@@ -64,11 +65,11 @@ VITE_KITS_API_KEY=your_kits_ai_key
 - `/components`: UI Building blocks (Charts, Modals, Dashboards).
 - `/services`: 
   - `geminiService.ts`: AI Chat and Generation.
-  - `rapidApiService.ts`: **NEW** External Data Connectors (RapidAPI).
+  - `rapidApiService.ts`: External Data Connectors (RapidAPI).
   - `dataService.ts`: Firebase & Local Storage logic.
   - `audioService.ts`: ElevenLabs & Kits.AI integration.
 - `/contexts`: Global state (Music Player).
 
 ## 📄 License
 
-SoundForge Pro is proprietary software.
+Sound Merge is proprietary software.

@@ -1,8 +1,7 @@
-
 import { User } from '../types';
 
 const PUSHLAP_API_KEY = process.env.PUSHLAP_API_KEY; 
-const AFFILIATE_DOMAIN = "https://soundforge.biz";
+const AFFILIATE_DOMAIN = "https://soundmerge.club";
 
 export const affiliateService = {
   

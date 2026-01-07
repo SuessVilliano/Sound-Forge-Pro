@@ -108,6 +108,57 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
   }
 ];
 
+export const MOCK_BATTLES: Battle[] = [
+    {
+        id: 'b1',
+        title: 'The AI Summer Showdown',
+        description: 'Show off your best AI-assisted summer hits.',
+        type: 'AI Only',
+        genre: 'Pop',
+        status: 'Live',
+        endTime: new Date(Date.now() + 3600000).toISOString(),
+        totalVotes: 1240,
+        listeners: 45,
+        config: { rewards: { cash: 500, xp: 1000 }, customRules: ['AI Vocals Only'] },
+        participants: [
+            { id: 'p1', artistName: 'SynthWave Queen', isAi: true, trackTitle: 'Neon Sunset', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=400&q=80', votes: 640 },
+            { id: 'p2', artistName: 'Digital Dave', isAi: true, trackTitle: 'Pixel Beach', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', image: 'https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&w=400&q=80', votes: 600 }
+        ]
+    },
+    {
+        id: 'b2',
+        title: 'Underground Beat Duel',
+        description: 'Hard-hitting industrial beats. No vocals allowed.',
+        type: 'Beat',
+        genre: 'Industrial',
+        status: 'Voting',
+        endTime: new Date(Date.now() + 7200000).toISOString(),
+        totalVotes: 850,
+        listeners: 12,
+        config: { rewards: { cash: 200, xp: 500 }, customRules: ['Instrumental Only'] },
+        participants: [
+            { id: 'p3', artistName: 'Iron Forge', isAi: false, trackTitle: 'Steel Pulse', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80', votes: 450 },
+            { id: 'p4', artistName: 'Rust Mechanic', isAi: false, trackTitle: 'Valve Grind', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', image: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?auto=format&fit=crop&w=400&q=80', votes: 400 }
+        ]
+    },
+    {
+        id: 'b3',
+        title: 'Vocaloid vs Human',
+        description: 'Can you tell who is the AI? Hybrid singing competition.',
+        type: 'Hybrid',
+        genre: 'J-Pop',
+        status: 'Upcoming',
+        endTime: new Date(Date.now() + 86400000).toISOString(),
+        totalVotes: 0,
+        listeners: 0,
+        config: { rewards: { cash: 1000, xp: 2000 }, customRules: ['Blind Judging'] },
+        participants: [
+            { id: 'p5', artistName: 'Miku Spirit', isAi: true, trackTitle: 'Digital Rain', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', votes: 0 },
+            { id: 'p6', artistName: 'Hana Solo', isAi: false, trackTitle: 'Human Nature', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', image: 'https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&w=400&q=80', votes: 0 }
+        ]
+    }
+];
+
 export const FEATURED_ARTISTS: Partial<User>[] = [
     {
         uid: 'f1',
@@ -201,23 +252,4 @@ export const MOCK_COURSES = [
     { id: 1, title: 'Sync Licensing Masterclass', category: 'Business', duration: '4h 30m', lessons: 12, image: 'https://picsum.photos/400/250?random=101' },
     { id: 2, title: 'Advanced AI Production', category: 'Studio', duration: '6h 15m', lessons: 24, image: 'https://picsum.photos/400/250?random=102' },
     { id: 3, title: 'TikTok Growth Strategy', category: 'Marketing', duration: '3h 00m', lessons: 8, image: 'https://picsum.photos/400/250?random=103' }
-];
-
-export const MOCK_BATTLES: Battle[] = [
-    {
-        id: 'b1',
-        title: 'The AI Summer Showdown',
-        description: 'Show off your best AI-assisted summer hits.',
-        type: 'AI Only',
-        genre: 'Pop',
-        status: 'Live',
-        endTime: new Date(Date.now() + 3600000).toISOString(),
-        totalVotes: 1240,
-        listeners: 45,
-        config: { rewards: { cash: 500, xp: 1000 }, customRules: ['AI Vocals Only'] },
-        participants: [
-            { id: 'p1', artistName: 'SynthWave Queen', isAi: true, trackTitle: 'Neon Sunset', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', image: 'https://picsum.photos/400/400?random=1', votes: 640 },
-            { id: 'p2', artistName: 'Digital Dave', isAi: true, trackTitle: 'Pixel Beach', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', image: 'https://picsum.photos/400/400?random=2', votes: 600 }
-        ]
-    }
 ];
