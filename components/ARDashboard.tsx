@@ -112,7 +112,8 @@ export const ARDashboard: React.FC = () => {
                                 <p className="text-xs text-slate-400 mb-3">{artist.bio?.substring(0, 50)}...</p>
                                 <div className="flex flex-wrap gap-2 mb-4">
                                     <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded capitalize">{artist.role}</span>
-                                    {artist.rates?.featureVerse && <span className="text-[10px] bg-green-900/30 text-green-400 border border-green-500/20 px-2 py-0.5 rounded">Feat: ${artist.rates.featureVerse}</span>}
+                                    {/* Fix: added optional chaining for rates access */}
+                                    {artist.rates?.featureVerse && <span className="text-[10px] bg-green-900/30 text-green-400 border border-green-500/20 px-2 py-0.5 rounded">Feat: ${artist.rates?.featureVerse}</span>}
                                 </div>
                                 <button className="w-full py-2 bg-white text-slate-900 text-xs font-bold rounded hover:bg-slate-200 transition-colors">
                                     View Profile
@@ -169,7 +170,7 @@ export const ARDashboard: React.FC = () => {
                             <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 p-4 animate-in fade-in zoom-in-95 duration-200">
                                 <div className="flex justify-between items-center mb-3">
                                     <h4 className="text-xs font-bold text-slate-500 uppercase">Filter Chart</h4>
-                                    <button onClick={() => setShowFilters(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                                    <button onClick={() => setShowFilters(false)} className="text-slate-400 hover:text-white">
                                         <X className="w-3 h-3" />
                                     </button>
                                 </div>

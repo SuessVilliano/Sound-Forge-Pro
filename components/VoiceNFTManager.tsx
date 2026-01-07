@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Shield, Globe, FileText, Clock, AlertTriangle, ExternalLink, Copy, Activity, Trash2, CheckCircle2, XCircle, Fingerprint, Download, Check, Plus, Database, Music, FileJson, RefreshCw } from 'lucide-react';
-import { VoiceNFT, VoiceLicense, User } from '../types';
+/* Updated VoiceNFT to VoiceAsset to match rebranded type in types.ts */
+import { VoiceAsset, VoiceLicense, User } from '../types';
 import { dataService } from '../services/dataService';
 import { alchemyService, AlchemyNFT } from '../services/alchemyService';
 import { useWallet } from '../contexts/WalletContext';
@@ -12,7 +13,8 @@ interface VoiceNFTManagerProps {
 }
 
 export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNavigateToRegister }) => {
-  const [nfts, setNfts] = useState<VoiceNFT[]>([]);
+  /* Updated nfts state to use VoiceAsset[] */
+  const [nfts, setNfts] = useState<VoiceAsset[]>([]);
   const [alchemyNfts, setAlchemyNfts] = useState<AlchemyNFT[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRevokeModal, setShowRevokeModal] = useState(false);
@@ -22,7 +24,8 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
   const { walletAddress } = useWallet();
 
   // Fallback Mock for Demo Mode (Solana Default)
-  const MOCK_NFT: VoiceNFT = {
+  /* Updated MOCK_NFT to use VoiceAsset */
+  const MOCK_NFT: VoiceAsset = {
     token_id: "vNFT-SOL-8823",
     contract_address: "7Xw...9zB", // Solana Address format
     fingerprint_hash: "QmXyZ...9B2a",
@@ -38,6 +41,7 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
             // 1. Fetch Internal Registrations (Firebase)
             const unsubscribe = dataService.subscribeToVoiceRegistrations(user.uid, (updatedNfts) => {
                 if (updatedNfts.length > 0) {
+                    /* updatedNfts is now VoiceAsset[] via dataService update */
                     setNfts(updatedNfts);
                 } else if (user.plan === 'pro') {
                     setNfts([MOCK_NFT]);
@@ -236,7 +240,7 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {alchemyNfts.map((nft) => (
-                      <div key={nft.id} className="bg-slate-950 rounded-lg overflow-hidden border border-slate-800 hover:border-slate-700 transition-colors">
+                      <div key={nft.id} className="bg-slate-950 rounded-lg overflow-hidden border border-slate-700 hover:border-slate-700 transition-colors">
                           <div className="aspect-square bg-slate-800 relative">
                               {nft.content.links?.image ? (
                                   <img src={nft.content.links.image} alt={nft.content.metadata.name} className="w-full h-full object-cover" />

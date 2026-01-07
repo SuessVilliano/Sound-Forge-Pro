@@ -27,13 +27,15 @@ export interface Track {
   plays: number;
   earnings: number;
   image: string;
-  audioUrl?: string; // For player (can be audio or video file)
-  videoUrl?: string; // External video link (e.g. YouTube)
+  audioUrl?: string; 
+  videoUrl?: string; 
   licenseType?: 'exclusive' | 'non-exclusive' | 'sync-ready';
   hasVocals?: boolean;
-  status?: string;
+  status?: 'generating' | 'completed' | 'failed' | 'processing';
   createdAt?: string;
   genre?: string; 
+  type?: 'song' | 'vocal' | 'beat';
+  stems?: { [key: string]: string };
   blockchainRegistration?: {
       cid: string; 
       transactionHash?: string;
@@ -41,49 +43,6 @@ export interface Track {
       network: 'Solana' | 'Polygon' | 'Filecoin';
       status: 'secured';
   };
-}
-
-export interface Playlist {
-  id: string;
-  title: string;
-  creator: string;
-  coverImage: string;
-  tracks: Track[];
-  type: 'curated' | 'user' | 'album';
-}
-
-export interface Course {
-  id: string;
-  title: string;
-  category: 'Production' | 'Business' | 'Marketing';
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  duration: string;
-  lessons: number;
-  progress: number; // 0-100
-  price: number;
-  image: string; // Icon name or image url
-}
-
-export interface Stats {
-  totalEarnings: number;
-  totalStreams: number;
-  activeOpportunities: number;
-  brandScore: string;
-  earningsGrowth: number;
-  streamsGrowth: number;
-  opportunitiesNew: boolean;
-  artistLevel: string; // e.g. "Rookie", "Rising Artist"
-  xp: number; // e.g. 1250
-  nextLevelXp: number; // e.g. 2000
-}
-
-export interface TourDate {
-  id?: string;
-  date: string;
-  venue: string;
-  city: string;
-  status?: string;
-  ticketLink?: string;
 }
 
 export interface User {
@@ -100,21 +59,20 @@ export interface User {
   role?: 'artist' | 'producer' | 'manager' | 'label_exec' | 'listener';
   experienceLevel?: 'beginner' | 'intermediate' | 'pro';
   primaryGoals?: string[];
-  genrePreferences?: string[]; // Added: For sync matching
+  genrePreferences?: string[];
   notificationSettings?: {
       emailSyncMatches: boolean;
-  }; // Added: For automated alerts
+  };
   isFeatured?: boolean;
   bio?: string;
   location?: string;
   chartmetricArtistId?: number; 
-  hasSignedLegal?: boolean; // New: Tracks if service agreement is signed
-  legalSignedDate?: string; // New: Date of signature
-  rates?: {
-      voiceLicense: number;
-      featureVerse: number;
-      beatLease?: number;
-      mixMaster?: number;
+  hasSignedLegal?: boolean;
+  legalSignedDate?: string;
+  webhooks?: {
+      enabled: boolean;
+      url: string;
+      events: ('sale' | 'stream' | 'placement')[];
   };
   socialLinks?: {
       instagram?: string;
@@ -122,15 +80,72 @@ export interface User {
       youtube?: string;
       website?: string;
       spotify?: string;
-      appleMusic?: string; // Added
-      soundcloud?: string; // Added
+      appleMusic?: string;
+      soundcloud?: string;
   };
   tourDates?: TourDate[];
-  webhooks?: {
-      enabled: boolean;
-      url: string;
-      events: ('sale' | 'stream' | 'placement')[];
+  rates?: {
+      voiceLicense?: number | string;
+      featureVerse?: number | string;
   };
+  profileConfig?: {
+      theme: 'dark' | 'light' | 'cyber' | 'minimal';
+      accentColor: string;
+      fontStyle: 'sans' | 'serif' | 'mono';
+      sections: {
+          id: string;
+          visible: boolean;
+          order: number;
+      }[];
+  };
+  mergeReputation?: {
+      score: number;
+      level: string;
+      pendingTokens: number;
+      multiplier: number;
+  };
+}
+
+export interface AiStaffMember {
+    id: string;
+    name: string;
+    role: 'manager' | 'marketing' | 'booking' | 'distribution' | 'legal';
+    avatar: string;
+    online: boolean;
+    description: string;
+    lastMessage?: string;
+    lastActive?: string;
+}
+
+export interface StaffMessage {
+    id: string;
+    agentId: string;
+    role: 'agent' | 'user';
+    text: string;
+    timestamp: string;
+    isSystemAction?: boolean;
+}
+
+export interface Stats {
+  totalEarnings: number;
+  totalStreams: number;
+  activeOpportunities: number;
+  brandScore: string;
+  earningsGrowth: number;
+  streamsGrowth: number;
+  opportunitiesNew: boolean;
+  artistLevel: string; 
+  xp: number; 
+  nextLevelXp: number; 
+}
+
+export interface TourDate {
+  id?: string;
+  date: string;
+  venue: string;
+  city: string;
+  status?: string;
+  ticketLink?: string;
 }
 
 export interface LegalRecord {
@@ -156,18 +171,7 @@ export interface WebhookLog {
     destination: string;
 }
 
-export interface VoiceDetection {
-  id: string;
-  source_url: string;
-  timestamp: string;
-  similarity_score: number;
-  is_authorized: boolean;
-  status: 'pending' | 'takedown_sent' | 'resolved' | 'ignored';
-  snippet_url?: string;
-  platform: 'YouTube' | 'TikTok' | 'Spotify' | 'Instagram';
-}
-
-export interface VoiceNFT {
+export interface VoiceAsset {
   token_id: string;
   contract_address: string;
   fingerprint_hash: string;
@@ -178,17 +182,6 @@ export interface VoiceNFT {
   image_url?: string;
 }
 
-export interface VoiceLicense {
-  id: string;
-  licensee: string;
-  project_name: string;
-  usage_type: 'Commercial' | 'Non-Commercial' | 'Exclusive';
-  price: number;
-  expiry: string;
-  status: 'active' | 'expired' | 'revoked';
-  terms_hash: string;
-}
-
 export interface Product {
   id: string;
   title: string;
@@ -196,72 +189,14 @@ export interface Product {
   price: number;
   currency: 'USD' | 'SOL';
   image: string;
-  type: 'digital' | 'physical' | 'nft_drop';
+  type: 'digital' | 'physical' | 'asset_release'; 
   stock: number;
-  nftAttributes?: {
+  assetAttributes?: { 
       royaltyShare: string; 
       includesVoiceModel: boolean;
       includesStems: boolean;
       editionSize: string; 
   };
-}
-
-export interface ExportConfig {
-  format: 'mp3' | 'wav' | 'stems';
-  sampleRate: '44.1' | '48' | '96';
-  publishToSoundForge: boolean;
-  distributeIndependent: boolean;
-  protection: {
-    watermark: boolean;
-    blockchainMint: boolean;
-    network: 'Solana' | 'Polygon';
-  };
-}
-
-export interface DistributionTrack {
-  id: string;
-  title: string;
-  version?: string; 
-  audioFile?: File | null;
-  isInstrumental: boolean;
-  isExplicit: boolean;
-  isRadioEdit: boolean;
-  writerType: 'original' | 'cover';
-  songwriters: string[]; 
-  featuring?: string;
-  isrc?: string;
-  producers?: string;
-  performers?: string;
-  originalArtist?: string; 
-}
-
-export interface DistributionRelease {
-  id?: string;
-  title: string; 
-  artistName: string;
-  releaseDate: string;
-  recordLabel: string;
-  albumCover?: File | null;
-  coverUrl?: string; 
-  language: string;
-  primaryGenre: string;
-  secondaryGenre?: string;
-  services: string[];
-  previouslyReleased: boolean;
-  status?: string;
-  submittedAt?: any;
-  copyrightYear: string;
-  copyrightOwner: string;
-  pLineYear: string;
-  pLineOwner: string;
-  upc?: string;
-  tracks: DistributionTrack[];
-  optSocialPack: boolean; 
-  optDiscoveryPack: boolean; 
-  optStoreMaximizer: boolean; 
-  optLeaveLegacy: boolean; 
-  optLoudnessNorm: boolean; 
-  optBlockchainStorage: boolean; 
 }
 
 export interface KitsVoiceModel {
@@ -270,12 +205,6 @@ export interface KitsVoiceModel {
   tags: string[];
   image?: string;
   isCustom?: boolean;
-}
-
-export interface KitsJobStatus {
-  jobId: string;
-  status: 'running' | 'success' | 'failed';
-  outputUrl?: string;
 }
 
 export interface StemResult {
@@ -311,68 +240,130 @@ export interface BattleParticipant {
   soundScore?: number;
 }
 
-export interface BattleRulesConfig {
-  maxDurationSeconds: number;
-  format: 'AI Only' | 'Human Only' | 'Hybrid' | 'Cover' | 'Beat' | 'DJ';
-  votingWindow: 'Live' | '24h';
-  maxEntries: number;
-  entryFee?: number;
-  rewards: {
-    xp: number;
-    cash?: number;
-    badge?: string;
-    placement?: boolean;
-  };
-  customRules: string[];
-}
-
 export interface Battle {
   id: string;
   title: string;
   description: string;
-  type: BattleRulesConfig['format']; 
+  type: 'AI Only' | 'Human Only' | 'Hybrid' | 'Cover' | 'Beat' | 'DJ'; 
   genre: string;
   status: 'Live' | 'Voting' | 'Ended' | 'Upcoming';
   endTime: string; 
   participants: BattleParticipant[]; 
   totalVotes: number;
   listeners: number;
-  config: BattleRulesConfig; 
+  config: any; 
+}
+
+export interface DistributionTrack {
+    id: string;
+    title: string;
+    isInstrumental: boolean;
+    isExplicit: boolean;
+    isRadioEdit: boolean;
+    writerType: 'original' | 'cover';
+    songwriters: string[];
+    producers: string;
+    performers: string;
+    originalArtist?: string;
+    audioFile?: File;
+    version?: string;
+    isrc?: string;
+}
+
+export interface DistributionRelease {
+    id: string;
+    title: string;
+    artistName: string;
+    releaseDate: string;
+    recordLabel: string;
+    copyrightYear: string;
+    copyrightOwner: string;
+    pLineYear: string;
+    pLineOwner: string;
+    language: string;
+    primaryGenre: string;
+    services: string[];
+    previouslyReleased: boolean;
+    tracks: DistributionTrack[];
+    optSocialPack: boolean;
+    optDiscoveryPack: boolean;
+    optStoreMaximizer: boolean;
+    optLeaveLegacy: boolean;
+    optLoudnessNorm: boolean;
+    optBlockchainStorage: boolean;
+    albumCover?: File;
+    coverUrl?: string;
+    upc?: string;
+    status?: string;
 }
 
 export interface CRMContact {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  tags: string[];
-  source: string;
-  lastActive: string;
-  status: 'Lead' | 'Fan' | 'Customer' | 'VIP';
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    tags: string[];
+    source: string;
+    lastActive: string;
+    status: 'VIP' | 'Fan' | 'Lead' | 'Customer';
 }
 
 export interface CRMAutomaton {
-  id: string;
-  name: string;
-  trigger: string;
-  actions: string[];
-  status: 'Active' | 'Draft' | 'Paused';
-  enrolledCount: number;
+    id: string;
+    name: string;
+    trigger: string;
+    actions: string[];
+    status: 'Active' | 'Draft';
+    enrolledCount: number;
 }
 
 export interface CRMCampaign {
-  id: string;
-  name: string;
-  type: 'Email' | 'SMS' | 'DM';
-  status: 'Sent' | 'Scheduled' | 'Draft';
-  sentCount: number;
-  openRate: number;
-  clickRate: number;
-  date: string;
+    id: string;
+    name: string;
+    type: 'Email' | 'SMS';
+    status: 'Sent' | 'Scheduled' | 'Draft';
+    sentCount: number;
+    openRate: number;
+    clickRate: number;
+    date: string;
+}
+
+export interface VoiceLicense {
+    id: string;
+    licensee: string;
+    project_name: string;
+    usage_type: string;
+    price: number;
+    expiry: string;
+    status: 'active' | 'expired';
+    terms_hash: string;
+}
+
+export interface VoiceDetection {
+    id: string;
+    source_url: string;
+    timestamp: string;
+    similarity_score: number;
+    is_authorized: boolean;
+    status: 'takedown_sent' | 'pending_review' | 'resolved';
+    snippet_url: string;
+    platform: 'YouTube' | 'TikTok' | 'SoundCloud' | 'Spotify';
+}
+
+export interface BattleRulesConfig {
+    maxDurationSeconds: number;
+    format: 'AI Only' | 'Human Only' | 'Hybrid' | 'Cover' | 'Beat' | 'DJ';
+    votingWindow: 'Live' | '24h' | 'Week';
+    maxEntries: number;
+    rewards: {
+        xp: number;
+        cash: number;
+        badge: string;
+    };
+    customRules: string[];
 }
 
 declare global {
-  // Fix: Extended Window interface correctly with capital W
   interface Window {
     affiliateId?: string;
   }

@@ -162,8 +162,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
                               
                               <div className="flex flex-wrap gap-2 mb-6">
                                   <span className="px-2 py-1 rounded bg-slate-800 text-slate-300 text-xs font-bold uppercase">{artist.role}</span>
+                                  {/* Fix: added optional chaining for rates access */}
                                   {artist.rates?.voiceLicense ? (
-                                      <span className="px-2 py-1 rounded bg-green-900/30 text-green-400 border border-green-500/20 text-xs font-bold">Voice: ${artist.rates.voiceLicense}</span>
+                                      <span className="px-2 py-1 rounded bg-green-900/30 text-green-400 border border-green-500/20 text-xs font-bold">Voice: ${artist.rates?.voiceLicense}</span>
                                   ) : null}
                               </div>
 

@@ -1,6 +1,6 @@
 {
-  "name": "SoundForge Pro",
-  "description": "The complete music industry platform for artists. AI-powered sync licensing, distribution, and revenue recovery.",
+  "name": "Sound Merge Pro",
+  "description": "The complete music industry platform for artists. AI-powered sync licensing, distribution, and website builder.",
   "requestFramePermissions": [
     "microphone",
     "camera",

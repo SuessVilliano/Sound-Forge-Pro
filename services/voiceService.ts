@@ -1,5 +1,5 @@
 
-import { VoiceDetection, VoiceNFT } from "../types";
+import { VoiceDetection, VoiceAsset } from "../types";
 
 // --- MOCK DATA ---
 const MOCK_DETECTIONS: VoiceDetection[] = [
@@ -25,7 +25,8 @@ const MOCK_DETECTIONS: VoiceDetection[] = [
     }
 ];
 
-export const registerVoice = async (file: File): Promise<{ success: boolean, nft?: VoiceNFT }> => {
+/* Updated return type to use VoiceAsset instead of deprecated VoiceNFT */
+export const registerVoice = async (file: File): Promise<{ success: boolean, nft?: VoiceAsset }> => {
     // 1. Analyze Audio (Biometric Fingerprinting)
     console.log("Analyzing audio biometrics...");
     await new Promise(resolve => setTimeout(resolve, 2000));

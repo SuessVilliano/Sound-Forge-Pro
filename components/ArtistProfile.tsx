@@ -5,7 +5,7 @@ import {
     Music, Users, Shield, ShoppingBag, Play, Mail, MessageCircle, 
     CheckCircle2, Image as ImageIcon, Send, MoreHorizontal, Calendar, 
     Headphones, TrendingUp, Video, Mic2, Star, DollarSign, ArrowLeft,
-    Zap, Plus, Trash2, CalendarCheck, RefreshCw, LogOut, Radio
+    Zap, Plus, Trash2, CalendarCheck, RefreshCw, LogOut, Radio, Palette, Layout, Type as TypeIcon, Eye, Check
 } from 'lucide-react';
 import { User, Track, TourDate } from '../types';
 import { VoiceNFTManager } from './VoiceNFTManager';
@@ -18,11 +18,10 @@ import { googleCalendarService } from '../services/googleCalendarService';
 interface ArtistProfileProps {
   user: User | null;
   onNavigate?: (view: string) => void;
-  isPublic?: boolean; // If true, view as another user (no edit rights)
+  isPublic?: boolean; 
   onBack?: () => void;
 }
 
-// Mock Data for EPK (Visuals only)
 const MOCK_PHOTOS = [
     'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?auto=format&fit=crop&w=800&q=80',
@@ -30,32 +29,38 @@ const MOCK_PHOTOS = [
     'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80'
 ];
 
-const MOCK_VIDEOS = [
-    { title: 'Live at Coachella', thumb: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80', duration: '4:20' },
-    { title: 'Official Music Video', thumb: 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?auto=format&fit=crop&w=800&q=80', duration: '3:45' }
-];
-
 export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, isPublic = false, onBack }) => {
   const [activeTab, setActiveTab] = useState<'epk' | 'music' | 'voice-ip' | 'store'>('epk');
   const [isEditing, setIsEditing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(user?.photoURL || null);
-  const [banner, setBanner] = useState<string | null>('https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?auto=format&fit=crop&w=1600&q=80');
+  const [banner, setBanner] = useState<string | null>(null);
   
+  // Design State
+  const [config, setConfig] = useState(user?.profileConfig || {
+      theme: 'dark' as const,
+      accentColor: '#06b6d4',
+      fontStyle: 'sans' as const,
+      sections: [
+          { id: 'bio', visible: true, order: 0 },
+          { id: 'tracks', visible: true, order: 1 },
+          { id: 'photos', visible: true, order: 2 },
+          { id: 'tour', visible: true, order: 3 }
+      ]
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<'avatar' | 'banner' | null>(null);
   const { playTrack } = usePlayer();
   
-  // Profile Data State
   const [profile, setProfile] = useState({
     stageName: user?.displayName || 'New Artist',
     bio: user?.bio || 'Electronic producer and vocalist blurring the lines between analog warmth and digital precision.',
     genre: 'Indie Pop / Electronic',
     location: user?.location || 'Los Angeles, CA',
-    managementEmail: 'mgmt@soundforge.club',
+    managementEmail: 'mgmt@soundmerge.club',
   });
 
-  // Socials State
   const [socials, setSocials] = useState({
       instagram: user?.socialLinks?.instagram || '',
       twitter: user?.socialLinks?.twitter || '',
@@ -66,21 +71,9 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
       soundcloud: user?.socialLinks?.soundcloud || ''
   });
 
-  // Tour Dates State
   const [tourDates, setTourDates] = useState<TourDate[]>(user?.tourDates || []);
-  const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
-  const [calendarConnected, setCalendarConnected] = useState(false);
-
   const [tracks, setTracks] = useState<Track[]>([]);
 
-  // Chat State
-  const [messages, setMessages] = useState([
-      { id: 1, sender: 'A&R Rep (Sony)', text: "Hey! Loving the new demo. Are you open to sync opportunities?", time: "2h ago", isMe: false },
-      { id: 2, sender: 'You', text: "Absolutely, thanks for reaching out. Let's connect.", time: "1h ago", isMe: true }
-  ]);
-  const [chatInput, setChatInput] = useState('');
-
-  // Update profile state when user prop changes
   useEffect(() => {
       if (user) {
           setProfile(prev => ({
@@ -92,14 +85,13 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
           setAvatar(user.photoURL);
           if (user.socialLinks) setSocials({ ...socials, ...user.socialLinks });
           if (user.tourDates) setTourDates(user.tourDates);
+          if (user.profileConfig) setConfig(user.profileConfig);
       }
   }, [user]);
 
-  // Load Tracks
   useEffect(() => {
       if (user) {
           const unsubscribe = dataService.subscribeToTracks(user.uid, (data: any[]) => {
-              // Convert to Track type
               const mapped = data.map(d => ({
                   id: d.id,
                   title: d.title,
@@ -128,48 +120,23 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
             location: profile.location,
             photoURL: avatar || undefined,
             socialLinks: socials,
-            tourDates: tourDates
+            tourDates: tourDates,
+            profileConfig: config
         });
         setIsEditing(false);
     } catch (e) {
-        console.error("Save failed", e);
         alert("Failed to save changes");
     }
   };
 
   const handleShare = async () => {
-      // Construct a mock shareable URL (since we don't have deep linking routing fully set up yet)
-      const shareUrl = `${window.location.origin}?artist_id=${user?.uid}`;
-      
-      const shareData = {
-          title: `${profile.stageName} on SoundForge`,
-          text: `Check out ${profile.stageName}'s latest music and profile on SoundForge Pro.`,
-          url: shareUrl
-      };
-
-      // Use Web Share API if available (Mobile)
+      const shareUrl = `${window.location.origin}/artist/${user?.uid}`;
       if (navigator.share) {
-          try {
-              await navigator.share(shareData);
-          } catch (err) {
-              console.log('Share canceled');
-          }
+          try { await navigator.share({ title: profile.stageName, url: shareUrl }); } catch (err) {}
       } else {
-          // Fallback to Clipboard (Desktop)
-          try {
-              await navigator.clipboard.writeText(shareUrl);
-              alert(`Profile link copied to clipboard!\n${shareUrl}`);
-          } catch (err) {
-              console.error('Failed to copy', err);
-          }
+          navigator.clipboard.writeText(shareUrl);
+          alert("Link copied!");
       }
-  };
-
-  const handleSendMessage = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!chatInput.trim()) return;
-      setMessages([...messages, { id: Date.now(), sender: 'You', text: chatInput, time: 'Just now', isMe: true }]);
-      setChatInput('');
   };
 
   const handleUploadClick = (target: 'avatar' | 'banner') => {
@@ -190,546 +157,343 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
     }
   };
 
-  // --- TOUR DATE HANDLERS ---
-  const addTourDate = () => {
-      setTourDates([...tourDates, { date: '', venue: '', city: '', status: 'Tickets Available' }]);
+  const updateSectionVisibility = (id: string) => {
+      setConfig({
+          ...config,
+          sections: config.sections.map(s => s.id === id ? { ...s, visible: !s.visible } : s)
+      });
   };
 
-  const removeTourDate = (index: number) => {
-      const newDates = [...tourDates];
-      newDates.splice(index, 1);
-      setTourDates(newDates);
-  };
-
-  const updateTourDate = (index: number, field: keyof TourDate, value: string) => {
-      const newDates = [...tourDates];
-      newDates[index] = { ...newDates[index], [field]: value };
-      setTourDates(newDates);
-  };
-
-  const handleGoogleCalendarSync = async () => {
-      setIsSyncingCalendar(true);
-      try {
-          if (!calendarConnected) {
-              const authRes = await googleCalendarService.connectAccount();
-              if (authRes.connected) {
-                  setCalendarConnected(true);
-              } else {
-                  throw new Error("Failed to connect Google Calendar");
-              }
-          }
-          const calendarId = "primary"; 
-          const syncedDates = await googleCalendarService.getTourDates(calendarId);
-          if (syncedDates.length > 0) {
-              const existingDatesStr = new Set(tourDates.map(d => d.date));
-              const newUniqueDates = syncedDates.filter(d => !existingDatesStr.has(d.date));
-              setTourDates([...tourDates, ...newUniqueDates]);
-              alert(`Synced ${newUniqueDates.length} new shows from Google Calendar!`);
-          } else {
-              alert("No new upcoming events found in your calendar.");
-          }
-      } catch (e) {
-          console.error(e);
-          alert("Calendar sync failed. Please try again.");
-      } finally {
-          setIsSyncingCalendar(false);
+  const getThemeClasses = () => {
+      switch(config.theme) {
+          case 'light': return 'bg-white text-slate-900';
+          case 'cyber': return 'bg-black text-cyan-400 font-mono';
+          case 'minimal': return 'bg-slate-50 text-slate-600';
+          default: return 'bg-slate-950 text-white';
       }
   };
 
+  const getFontClass = () => {
+      if (config.fontStyle === 'serif') return 'font-serif';
+      if (config.fontStyle === 'mono') return 'font-mono';
+      return 'font-sans';
+  };
+
   return (
-    <div className="font-sans pb-20">
-      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-
-      {/* --- HERO SECTION --- */}
-      <div className="relative w-full h-80 rounded-b-3xl overflow-hidden group">
-          <div className="absolute inset-0 bg-slate-900">
-              {banner && <img src={banner} alt="Banner" className="w-full h-full object-cover opacity-80" />}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-          </div>
-          
-          {isPublic && onBack && (
-              <button 
-                onClick={onBack}
-                className="absolute top-6 left-6 bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded-full backdrop-blur-md transition-all flex items-center gap-2 text-sm font-bold z-20"
-              >
-                  <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-              </button>
-          )}
-
-          {!isPublic && isEditing && (
-              <button 
-                onClick={() => handleUploadClick('banner')}
-                className="absolute top-6 right-6 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-md transition-all z-20"
-              >
-                  <Camera className="w-5 h-5" />
-              </button>
-          )}
-
-          <div className="absolute bottom-0 left-0 w-full px-6 md:px-10 pb-8 flex flex-col md:flex-row items-end gap-6">
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-slate-950 shadow-2xl overflow-hidden bg-slate-800">
-                      <img src={avatar || ''} alt="Profile" className="w-full h-full object-cover" />
-                  </div>
-                  {!isPublic && isEditing && (
-                      <button 
-                        onClick={() => handleUploadClick('avatar')}
-                        className="absolute bottom-2 right-2 bg-cyan-500 text-white p-2 rounded-full border-2 border-slate-950 hover:bg-cyan-400"
-                      >
-                          <Camera className="w-4 h-4" />
-                      </button>
-                  )}
-                  {user?.isFeatured && (
-                      <div className="absolute bottom-2 right-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white p-1.5 rounded-full border-2 border-slate-950 shadow-lg" title="Featured Artist">
-                          <Star className="w-4 h-4 fill-current" />
-                      </div>
-                  )}
+    <div className={`flex min-h-screen ${getThemeClasses()} ${getFontClass()} overflow-hidden`}>
+      
+      {/* --- BUILDER SIDEBAR (Only in Edit Mode) --- */}
+      {isEditing && !isPublic && (
+          <div className="w-80 border-r border-slate-800 bg-slate-900 overflow-y-auto p-6 shrink-0 custom-scrollbar animate-in slide-in-from-left duration-300">
+              <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2"><Palette className="w-5 h-5 text-cyan-500" /> Site Builder</h2>
+                  <button onClick={() => setIsEditing(false)} className="text-slate-500 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
 
-              {/* Info */}
-              <div className="flex-1 mb-2">
-                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1">
-                      {isEditing && !isPublic ? (
-                          <input 
-                            type="text" 
-                            value={profile.stageName} 
-                            onChange={e => setProfile({...profile, stageName: e.target.value})}
-                            className="bg-slate-800/50 border border-slate-600 rounded px-2 py-1 text-2xl font-bold text-white focus:outline-none focus:border-cyan-500"
-                          />
-                      ) : (
-                          <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">{profile.stageName}</h1>
-                      )}
-                      
-                      {!isEditing && (user?.plan !== 'free' || user?.isFeatured) && (
-                          <span className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
-                              Pro Artist
-                          </span>
-                      )}
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300">
-                      <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> 
-                          {isEditing ? <input value={profile.location} onChange={e => setProfile({...profile, location: e.target.value})} className="bg-slate-800/50 border border-slate-600 rounded px-1 text-xs" /> : profile.location}
-                      </span>
-                      <span className="flex items-center gap-1"><Music className="w-3 h-3" /> {profile.genre}</span>
-                      {socials.website && (
-                          <a href={socials.website.startsWith('http') ? socials.website : `https://${socials.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-cyan-400 hover:underline">
-                              <LinkIcon className="w-3 h-3" /> {socials.website.replace('https://', '')}
-                          </a>
-                      )}
-                  </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 mb-2">
-                  {isPublic ? (
-                      <div className="flex gap-2">
-                          <button 
-                            onClick={() => setShowChat(true)}
-                            className="px-6 py-2.5 rounded-full bg-white text-slate-950 font-bold hover:bg-slate-200 transition-colors flex items-center gap-2 shadow-lg"
-                          >
-                              <Mail className="w-4 h-4" /> Book Now
-                          </button>
-                          <button 
-                            onClick={handleShare}
-                            className="p-2.5 rounded-full bg-slate-800/50 border border-slate-700 text-white hover:bg-slate-800 transition-colors backdrop-blur-sm"
-                            title="Share Profile"
-                          >
-                              <Share2 className="w-5 h-5" />
-                          </button>
+              <div className="space-y-8">
+                  {/* Theme Selector */}
+                  <section>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-4">Master Theme</label>
+                      <div className="grid grid-cols-2 gap-2">
+                          {['dark', 'light', 'cyber', 'minimal'].map(t => (
+                              <button 
+                                key={t} 
+                                onClick={() => setConfig({...config, theme: t as any})}
+                                className={`px-3 py-2 rounded-lg text-xs font-bold capitalize border-2 transition-all ${config.theme === t ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-slate-800 bg-slate-950 text-slate-500'}`}
+                              >
+                                  {t}
+                              </button>
+                          ))}
                       </div>
-                  ) : (
-                      isEditing ? (
-                          <div className="flex gap-2">
-                              <button onClick={() => setIsEditing(false)} className="px-6 py-2.5 rounded-full bg-slate-800 text-white font-bold hover:bg-slate-700 transition-colors">Cancel</button>
-                              <button onClick={handleSave} className="px-6 py-2.5 rounded-full bg-green-500 text-slate-950 font-bold hover:bg-green-400 transition-colors flex items-center gap-2">
-                                  <Save className="w-4 h-4" /> Save
-                              </button>
-                          </div>
-                      ) : (
-                          <>
-                              <button 
-                                onClick={() => setShowChat(true)}
-                                className="px-6 py-2.5 rounded-full bg-white text-slate-950 font-bold hover:bg-slate-200 transition-colors flex items-center gap-2 shadow-lg"
-                              >
-                                  <Mail className="w-4 h-4" /> Messages
-                              </button>
-                              <button 
-                                onClick={() => setIsEditing(true)}
-                                className="p-2.5 rounded-full bg-slate-800/50 border border-slate-700 text-white hover:bg-slate-800 transition-colors backdrop-blur-sm"
-                              >
-                                  <Edit2 className="w-5 h-5" />
-                              </button>
-                              <button 
-                                onClick={handleShare}
-                                className="p-2.5 rounded-full bg-slate-800/50 border border-slate-700 text-white hover:bg-slate-800 transition-colors backdrop-blur-sm"
-                                title="Share Profile"
-                              >
-                                  <Share2 className="w-5 h-5" />
-                              </button>
-                          </>
-                      )
-                  )}
-              </div>
-          </div>
-      </div>
+                  </section>
 
-      {/* --- CONTENT AREA --- */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8">
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-              {[
-                  { label: "Monthly Listeners", val: "124.5k", icon: Headphones, color: "text-cyan-400" },
-                  { label: "Followers", val: "48.2k", icon: Users, color: "text-purple-400" },
-                  { label: "Sync Placements", val: "12", icon: CheckCircle2, color: "text-green-400" },
-                  { label: "Avg. Engagement", val: "8.4%", icon: TrendingUp, color: "text-yellow-400" }
-              ].map((s, i) => (
-                  <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-center justify-between shadow-sm">
-                      <div>
-                          <div className="text-2xl font-bold text-slate-900 dark:text-white">{s.val}</div>
-                          <div className="text-xs text-slate-500 uppercase font-bold tracking-wide">{s.label}</div>
+                  {/* Accent Color */}
+                  <section>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-4">Accent Color</label>
+                      <div className="flex flex-wrap gap-2">
+                          {['#06b6d4', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#ffffff'].map(c => (
+                              <button 
+                                key={c}
+                                onClick={() => setConfig({...config, accentColor: c})}
+                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${config.accentColor === c ? 'border-white scale-110' : 'border-transparent'}`}
+                                style={{ backgroundColor: c }}
+                              />
+                          ))}
                       </div>
-                      <s.icon className={`w-6 h-6 ${s.color}`} />
-                  </div>
-              ))}
-          </div>
+                  </section>
 
-          <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto">
-              {[
-                  { id: 'epk', label: 'EPK & Overview' },
-                  { id: 'music', label: 'Discography' },
-                  { id: 'voice-ip', label: 'Voice IP' },
-                  { id: 'store', label: 'Merch Store' }
-              ].map(tab => (
-                  <button 
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`px-6 py-4 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${
-                        activeTab === tab.id 
-                        ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' 
-                        : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                  >
-                      {tab.label}
-                  </button>
-              ))}
-          </div>
+                  {/* Font Style */}
+                  <section>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-4">Typography</label>
+                      <div className="space-y-2">
+                          {(['sans', 'serif', 'mono'] as const).map(f => (
+                              <button 
+                                key={f} 
+                                onClick={() => setConfig({...config, fontStyle: f})}
+                                className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-all ${config.fontStyle === f ? 'bg-white text-slate-950 font-bold' : 'bg-slate-950 text-slate-500 hover:text-slate-300'}`}
+                              >
+                                  {f.charAt(0).toUpperCase() + f.slice(1)} Mode
+                              </button>
+                          ))}
+                      </div>
+                  </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* --- LEFT COLUMN --- */}
-              <div className="lg:col-span-2 space-y-10">
-                  
-                  {activeTab === 'epk' && (
-                      <>
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Artist Bio</h3>
-                            {isEditing && !isPublic ? (
-                                <textarea 
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 min-h-[120px]"
-                                    value={profile.bio}
-                                    onChange={e => setProfile({...profile, bio: e.target.value})}
-                                />
-                            ) : (
-                                <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
-                                    {profile.bio}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Popular Tracks</h3>
-                                <button onClick={() => setActiveTab('music')} className="text-xs text-cyan-600 dark:text-cyan-400 font-bold hover:underline">View All</button>
-                            </div>
-                            <div className="space-y-2">
-                                {tracks.slice(0, 5).map((track, i) => (
-                                    <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors group">
-                                        <span className="text-slate-400 font-mono text-sm w-4 text-center">{i + 1}</span>
-                                        <div className="relative w-10 h-10 rounded overflow-hidden cursor-pointer" onClick={() => playTrack(track)}>
-                                            <img src={track.image} className="w-full h-full object-cover" alt={track.title} />
-                                            <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center">
-                                                <Play className="w-4 h-4 text-white fill-white" />
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="text-slate-900 dark:text-white font-bold text-sm truncate">{track.title}</h4>
-                                            <p className="text-xs text-slate-500">{track.plays.toLocaleString()} plays</p>
-                                        </div>
-                                        <span className="text-xs text-slate-400 font-mono">{track.duration}</span>
-                                    </div>
-                                ))}
-                                {tracks.length === 0 && <p className="text-slate-500 text-sm italic">No tracks uploaded yet.</p>}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Press Photos</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {MOCK_PHOTOS.map((src, i) => (
-                                    <div key={i} className="aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity cursor-pointer shadow-sm">
-                                        <img src={src} className="w-full h-full object-cover" alt="Press" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                      </>
-                  )}
-
-                  {activeTab === 'music' && (
-                      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm min-h-[400px]">
-                          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Full Discography</h3>
-                          {tracks.map(track => (
-                              <div key={track.id} className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                  <div className="flex items-center gap-4">
-                                      <div className="w-12 h-12 bg-slate-800 rounded-lg overflow-hidden cursor-pointer" onClick={() => playTrack(track)}>
-                                          <img src={track.image} alt={track.title} className="w-full h-full object-cover" />
-                                      </div>
-                                      <div>
-                                          <h4 className="font-bold text-slate-900 dark:text-white">{track.title}</h4>
-                                          <div className="flex gap-2 text-xs text-slate-500 mt-1">
-                                              <span>{track.bpm} BPM</span>
-                                              <span>• {track.key}</span>
-                                              <span>• {new Date(track.createdAt || Date.now()).getFullYear()}</span>
-                                          </div>
-                                      </div>
+                  {/* Section Controls */}
+                  <section>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-4">Layout Sections</label>
+                      <div className="space-y-3">
+                          {config.sections.map(s => (
+                              <div key={s.id} className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+                                  <div className="flex items-center gap-3">
+                                      <Layout className="w-4 h-4 text-slate-500" />
+                                      <span className="text-sm font-bold text-slate-300 capitalize">{s.id}</span>
                                   </div>
-                                  <button onClick={() => playTrack(track)} className="p-2 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500 hover:text-white transition-colors">
-                                      <Play className="w-5 h-5 fill-current" />
+                                  <button 
+                                    onClick={() => updateSectionVisibility(s.id)}
+                                    className={`w-10 h-5 rounded-full p-0.5 transition-colors ${s.visible ? 'bg-green-500' : 'bg-slate-700'}`}
+                                  >
+                                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${s.visible ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                   </button>
                               </div>
                           ))}
-                          {tracks.length === 0 && <p className="text-center text-slate-500 mt-10">No tracks available.</p>}
                       </div>
-                  )}
+                  </section>
 
-                  {activeTab === 'voice-ip' && <VoiceNFTManager user={user} />}
-                  {activeTab === 'store' && <MerchStore userDisplayName={profile.stageName} />}
-
-              </div>
-
-              {/* --- RIGHT COLUMN --- */}
-              <div className="space-y-6">
-                  
-                  <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                      <h3 className="font-bold text-lg dark:text-white mb-4">Booking & Contact</h3>
-                      <div className="space-y-4">
-                          <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
-                                  <Mail className="w-4 h-4" />
-                              </div>
-                              <div>
-                                  <div className="text-xs text-slate-500 uppercase font-bold">Management</div>
-                                  <a href={`mailto:${profile.managementEmail}`} className="text-sm font-medium text-slate-900 dark:text-white hover:text-cyan-500">{profile.managementEmail}</a>
-                              </div>
-                          </div>
-                          <button 
-                            onClick={() => setShowChat(true)}
-                            className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-white dark:text-slate-950 font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
-                          >
-                              <MessageCircle className="w-4 h-4" /> Send Message
-                          </button>
-                      </div>
-                  </div>
-
-                  {/* Streaming Links */}
-                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                      <h3 className="font-bold text-slate-900 dark:text-white mb-4">Listen On</h3>
-                      
-                      {isEditing && !isPublic ? (
-                          <div className="space-y-3">
-                              <div className="flex items-center gap-2">
-                                  <Music className="w-4 h-4 text-slate-400" />
-                                  <input 
-                                      value={socials.spotify} 
-                                      onChange={(e) => setSocials({...socials, spotify: e.target.value})}
-                                      placeholder="Spotify URL"
-                                      className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-cyan-500"
-                                  />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <Radio className="w-4 h-4 text-slate-400" />
-                                  <input 
-                                      value={socials.appleMusic} 
-                                      onChange={(e) => setSocials({...socials, appleMusic: e.target.value})}
-                                      placeholder="Apple Music URL"
-                                      className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-cyan-500"
-                                  />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <Globe className="w-4 h-4 text-slate-400" />
-                                  <input 
-                                      value={socials.soundcloud} 
-                                      onChange={(e) => setSocials({...socials, soundcloud: e.target.value})}
-                                      placeholder="SoundCloud URL"
-                                      className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-cyan-500"
-                                  />
-                              </div>
-                          </div>
-                      ) : (
-                          <div className="space-y-2">
-                              {socials.spotify && (
-                                  <a href={socials.spotify} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-green-500 hover:text-white transition-colors group">
-                                      <Music className="w-5 h-5 text-green-500 group-hover:text-white" />
-                                      <span className="text-sm font-bold">Spotify</span>
-                                  </a>
-                              )}
-                              {socials.appleMusic && (
-                                  <a href={socials.appleMusic} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-pink-500 hover:text-white transition-colors group">
-                                      <Music className="w-5 h-5 text-pink-500 group-hover:text-white" />
-                                      <span className="text-sm font-bold">Apple Music</span>
-                                  </a>
-                              )}
-                              {socials.soundcloud && (
-                                  <a href={socials.soundcloud} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-orange-500 hover:text-white transition-colors group">
-                                      <Globe className="w-5 h-5 text-orange-500 group-hover:text-white" />
-                                      <span className="text-sm font-bold">SoundCloud</span>
-                                  </a>
-                              )}
-                              {!socials.spotify && !socials.appleMusic && !socials.soundcloud && (
-                                  <p className="text-xs text-slate-500 italic">No streaming links available.</p>
-                              )}
-                          </div>
-                      )}
-                  </div>
-
-                  {/* Social Links */}
-                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                      <h3 className="font-bold text-slate-900 dark:text-white mb-4">Connect</h3>
-                      
-                      {isEditing && !isPublic ? (
-                          <div className="space-y-3">
-                              <div className="flex items-center gap-2">
-                                  <ImageIcon className="w-4 h-4 text-slate-400" />
-                                  <input 
-                                      value={socials.instagram} 
-                                      onChange={(e) => setSocials({...socials, instagram: e.target.value})}
-                                      placeholder="Instagram URL"
-                                      className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-cyan-500"
-                                  />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <Video className="w-4 h-4 text-slate-400" />
-                                  <input 
-                                      value={socials.youtube} 
-                                      onChange={(e) => setSocials({...socials, youtube: e.target.value})}
-                                      placeholder="YouTube URL"
-                                      className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-cyan-500"
-                                  />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <Send className="w-4 h-4 text-slate-400" />
-                                  <input 
-                                      value={socials.twitter} 
-                                      onChange={(e) => setSocials({...socials, twitter: e.target.value})}
-                                      placeholder="Twitter/X URL"
-                                      className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-cyan-500"
-                                  />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <Globe className="w-4 h-4 text-slate-400" />
-                                  <input 
-                                      value={socials.website} 
-                                      onChange={(e) => setSocials({...socials, website: e.target.value})}
-                                      placeholder="Website URL"
-                                      className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-cyan-500"
-                                  />
-                              </div>
-                          </div>
-                      ) : (
-                          <div className="grid grid-cols-4 gap-2">
-                              {socials.instagram && (
-                                  <a href={socials.instagram} target="_blank" className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center text-slate-500 hover:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-slate-700 transition-colors">
-                                      <ImageIcon className="w-5 h-5" />
-                                  </a>
-                              )}
-                              {socials.youtube && (
-                                  <a href={socials.youtube} target="_blank" className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors">
-                                      <Video className="w-5 h-5" />
-                                  </a>
-                              )}
-                              {socials.twitter && (
-                                  <a href={socials.twitter} target="_blank" className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center text-slate-500 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors">
-                                      <Send className="w-5 h-5" />
-                                  </a>
-                              )}
-                              {socials.website && (
-                                  <a href={socials.website} target="_blank" className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center text-slate-500 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-slate-700 transition-colors">
-                                      <Globe className="w-5 h-5" />
-                                  </a>
-                              )}
-                              {!socials.instagram && !socials.youtube && !socials.twitter && !socials.website && (
-                                  <p className="col-span-4 text-xs text-slate-500 italic text-center">No social links added.</p>
-                              )}
-                          </div>
-                      )}
-                  </div>
-
-              </div>
-          </div>
-      </div>
-
-      {/* CHAT OVERLAY */}
-      {showChat && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pointer-events-none">
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto" onClick={() => setShowChat(false)}></div>
-              <div className="bg-white dark:bg-slate-900 w-full sm:w-[400px] h-[80vh] sm:h-[600px] sm:rounded-2xl shadow-2xl flex flex-col pointer-events-auto animate-in slide-in-from-bottom-10 duration-300 relative">
-                  
-                  {/* Chat Header */}
-                  <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950 sm:rounded-t-2xl">
-                      <div className="flex items-center gap-3">
-                          <div className="relative">
-                              <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden">
-                                  <img src={avatar || ''} className="w-full h-full object-cover" />
-                              </div>
-                              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-950 rounded-full"></div>
-                          </div>
-                          <div>
-                              <h4 className="font-bold text-sm text-slate-900 dark:text-white">{profile.stageName}</h4>
-                              <p className="text-xs text-slate-500">Typically replies in 1hr</p>
-                          </div>
-                      </div>
-                      <button onClick={() => setShowChat(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
-                          <X className="w-5 h-5 text-slate-500" />
-                      </button>
-                  </div>
-
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-100 dark:bg-slate-950/50">
-                      {messages.map(msg => (
-                          <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[80%] rounded-2xl p-3 text-sm ${
-                                  msg.isMe 
-                                  ? 'bg-cyan-500 text-white rounded-tr-sm' 
-                                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm border border-slate-200 dark:border-slate-700'
-                              }`}>
-                                  {!msg.isMe && <p className="text-[10px] font-bold opacity-70 mb-1">{msg.sender}</p>}
-                                  <p>{msg.text}</p>
-                                  <p className="text-[10px] opacity-50 mt-1 text-right">{msg.time}</p>
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-
-                  {/* Input */}
-                  <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sm:rounded-b-2xl">
-                      <div className="flex gap-2">
-                          <input 
-                              type="text" 
-                              value={chatInput} 
-                              onChange={e => setChatInput(e.target.value)}
-                              placeholder="Type a message..." 
-                              className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 dark:text-white"
-                          />
-                          <button type="submit" className="p-2.5 bg-cyan-500 hover:bg-cyan-400 text-white rounded-full transition-colors shadow-lg">
-                              <Send className="w-4 h-4" />
-                          </button>
-                      </div>
-                  </form>
+                  <button 
+                    onClick={handleSave}
+                    className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl shadow-xl shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
+                  >
+                      <Save className="w-5 h-5" /> Publish Changes
+                  </button>
               </div>
           </div>
       )}
+
+      {/* --- PREVIEW AREA --- */}
+      <div className="flex-1 overflow-y-auto relative custom-scrollbar">
+        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+
+        {/* Hero Section */}
+        <div className="relative h-[400px] md:h-[500px] overflow-hidden group">
+            <div className="absolute inset-0 bg-slate-900">
+                {banner ? <img src={banner} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-slate-900 to-black"></div>}
+                <div className="absolute inset-0 bg-gradient-to-t from-current-bg via-transparent to-transparent" style={{ '--current-bg': config.theme === 'light' ? 'white' : 'black' } as any}></div>
+            </div>
+
+            <div className="absolute top-6 left-6 flex gap-3 z-30">
+                {isPublic && onBack && (
+                    <button onClick={onBack} className="bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded-full backdrop-blur-md transition-all flex items-center gap-2 text-sm font-bold shadow-lg">
+                        <ArrowLeft className="w-4 h-4" /> Exit Site
+                    </button>
+                )}
+                {!isPublic && !isEditing && (
+                    <button onClick={() => setIsEditing(true)} className="bg-cyan-500 text-slate-950 px-6 py-2 rounded-full font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
+                        <Edit2 className="w-4 h-4" /> Enter Build Mode
+                    </button>
+                )}
+            </div>
+
+            <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 flex flex-col md:flex-row items-end gap-8 z-10">
+                <div className="relative group/avatar">
+                    <div className="w-40 h-40 md:w-56 md:h-56 rounded-2xl overflow-hidden border-4 border-white/10 shadow-2xl bg-slate-800">
+                        <img src={avatar || ''} className="w-full h-full object-cover" />
+                    </div>
+                    {isEditing && (
+                        <button onClick={() => handleUploadClick('avatar')} className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white font-bold gap-2">
+                            <Camera className="w-5 h-5" /> Change Photo
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-4">
+                        {isEditing ? (
+                            <input 
+                                value={profile.stageName} 
+                                onChange={e => setProfile({...profile, stageName: e.target.value})}
+                                className="bg-transparent border-b border-white/20 text-4xl md:text-7xl font-black focus:border-cyan-500 outline-none w-full"
+                            />
+                        ) : (
+                            <h1 className="text-4xl md:text-7xl font-black tracking-tight">{profile.stageName}</h1>
+                        )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-6 opacity-70 font-bold uppercase tracking-widest text-xs">
+                        <span className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {profile.location}</span>
+                        <span className="flex items-center gap-2"><Music className="w-4 h-4" /> {profile.genre}</span>
+                        <span className="flex items-center gap-2 text-cyan-400"><Star className="w-4 h-4 fill-current" /> Official Artist</span>
+                    </div>
+                </div>
+
+                <div className="flex gap-3">
+                    <button onClick={() => setShowChat(true)} className="px-8 py-3 rounded-full font-bold transition-all shadow-xl flex items-center gap-2 hover:scale-105" style={{ backgroundColor: config.accentColor, color: config.theme === 'light' ? 'white' : 'black' }}>
+                        <Mail className="w-5 h-5" /> Connect
+                    </button>
+                    <button onClick={handleShare} className="p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all shadow-lg">
+                        <Share2 className="w-6 h-6" />
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {/* Dynamic Sections */}
+        <div className="max-w-6xl mx-auto px-8 py-16 space-y-24">
+            {config.sections.filter(s => s.visible).sort((a, b) => a.order - b.order).map(section => (
+                <div key={section.id} className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                    
+                    {section.id === 'bio' && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
+                            <div className="md:col-span-1">
+                                <h3 className="text-sm font-black uppercase tracking-widest opacity-50 mb-4">The Story</h3>
+                                <div className="w-12 h-1 mb-8" style={{ backgroundColor: config.accentColor }}></div>
+                            </div>
+                            <div className="md:col-span-2">
+                                {isEditing ? (
+                                    <textarea 
+                                        value={profile.bio} 
+                                        onChange={e => setProfile({...profile, bio: e.target.value})}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-lg leading-relaxed focus:border-cyan-500 outline-none h-48"
+                                    />
+                                ) : (
+                                    <p className="text-xl md:text-2xl font-medium leading-relaxed opacity-90">{profile.bio}</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {section.id === 'tracks' && (
+                        <div className="space-y-8">
+                             <div className="flex justify-between items-end">
+                                <h3 className="text-sm font-black uppercase tracking-widest opacity-50">Discography</h3>
+                                <button onClick={() => setActiveTab('music')} className="text-xs font-bold uppercase tracking-widest hover:underline" style={{ color: config.accentColor }}>View All Releases</button>
+                             </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {tracks.slice(0, 4).map(track => (
+                                    <div key={track.id} className="group flex items-center gap-6 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all cursor-pointer" onClick={() => playTrack(track)}>
+                                        <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 shadow-lg">
+                                            <img src={track.image} className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Play className="w-8 h-8 text-white fill-white" />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-lg truncate">{track.title}</h4>
+                                            <p className="text-sm opacity-50">{track.plays.toLocaleString()} Streamed</p>
+                                        </div>
+                                        <div className="text-xs font-mono opacity-30">{track.duration}</div>
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    )}
+
+                    {section.id === 'photos' && (
+                        <div className="space-y-8">
+                            <h3 className="text-sm font-black uppercase tracking-widest opacity-50">Visuals</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {MOCK_PHOTOS.map((src, i) => (
+                                    <div key={i} className="aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl hover:scale-[1.02] transition-transform duration-500 cursor-pointer border border-white/10">
+                                        <img src={src} className="w-full h-full object-cover" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {section.id === 'tour' && (
+                        <div className="space-y-8">
+                             <div className="flex justify-between items-end">
+                                <h3 className="text-sm font-black uppercase tracking-widest opacity-50">On Tour</h3>
+                                <div className="flex gap-4">
+                                    {isEditing && (
+                                        <button onClick={addTourDate} className="text-xs font-bold uppercase tracking-widest bg-white/10 px-4 py-1.5 rounded-full hover:bg-white/20 transition-all">Add Show</button>
+                                    )}
+                                </div>
+                             </div>
+                             <div className="rounded-3xl border border-white/10 overflow-hidden bg-white/5 shadow-2xl">
+                                {tourDates.length > 0 ? (
+                                    <div className="divide-y divide-white/5">
+                                        {tourDates.map((date, i) => (
+                                            <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-8 hover:bg-white/5 transition-all">
+                                                <div className="flex items-center gap-8 mb-4 md:mb-0">
+                                                    <div className="text-center w-16">
+                                                        <div className="text-sm uppercase font-black opacity-40">{new Date(date.date).toLocaleString('default', { month: 'short' })}</div>
+                                                        <div className="text-3xl font-black">{new Date(date.date).getDate() || '??'}</div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xl font-bold">{date.venue}</h4>
+                                                        <p className="text-sm opacity-50">{date.city}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-6">
+                                                    <span className="text-sm font-bold uppercase tracking-widest opacity-50">{date.status}</span>
+                                                    <button className="px-8 py-3 rounded-full border border-white/20 font-bold hover:bg-white hover:text-black transition-all">Tickets</button>
+                                                    {isEditing && (
+                                                        <button onClick={() => removeTourDate(i)} className="text-red-500 hover:text-red-400"><Trash2 className="w-5 h-5" /></button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-12 text-center text-slate-500 italic">No upcoming dates announced.</div>
+                                )}
+                             </div>
+                        </div>
+                    )}
+
+                </div>
+            ))}
+
+            {/* Footer Connect */}
+            <div className="pt-24 border-t border-white/10 text-center">
+                 <h2 className="text-5xl md:text-8xl font-black mb-12 tracking-tighter">LET'S MERGE.</h2>
+                 <div className="flex flex-wrap justify-center gap-4 mb-16">
+                    {socials.spotify && <a href={socials.spotify} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-500 transition-all group"><Music className="w-8 h-8 group-hover:text-cyan-400" /></a>}
+                    {socials.instagram && <a href={socials.instagram} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-pink-500 transition-all group"><ImageIcon className="w-8 h-8 group-hover:text-pink-400" /></a>}
+                    {socials.youtube && <a href={socials.youtube} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-red-500 transition-all group"><Video className="w-8 h-8 group-hover:text-red-400" /></a>}
+                    {socials.twitter && <a href={socials.twitter} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-400 transition-all group"><Send className="w-8 h-8 group-hover:text-blue-400" /></a>}
+                 </div>
+                 <p className="text-sm font-bold opacity-30 uppercase tracking-widest">© 2025 {profile.stageName} • Built on Sound Merge</p>
+            </div>
+        </div>
+      </div>
+
+      {/* MODALS */}
+      {showChat && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowChat(false)}></div>
+              <div className="bg-slate-900 w-full sm:w-[450px] rounded-3xl shadow-2xl overflow-hidden z-10 animate-in slide-in-from-bottom-10">
+                  <div className="p-6 bg-slate-800 flex justify-between items-center border-b border-white/5">
+                      <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-slate-700 overflow-hidden border-2 border-cyan-500">
+                              <img src={avatar || ''} className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                              <h4 className="font-bold text-white">Message {profile.stageName}</h4>
+                              <p className="text-[10px] text-green-400 font-bold uppercase tracking-widest">Active Now</p>
+                          </div>
+                      </div>
+                      <button onClick={() => setShowChat(false)} className="text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
+                  </div>
+                  <div className="p-8 space-y-6">
+                      <p className="text-sm text-slate-400 text-center">Interested in a feature, booking, or licensing voice IP? Send a direct request.</p>
+                      <textarea className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white focus:border-cyan-500 outline-none h-32" placeholder="Tell me about your project..." />
+                      <button className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl shadow-lg transition-all">Send Message</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
     </div>
   );
+
+  function addTourDate() {
+      setTourDates([...tourDates, { date: new Date().toISOString().split('T')[0], venue: 'New Venue', city: 'City, State', status: 'Announced' }]);
+  }
+
+  function removeTourDate(index: number) {
+      const newDates = [...tourDates];
+      newDates.splice(index, 1);
+      setTourDates(newDates);
+  }
 };

@@ -19,7 +19,8 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { GeneratedTrack } from './audioService';
-import { VoiceNFT, User, Stats, DistributionRelease, LegalRecord } from '../types';
+/* Updated VoiceNFT to VoiceAsset from types */
+import { VoiceAsset, User, Stats, DistributionRelease, LegalRecord } from '../types';
 
 // Fallback Mock Data for Simulation Mode
 const MOCK_TRACKS_FALLBACK: GeneratedTrack[] = [
@@ -64,8 +65,9 @@ let MOCK_USERS_CACHE: User[] = [
     }
 ];
 
-// Persistent local cache for Voice NFTs (Fixes NFT not showing issue)
-let MOCK_VOICE_REGISTRATIONS_CACHE: VoiceNFT[] = [];
+// Persistent local cache for Voice Assets (Rebranded from NFTs)
+/* Updated type to VoiceAsset[] */
+let MOCK_VOICE_REGISTRATIONS_CACHE: VoiceAsset[] = [];
 
 // Persistent local cache for Legal Records
 let MOCK_LEGAL_RECORDS_CACHE: LegalRecord[] = [
@@ -466,7 +468,8 @@ export const dataService = {
   },
 
   // --- VOICE SHIELD ---
-  async saveVoiceRegistration(userId: string, nftData: VoiceNFT) {
+  /* Updated to use VoiceAsset type instead of deprecated VoiceNFT */
+  async saveVoiceRegistration(userId: string, nftData: VoiceAsset) {
     // 1. Always update local cache first to ensure immediate UI feedback
     MOCK_VOICE_REGISTRATIONS_CACHE.unshift(nftData);
 
@@ -484,7 +487,8 @@ export const dataService = {
     }
   },
 
-  subscribeToVoiceRegistrations(userId: string, callback: (nfts: VoiceNFT[]) => void): Unsubscribe {
+  /* Updated to use VoiceAsset in callback and type casting */
+  subscribeToVoiceRegistrations(userId: string, callback: (nfts: VoiceAsset[]) => void): Unsubscribe {
     // Return Local Cache immediately if mock user
     if (isMockUser(userId)) {
         callback(MOCK_VOICE_REGISTRATIONS_CACHE);
@@ -500,7 +504,7 @@ export const dataService = {
         return onSnapshot(q, (snapshot) => {
             const nfts = snapshot.docs.map(doc => ({
                 ...doc.data()
-            })) as VoiceNFT[];
+            })) as VoiceAsset[];
             
             // Merge with local cache if DB is empty but cache has items (e.g. recent failure or latency)
             if (nfts.length === 0 && MOCK_VOICE_REGISTRATIONS_CACHE.length > 0) {

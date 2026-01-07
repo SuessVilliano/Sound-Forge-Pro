@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Activity, Scan, Globe, Lock, Mic, CheckCircle2, Upload, Music, StopCircle, PlayCircle, Loader2, Link, Database, FileArchive } from 'lucide-react';
+import { Shield, Activity, Scan, Globe, Lock, Mic, CheckCircle2, Upload, Music, StopCircle, PlayCircle, Loader2, Link, Database, FileArchive, Zap } from 'lucide-react';
 import { User, Track } from '../types';
 import { registerVoice } from '../services/voiceService';
 import { dataService } from '../services/dataService';
 import { lighthouseService } from '../services/lighthouseService';
 import { useWallet } from '../contexts/WalletContext';
+import { VoiceAssetManager } from './VoiceAssetManager';
 
 interface VoiceShieldProps {
   user: User;
@@ -15,35 +16,29 @@ interface VoiceShieldProps {
 type AudioSource = 'upload' | 'record' | 'library';
 
 export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => {
-  const [activeTab, setActiveTab] = useState<'register' | 'monitor'>('register');
+  const [activeTab, setActiveTab] = useState<'register' | 'monitor' | 'vault'>('register');
   const [isRegistering, setIsRegistering] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const { walletAddress, connectTipLink, connectPhantom } = useWallet();
   
-  // Registration State
   const [sourceMode, setSourceMode] = useState<AudioSource>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<Track | null>(null);
   
-  // Lighthouse State
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [ipfsHash, setIpfsHash] = useState<string | null>(null);
 
-  // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const timerRef = useRef<number | null>(null);
 
-  // Library State
   const [libraryTracks, setLibraryTracks] = useState<Track[]>([]);
 
   useEffect(() => {
-      // Fetch user tracks if library mode is selected
       if (sourceMode === 'library' && user) {
           const unsubscribe = dataService.subscribeToTracks(user.uid, (tracks) => {
-              // Map GeneratedTrack to Track to match state type
               const mapped: Track[] = tracks.map((t: any) => ({
                   id: t.id,
                   title: t.title,
@@ -79,33 +74,28 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
       }
 
       if (!walletAddress) {
-          alert("Please connect your wallet first to sign the encryption.");
+          alert("Please connect your wallet first to sign the authentication.");
           return;
       }
 
       setIsRegistering(true);
       try {
-          // 1. Upload to Lighthouse (The Vault)
-          setUploadStatus('Encrypting & Uploading to IPFS Vault...');
-          // Simulate signing message
-          const signedMessage = "mock_signature_" + Date.now(); 
+          setUploadStatus('Encrypting & Securing Identity...');
+          const signedMessage = "authenticate_vocal_dna_" + Date.now(); 
           const lighthouseRes = await lighthouseService.uploadEncrypted(fileToProcess, walletAddress, signedMessage);
           
           setIpfsHash(lighthouseRes.Hash);
-          setUploadStatus('Minting Proof of Ownership on Solana...');
+          setUploadStatus('Minting Rights Certificate on Ledger...');
 
-          // 2. Register/Mint Logic
           const result = await registerVoice(fileToProcess);
           
           if (result.success && result.nft) {
-              // Attach IPFS hash to the internal record
               result.nft.fingerprint_hash = lighthouseRes.Hash; 
               await dataService.saveVoiceRegistration(user.uid, result.nft);
               
               setUploadStatus('Success!');
-              alert("Voice secured in Vault and Registered on Chain!");
+              alert("Vocal Identity Authenticated! Check your Asset Vault.");
               
-              // Reset
               setSelectedFile(null);
               setSelectedLibraryTrack(null);
           } else {
@@ -185,47 +175,49 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
       <div className="flex justify-between items-start">
         <div>
            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-               <Shield className="w-6 h-6 text-green-500" /> VoiceShield™ Protection
+               <Shield className="w-6 h-6 text-cyan-500" /> VoiceShield™ Protection
            </h1>
-           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Register your voice DNA on the blockchain and secure files in the Lighthouse Vault.</p>
+           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Authenticate your vocal DNA on the ledger to secure usage rights and build $MERGE reputation.</p>
         </div>
         <div className="bg-slate-200 dark:bg-slate-800 p-1 rounded-lg flex gap-1">
             <button 
                 onClick={() => setActiveTab('register')}
                 className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'register' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
-                Registration
+                Authentication
             </button>
             <button 
                 onClick={() => setActiveTab('monitor')}
-                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'monitor' ? 'bg-green-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'monitor' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
                 Web Monitoring
+            </button>
+            <button 
+                onClick={() => setActiveTab('vault')}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'vault' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+                Asset Vault
             </button>
         </div>
       </div>
 
-      {activeTab === 'register' ? (
+      {activeTab === 'vault' ? (
+          <VoiceAssetManager user={user} onNavigateToRegister={() => setActiveTab('register')} />
+      ) : activeTab === 'register' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-300">
               <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
                   
-                  {/* Connect Wallet Alert */}
                   {!walletAddress && (
-                      <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-between">
+                      <div className="mb-6 p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                              <Link className="w-5 h-5 text-purple-500" />
+                              <Link className="w-5 h-5 text-cyan-500" />
                               <div className="text-sm">
-                                  <span className="font-bold text-purple-400">Connect Wallet</span> to use the Vault.
+                                  <span className="font-bold text-cyan-400">Ledger Unconnected</span>. Identity cannot be secured.
                               </div>
                           </div>
-                          <div className="flex gap-2">
-                              <button onClick={connectTipLink} className="text-xs bg-white text-purple-900 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-200 transition-colors">
-                                  TipLink (Google)
-                              </button>
-                              <button onClick={connectPhantom} className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-purple-500 transition-colors">
-                                  Phantom
-                              </button>
-                          </div>
+                          <button onClick={connectPhantom} className="text-xs bg-cyan-500 text-slate-950 px-3 py-1.5 rounded-lg font-bold hover:bg-cyan-400 transition-colors">
+                              Connect Ledger
+                          </button>
                       </div>
                   )}
 
@@ -234,12 +226,11 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
                           <Mic className="w-6 h-6 text-cyan-500" />
                       </div>
                       <div>
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white">New Voice Registration</h3>
-                          <p className="text-slate-500 dark:text-slate-400 text-sm">Provide a clear audio sample to create your voice print.</p>
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white">New Identity Certificate</h3>
+                          <p className="text-slate-500 dark:text-slate-400 text-sm">Provide a clear audio sample to create your biometric rights record.</p>
                       </div>
                   </div>
 
-                  {/* Input Source Tabs */}
                   <div className="flex gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
                       <button 
                         onClick={() => { setSourceMode('upload'); setSelectedFile(null); setSelectedLibraryTrack(null); }}
@@ -253,15 +244,8 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
                       >
                           <Mic className="w-3 h-3" /> Record
                       </button>
-                      <button 
-                        onClick={() => { setSourceMode('library'); setSelectedFile(null); setSelectedLibraryTrack(null); }}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${sourceMode === 'library' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                      >
-                          <Music className="w-3 h-3" /> From Library
-                      </button>
                   </div>
 
-                  {/* INPUT AREA */}
                   <div className="mb-8">
                       {sourceMode === 'upload' && (
                           <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer relative">
@@ -284,8 +268,8 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
                               ) : (
                                   <>
                                       <Upload className="w-8 h-8 text-slate-400 mb-3" />
-                                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Click to upload audio file</p>
-                                      <p className="text-xs text-slate-500 mt-1">WAV, MP3, or AIFF (Min 1 min)</p>
+                                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Click to upload sample</p>
+                                      <p className="text-xs text-slate-500 mt-1">High fidelity samples lead to higher reputation scores.</p>
                                   </>
                               )}
                           </div>
@@ -300,18 +284,18 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
                               {!isRecording ? (
                                   selectedFile ? (
                                       <div className="flex flex-col items-center">
-                                          <p className="text-green-500 font-bold mb-4 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Recording Saved</p>
+                                          <p className="text-green-500 font-bold mb-4 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Sample Locked</p>
                                           <button 
                                             onClick={() => { setSelectedFile(null); setRecordingDuration(0); }}
                                             className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white underline"
                                           >
-                                              Record Again
+                                              Re-record
                                           </button>
                                       </div>
                                   ) : (
                                       <button 
                                         onClick={startRecording}
-                                        className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-500/30 transition-transform hover:scale-105 active:scale-95"
+                                        className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-500/30 transition-transform hover:scale-105"
                                       >
                                           <Mic className="w-8 h-8" />
                                       </button>
@@ -319,42 +303,10 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
                               ) : (
                                   <button 
                                     onClick={stopRecording}
-                                    className="w-16 h-16 rounded-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 animate-pulse"
+                                    className="w-16 h-16 rounded-full bg-slate-800 text-white flex items-center justify-center shadow-lg transition-transform animate-pulse"
                                   >
                                       <StopCircle className="w-8 h-8" />
                                   </button>
-                              )}
-                              
-                              <p className="mt-6 text-xs text-slate-500 text-center max-w-xs">
-                                  Read a generic paragraph of text to capture your full vocal range.
-                              </p>
-                          </div>
-                      )}
-
-                      {sourceMode === 'library' && (
-                          <div className="border border-slate-200 dark:border-slate-700 rounded-xl max-h-60 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-                              {libraryTracks.length === 0 ? (
-                                  <div className="p-8 text-center text-slate-500">
-                                      <Music className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                      <p className="text-sm">No tracks found in your library.</p>
-                                  </div>
-                              ) : (
-                                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                      {libraryTracks.map(track => (
-                                          <div 
-                                            key={track.id} 
-                                            onClick={() => setSelectedLibraryTrack(track)}
-                                            className={`p-3 flex items-center gap-3 cursor-pointer transition-colors ${selectedLibraryTrack?.id === track.id ? 'bg-cyan-50 dark:bg-cyan-900/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                                          >
-                                              <img src={track.image} className="w-10 h-10 rounded bg-slate-300 object-cover" alt="cover" />
-                                              <div className="flex-1 min-w-0">
-                                                  <p className={`text-sm font-bold truncate ${selectedLibraryTrack?.id === track.id ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>{track.title}</p>
-                                                  <p className="text-xs text-slate-500">{track.duration} • {track.bpm} BPM</p>
-                                              </div>
-                                              {selectedLibraryTrack?.id === track.id && <CheckCircle2 className="w-5 h-5 text-cyan-500" />}
-                                          </div>
-                                      ))}
-                                  </div>
                               )}
                           </div>
                       )}
@@ -363,61 +315,56 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
                   <button 
                     onClick={handleRegister}
                     disabled={isRegistering || (!selectedFile && !selectedLibraryTrack)}
-                    className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
+                    className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                   >
                       {isRegistering ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> {uploadStatus || 'Processing...'}</>
+                          <><Loader2 className="w-4 h-4 animate-spin" /> {uploadStatus || 'Syncing...'}</>
                       ) : (
-                          <>Register Voice ID (Solana)</>
+                          <>Secure Identity Certificate</>
                       )}
                   </button>
               </div>
 
-              <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm">
+              <div className="bg-slate-900 rounded-xl border border-slate-800 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm">
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
                   
-                  {walletAddress ? (
-                      <div className="mb-6 flex flex-col items-center">
-                          <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center text-green-500 mb-2">
-                              <Shield className="w-8 h-8" />
-                          </div>
-                          <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">Vault Active</div>
-                          <div className="text-sm font-mono text-slate-400 mt-1">{walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}</div>
+                  <div className="mb-6 flex flex-col items-center">
+                      <div className="w-16 h-16 bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500 mb-4 shadow-[0_0_40px_rgba(6,182,212,0.1)]">
+                          <Zap className="w-8 h-8" />
                       </div>
-                  ) : (
-                      <Shield className="w-24 h-24 text-slate-300 dark:text-slate-700 mb-4" />
-                  )}
+                      <div className="text-xs text-cyan-500 uppercase font-black tracking-widest">Reputation Yield</div>
+                      <div className="text-3xl font-black text-white mt-1">+100 $MERGE Points</div>
+                  </div>
 
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Decentralized Vault</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mb-6">
-                      Your voice data is encrypted using your wallet signature and stored on IPFS/Filecoin via Lighthouse. Only you can decrypt it.
+                  <h3 className="text-xl font-bold text-white mb-2">Professional Accreditation</h3>
+                  <p className="text-slate-400 text-sm max-w-sm mb-6 leading-relaxed">
+                      Authenticated identities are eligible for the institutional marketplace. Only certified voices can receive contract offers from global media partners.
                   </p>
                   
                   <div className="flex gap-2">
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-600 dark:text-purple-400 text-xs font-bold">
-                          <Globe className="w-3 h-3" /> Solana
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-[10px] font-black uppercase tracking-wider">
+                          <Globe className="w-3 h-3" /> Ledger Secured
                       </div>
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-600 dark:text-blue-400 text-xs font-bold">
-                          <Database className="w-3 h-3" /> IPFS / Lighthouse
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-400 text-[10px] font-black uppercase tracking-wider">
+                          <Database className="w-3 h-3" /> IPFS Vault
                       </div>
                   </div>
               </div>
           </div>
       ) : (
           <div className="relative animate-in fade-in duration-300">
-              {/* Pro Lock Overlay */}
               {!isPro && (
                   <div className="absolute inset-0 z-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8 rounded-xl border border-slate-200 dark:border-slate-700">
-                      <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-                          <Lock className="w-8 h-8 text-green-500" />
+                      <div className="w-16 h-16 bg-cyan-500/20 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                          <Lock className="w-8 h-8 text-cyan-500" />
                       </div>
-                      <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Active Protection is Pro-Only</h2>
-                      <p className="text-slate-500 dark:text-slate-300 max-w-md mb-8">
-                          Upgrade to Artist Pro to enable 24/7 web scanning, deepfake detection, and automated DMCA takedowns for your voice.
+                      <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Web Monitoring is Pro-Only</h2>
+                      <p className="text-slate-500 dark:text-slate-300 max-w-md mb-8 leading-relaxed">
+                          Upgrade to Artist Pro to enable 24/7 web scanning, deepfake detection, and automated DMCA takedowns for your certified vocal identity.
                       </p>
                       <button 
                         onClick={onUpgrade}
-                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg transition-transform hover:scale-105"
+                        className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg transition-transform hover:scale-105"
                       >
                           Upgrade to Pro
                       </button>
@@ -425,39 +372,35 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
               )}
 
               <div className={`grid grid-cols-1 gap-6 ${!isPro ? 'filter blur-sm' : ''}`}>
-                  {/* Scanner Controls */}
                   <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                       <div className="flex justify-between items-center">
                           <div>
                               <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                  <Activity className="w-5 h-5 text-green-500" /> Active Web Monitor
+                                  <Activity className="w-5 h-5 text-cyan-500" /> Active Identity Monitor
                               </h3>
-                              <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">Scanning YouTube, TikTok, Spotify, and SoundCloud for voice matches.</p>
+                              <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">Scanning global stores and social networks for unauthorized biometric matches.</p>
                           </div>
                           <button 
                             onClick={handleScan}
                             className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors border border-slate-200 dark:border-slate-700"
                           >
                               <Scan className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} /> 
-                              {isScanning ? 'Scanning...' : 'Run Manual Scan'}
+                              {isScanning ? 'Scanning...' : 'Manual Sweep'}
                           </button>
                       </div>
                   </div>
 
-                  {/* Recent Detections */}
                   <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Recent Detections</h4>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white mb-4 uppercase tracking-widest">Recent Activity</h4>
                       <div className="space-y-4">
                           {[
-                              { platform: 'YouTube', title: 'AI Cover - "Your Song"', match: '98%', status: 'Takedown Sent', date: '2h ago' },
-                              { platform: 'TikTok', title: 'Viral Remix (Sped Up)', match: '85%', status: 'Pending Review', date: '5h ago' },
-                              { platform: 'SoundCloud', title: 'Untitled Demo', match: '92%', status: 'Resolved', date: '1d ago' }
+                              { platform: 'YouTube', title: 'Vocal Clone - "Summer Remix"', match: '98%', status: 'Resolution Sent', date: '2h ago' },
+                              { platform: 'TikTok', title: 'Unauthorized Cover (Deepfake)', match: '92%', status: 'Resolved', date: '1d ago' }
                           ].map((item, i) => (
                               <div key={i} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
                                   <div className="flex items-center gap-4">
                                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white text-xs ${
-                                          item.platform === 'YouTube' ? 'bg-red-600' : 
-                                          item.platform === 'TikTok' ? 'bg-pink-600' : 'bg-orange-500'
+                                          item.platform === 'YouTube' ? 'bg-red-600' : 'bg-pink-600'
                                       }`}>
                                           {item.platform[0]}
                                       </div>
@@ -468,13 +411,11 @@ export const VoiceShield: React.FC<VoiceShieldProps> = ({ user, onUpgrade }) => 
                                   </div>
                                   <div className="flex items-center gap-6">
                                       <div className="text-right">
-                                          <div className="text-green-600 dark:text-green-400 font-bold text-sm">{item.match} Match</div>
-                                          <div className="text-xs text-slate-500">Confidence</div>
+                                          <div className="text-cyan-600 dark:text-cyan-400 font-bold text-sm">{item.match} Match</div>
+                                          <div className="text-xs text-slate-500">Certainty</div>
                                       </div>
-                                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                          item.status === 'Takedown Sent' ? 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20' :
-                                          item.status === 'Resolved' ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-500/20' :
-                                          'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20'
+                                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                                          item.status === 'Resolved' ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
                                       }`}>
                                           {item.status}
                                       </span>

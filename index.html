@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SoundForge Pro</title>
+    <title>Sound Merge | Your Music Identity Asset</title>
     <link rel="manifest" href="/manifest.json">
     
     <!-- PushLapGrowth Affiliate Tracker -->
@@ -108,20 +108,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Use relative path './' to ensure it works in sub-paths/previews
-          navigator.serviceWorker.register('./service-worker.js')
-            .then(registration => {
-              console.log('SW registered with scope:', registration.scope);
-            })
-            .catch(registrationError => {
-              // Suppress error in console if it's just a preview environment restriction
-              console.log('SW registration skipped (preview env constraint)');
-            });
-        });
-      }
-    </script>
   </body>
 </html>
