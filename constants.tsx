@@ -4,7 +4,7 @@ import {
   Music, LayoutDashboard, Zap, DollarSign, Briefcase, 
   BookOpen, Sliders, BarChart2, User as UserIcon, Mail, Mic, 
   Radio, Activity, Wand2, MapPin, Disc, Star, Vote, Link, Swords, Wallet, MessageSquare,
-  Users, Globe, Send, Phone, Video
+  Users, Globe, Send, Phone, Video, Landmark
 } from 'lucide-react';
 
 export const APP_NAME = "Sound Merge";
@@ -20,6 +20,7 @@ export const VIEWS = {
   OPPORTUNITIES: 'opportunities',
   TOURING: 'touring',
   REVENUE: 'revenue',
+  FUNDING: 'funding',
   BRAND: 'brand',
   ACADEMY: 'academy',
   COMMUNITY: 'community',
@@ -42,6 +43,7 @@ export const NAVIGATION_ITEMS = [
   { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
   { id: VIEWS.STAFF, label: 'AI Staff', icon: MessageSquare, ai: true, badge: 3 },
   { id: VIEWS.SMART_WALLET, label: 'Smart Wallet', icon: Wallet, new: true },
+  { id: VIEWS.FUNDING, label: 'Funding', icon: Landmark, new: true },
   { id: VIEWS.BATTLES, label: 'Music Battles', icon: Swords, new: true, ai: true },
   { id: VIEWS.CATALOG, label: 'Music Catalog', icon: Disc },
   { id: VIEWS.STUDIO, label: 'AI Studio', icon: Wand2, ai: true },

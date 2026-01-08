@@ -57,7 +57,46 @@ export interface StaffProposal {
     timestamp: string;
 }
 
-// Added missing interface for User tourDates property
+export interface FundingRequest {
+    id: string;
+    createdAt: string;
+    userId: string;
+    userEmail: string;
+    userName: string;
+    artistName: string;
+    stageName?: string;
+    contactPhone: string;
+    country: string;
+    primaryDistributor: string;
+    totalNetRoyaltiesLast6Months: number;
+    ownsMastersPercent: number;
+    revenueStability: 'Stable' | 'Mixed' | 'Volatile';
+    hasPublishingSplits: boolean;
+    catalogNotes: string;
+    requestedAmount?: number;
+    consentToShareData: boolean;
+    
+    // Derived
+    avgMonthlyRoyalties: number;
+    calculatedOfferLow: number;
+    calculatedOfferHigh: number;
+
+    // Admin
+    status: 'new' | 'reviewing' | 'forwarded' | 'needs-info' | 'approved-partner' | 'declined';
+    adminNotes?: string;
+    forwardedAt?: string;
+    forwardedToPartner?: string;
+
+    // Webhook Log
+    webhookDelivery: {
+        attemptedAt?: string;
+        success: boolean;
+        responseCode?: number;
+        responseBody?: string;
+        errorMessage?: string;
+    };
+}
+
 export interface TourDate {
   id?: string;
   date: string;
@@ -90,7 +129,6 @@ export interface User {
   notificationSettings?: {
     emailSyncMatches: boolean;
   };
-  // Added missing fields to fix TS errors in components and services
   socialLinks?: {
     instagram?: string;
     twitter?: string;
@@ -196,7 +234,6 @@ export interface StaffMessage {
   proposal?: StaffProposal;
 }
 
-// Added DistributionTrack interface for release management
 export interface DistributionTrack {
   id: string;
   title: string;
@@ -226,7 +263,7 @@ export interface DistributionRelease {
   primaryGenre: string;
   services: string[];
   previouslyReleased: boolean;
-  tracks: DistributionTrack[]; // Updated from any[]
+  tracks: DistributionTrack[]; 
   optSocialPack: boolean;
   optDiscoveryPack: boolean;
   optStoreMaximizer: boolean;
@@ -262,7 +299,6 @@ export interface WebhookLog {
   responseCode?: number;
 }
 
-// Added missing CRM interfaces to fix TS errors in CRM service and components
 export interface CRMContact {
     id: string;
     name: string;
@@ -294,7 +330,6 @@ export interface CRMCampaign {
     date: string;
 }
 
-// Added missing Audio Service interfaces for Kits integration
 export interface KitsVoiceModel {
   id: string;
   label: string;
@@ -309,7 +344,6 @@ export interface StemResult {
   bassUrl: string;
 }
 
-// Added VoiceLicense interface for rights management
 export interface VoiceLicense {
   id: string;
   licensee: string;
@@ -321,7 +355,6 @@ export interface VoiceLicense {
   terms_hash: string;
 }
 
-// Added Product interface for the Merch Store
 export interface Product {
   id: string;
   title: string;
@@ -339,7 +372,6 @@ export interface Product {
   };
 }
 
-// Added Proposal interface for the DAO system
 export interface Proposal {
   id: string;
   title: string;
@@ -353,7 +385,6 @@ export interface Proposal {
   userVoted?: 'for' | 'against';
 }
 
-// Added BattleRulesConfig for arena configuration
 export interface BattleRulesConfig {
   maxDurationSeconds: number;
   format: string;

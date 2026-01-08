@@ -18,6 +18,7 @@ import { DashboardView } from './components/DashboardView';
 import { OpportunitiesView } from './components/OpportunitiesView';
 import { AcademyView } from './components/AcademyView';
 import { RevenueRecovery } from './components/RevenueRecovery';
+import { Funding } from './components/Funding';
 import { MusicDistribution } from './components/MusicDistribution';
 import { MarketingCRM } from './components/MarketingCRM';
 import { VoiceMarketplace } from './components/VoiceMarketplace';
@@ -86,7 +87,6 @@ const AppContent = () => {
 
   const { queue } = usePlayer();
 
-  // NOTIFICATION HANDLER
   useEffect(() => {
       const handleNotify = (e: any) => {
           const { title, message, image, type } = e.detail;
@@ -159,7 +159,6 @@ const AppContent = () => {
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-cyan-500/30 transition-colors duration-200">
       
-      {/* TOAST NOTIFICATION STACK */}
       <div className="fixed top-20 left-0 right-0 z-[100] px-4 pointer-events-none flex flex-col items-center gap-3">
           {notifications.map(n => (
               <div key={n.id} className="w-full max-w-sm bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto animate-in slide-in-from-top-4 duration-500">
@@ -212,6 +211,7 @@ const AppContent = () => {
               {currentView === VIEWS.MY_MUSIC && <MyMusic user={user} setShowUploadModal={setShowUploadModal} />}
               {currentView === VIEWS.TOURING && <GigFinder />}
               {currentView === VIEWS.REVENUE && <RevenueRecovery />}
+              {currentView === VIEWS.FUNDING && <Funding user={user} />}
               {currentView === VIEWS.BRAND && <BrandBuilder />}
               {currentView === VIEWS.MASTERING && <MasteringConsole />}
               {currentView === VIEWS.ANALYTICS && <AnalyticsView user={user} onUpgrade={() => setShowPricingModal(true)} artistId={selectedArtistId} />}
