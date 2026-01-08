@@ -75,11 +75,12 @@ export const BrandBuilder: React.FC = () => {
     if (!imgPrompt && visualMode === 'create') return;
     if (!uploadedImage && (visualMode === 'enhance' || visualMode === 'animate')) return;
 
-    // Check for API Key Selection for Veo (Animate mode OR Create Video mode)
-    if ((visualMode === 'animate' || (visualMode === 'create' && assetType === 'video')) && (window as any).aistudio) {
+    /* Check for API Key Selection for Veo or High Quality Images (Gemini 3 Pro Image) */
+    if ((visualMode === 'animate' || (visualMode === 'create' && (assetType === 'video' || imgSize === '2K' || imgSize === '4K'))) && (window as any).aistudio) {
         const hasKey = await (window as any).aistudio.hasSelectedApiKey();
         if (!hasKey) {
-            await (window as any).aistudio.openSelectKey();
+            /* Trigger select key dialog and assume success to mitigate race condition */
+            (window as any).aistudio.openSelectKey();
         }
     }
 
@@ -215,7 +216,6 @@ export const BrandBuilder: React.FC = () => {
 
       {activeTab === 'strategy' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-            {/* ... Strategy Content remains unchanged ... */}
             <div className="bg-slate-850 rounded-xl border border-slate-800 p-8">
                 <div className="flex items-center gap-3 mb-6">
                     <Sparkles className="w-6 h-6 text-green-400" />

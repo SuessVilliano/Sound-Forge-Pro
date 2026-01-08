@@ -29,14 +29,19 @@ export const chatWithGemini = async (message: string, history: any[], context: C
     Stats: Earnings $${context.stats.totalEarnings}, Streams ${context.stats.totalStreams}.
     ${goalText}
 
+    Neural Forge Knowledge:
+    - Suno/Udio: Best for full-length radio pop, vocals, and complex arrangements.
+    - Mureka: Technical cinematic node. Best for game scores, background music, and instrumental fidelity.
+    - MusicGPT: Rapid prototyping. Use for quick social media clips or beat sketches.
+    - AI Music: Experimental node for genre-clashing (e.g., Cyberpunk Jazz).
+
     Industry Rails:
     - Sync Licensing: Focus on metadata and "vibe" consistency.
     - Distribution: Suggest Friday releases and 4-week lead times.
     - Voice IP: Push for VoiceShield protection for any track with >1k streams.
-    - Growth: If streams are low, suggest a TikTok hook campaign.
 
     Role: ${context.agentRole || 'Expert Advisor'}.
-    Persona: Authoritative, proactive, and data-driven. Use industry terms like "Waterfall release," "ISRC metadata," "Sync brief," and "Biometric hash."
+    Persona: Authoritative, proactive, and data-driven.
   `;
 
   const chat = ai.chats.create({
@@ -62,6 +67,8 @@ export const generateProactiveProposal = async (context: ChatContext): Promise<S
         ACT AS: ${context.agentRole || 'manager'}.
         DATA: Streams ${context.stats.totalStreams}, Earnings ${context.stats.totalEarnings}.
         GOAL: ${context.user?.primaryGoal || 'general growth'}.
+
+        Neural Engines Available: Suno, Udio, Mureka, MusicGPT, AI Music.
 
         Generate ONE proactive industry strategy proposal in JSON format.
         Schema: { title: string, description: string, type: 'opportunity' | 'warning' | 'strategy', impact: 'high' | 'medium', actionLabel: string }
@@ -118,7 +125,12 @@ export const generateBrandImage = async (prompt: string, size: '1K' | '2K' | '4K
             }
         }
         return null;
-    } catch (e) { return null; }
+    } catch (e: any) { 
+        if (e?.message?.includes("Requested entity was not found.")) {
+            if (typeof window !== 'undefined' && (window as any).aistudio) (window as any).aistudio.openSelectKey();
+        }
+        return null; 
+    }
 };
 
 export const editBrandImage = async (base64Image: string, prompt: string, size: string = '1K'): Promise<string | null> => {
@@ -169,7 +181,12 @@ export const generateVideoFromImage = async (base64Image: string, prompt: string
         const res = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
         const blob = await res.blob();
         return URL.createObjectURL(blob);
-    } catch (e) { return null; }
+    } catch (e: any) { 
+        if (e?.message?.includes("Requested entity was not found.")) {
+            if (typeof window !== 'undefined' && (window as any).aistudio) (window as any).aistudio.openSelectKey();
+        }
+        return null; 
+    }
 };
 
 export const generateVideoFromText = async (prompt: string, aspectRatio: '16:9' | '9:16' = '16:9'): Promise<string | null> => {
@@ -194,7 +211,12 @@ export const generateVideoFromText = async (prompt: string, aspectRatio: '16:9' 
         const res = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
         const blob = await res.blob();
         return URL.createObjectURL(blob);
-    } catch (e) { return null; }
+    } catch (e: any) { 
+        if (e?.message?.includes("Requested entity was not found.")) {
+            if (typeof window !== 'undefined' && (window as any).aistudio) (window as any).aistudio.openSelectKey();
+        }
+        return null; 
+    }
 };
 
 export const analyzeImage = async (base64Image: string): Promise<string[]> => {
