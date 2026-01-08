@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Search, MoreHorizontal, Bot, User, Phone, Video, Info, CheckCheck, Loader2, Sparkles, Briefcase, Zap, Shield, Globe, Mic, Users } from 'lucide-react';
-import { AiStaffMember, StaffMessage } from '../types';
-import { chatWithGemini } from '../services/geminiService';
+import { Send, Search, MoreHorizontal, Bot, User, Phone, Video, Info, CheckCheck, Loader2, Sparkles, Briefcase, Zap, Shield, Globe, Mic, Users, BrainCircuit, ArrowRight, TrendingUp, AlertTriangle } from 'lucide-react';
+import { AiStaffMember, StaffMessage, StaffProposal } from '../types';
+import { chatWithGemini, generateProactiveProposal } from '../services/geminiService';
 import { MOCK_STATS } from '../constants';
+import { authService } from '../services/authService';
 
 const INITIAL_STAFF: AiStaffMember[] = [
     { id: 'mgr', name: 'James', role: 'manager', avatar: 'https://ui-avatars.com/api/?name=James+Manager&background=020617&color=fff', online: true, description: 'Executive Strategy & Business Coordination', lastMessage: "Let's review your Q3 plan." },
@@ -14,10 +15,14 @@ const INITIAL_STAFF: AiStaffMember[] = [
 ];
 
 export const StaffMessagingHub: React.FC = () => {
+    const user = authService.getCurrentUser();
     const [selectedAgent, setSelectedAgent] = useState<AiStaffMember>(INITIAL_STAFF[0]);
+    const [proposals, setProposals] = useState<StaffProposal[]>([]);
+    const [isThinking, setIsThinking] = useState(false);
+    
     const [chatThreads, setChatThreads] = useState<Record<string, StaffMessage[]>>({
-        mgr: [{ id: '1', agentId: 'mgr', role: 'agent', text: "Hey! I've been reviewing your stats. Your reputation score is rising. Ready to talk Q3 strategy?", timestamp: '10:00 AM' }],
-        mkt: [{ id: '2', agentId: 'mkt', role: 'agent', text: "I just finished the ad campaign draft for your next single. Want to see the visuals?", timestamp: '9:45 AM' }],
+        mgr: [{ id: '1', agentId: 'mgr', role: 'agent', text: "James here. I've analyzed your current growth. We're leaning too heavily on organic search. I'm drafting a proposal to shift your target to Sync Licensing for H2.", timestamp: '10:00 AM' }],
+        mkt: [{ id: '2', agentId: 'mkt', role: 'agent', text: "Elena from Marketing. Your latest track 'Midnight' has a 4-second hook that is perfect for a transition trend. I'm suggesting a 3nd-party ad-spend test.", timestamp: '9:45 AM' }],
     });
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -25,6 +30,24 @@ export const StaffMessagingHub: React.FC = () => {
 
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(() => { scrollToBottom(); }, [chatThreads, selectedAgent.id]);
+
+    // Proactive Intelligence: Trigger a proposal every few seconds or on mount
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            if (isThinking) return;
+            setIsThinking(true);
+            const prop = await generateProactiveProposal({
+                currentView: 'staff',
+                stats: MOCK_STATS,
+                opportunities: [],
+                user: user || undefined,
+                agentRole: selectedAgent.role
+            });
+            if (prop) setProposals(prev => [prop, ...prev].slice(0, 5));
+            setIsThinking(false);
+        }, 30000); // Check for strategy gap every 30s
+        return () => clearInterval(interval);
+    }, [selectedAgent, user]);
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,6 +72,7 @@ export const StaffMessagingHub: React.FC = () => {
                 currentView: 'staff',
                 stats: MOCK_STATS,
                 opportunities: [],
+                user: user || undefined,
                 agentRole: selectedAgent.role
             });
 
@@ -63,6 +87,18 @@ export const StaffMessagingHub: React.FC = () => {
         } catch (e) { console.error(e); } finally { setIsTyping(false); }
     };
 
+    const handleAcceptProposal = (prop: StaffProposal) => {
+        const acceptanceMsg: StaffMessage = {
+            id: `accept_${Date.now()}`,
+            agentId: selectedAgent.id,
+            role: 'agent',
+            text: `PROPOSAL ACCEPTED: ${prop.title}. I'm executing the ${prop.actionLabel} workflow now. Check your Sync Ops tab in 5 minutes for the results.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setChatThreads(prev => ({ ...prev, [selectedAgent.id]: [...(prev[selectedAgent.id] || []), acceptanceMsg] }));
+        setProposals(prev => prev.filter(p => p.id !== prop.id));
+    };
+
     const currentMessages = chatThreads[selectedAgent.id] || [];
 
     return (
@@ -72,15 +108,13 @@ export const StaffMessagingHub: React.FC = () => {
             <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-slate-50 dark:bg-slate-900/30">
                 <div className="p-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
                     <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3 uppercase tracking-tight">
-                        <Users className="w-6 h-6 text-indigo-500" /> Staff
+                        <Users className="w-6 h-6 text-indigo-500" /> Team
                     </h2>
-                    <div className="relative mt-6">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
-                            placeholder="Find agent..."
-                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                        />
-                    </div>
+                    {isThinking && (
+                        <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-cyan-500 uppercase tracking-widest animate-pulse">
+                            <BrainCircuit className="w-3 h-3" /> Proactive Analysis Active
+                        </div>
+                    )}
                 </div>
                 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
@@ -111,7 +145,7 @@ export const StaffMessagingHub: React.FC = () => {
                 </div>
             </div>
 
-            {/* RIGHT: CHAT WINDOW */}
+            {/* CENTER: CHAT WINDOW */}
             <div className="flex-1 flex flex-col bg-white dark:bg-slate-950 relative">
                 
                 {/* Chat Header */}
@@ -183,6 +217,68 @@ export const StaffMessagingHub: React.FC = () => {
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            {/* RIGHT: STRATEGY & PROPOSALS */}
+            <div className="w-80 border-l border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-slate-50 dark:bg-slate-900/30">
+                <div className="p-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-yellow-500" /> Proposals
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Goal: Sync Placement</p>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                    {proposals.length === 0 ? (
+                        <div className="text-center py-12 px-6">
+                            <BrainCircuit className="w-8 h-8 text-slate-700 mx-auto mb-3 opacity-20" />
+                            <p className="text-xs text-slate-500 font-medium">Your team is analyzing the landscape for proactive moves...</p>
+                        </div>
+                    ) : (
+                        proposals.map(prop => (
+                            <div key={prop.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm animate-in zoom-in-95">
+                                <div className="flex justify-between items-start mb-3">
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                        prop.type === 'opportunity' ? 'bg-green-500/10 text-green-500' :
+                                        prop.type === 'warning' ? 'bg-red-500/10 text-red-500' :
+                                        'bg-blue-500/10 text-blue-500'
+                                    }`}>
+                                        {prop.type}
+                                    </span>
+                                    <span className="text-[8px] font-black text-slate-500 uppercase">{prop.impact} impact</span>
+                                </div>
+                                <h4 className="text-sm font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">{prop.title}</h4>
+                                <p className="text-xs text-slate-500 leading-relaxed mb-4">{prop.description}</p>
+                                <button 
+                                    onClick={() => handleAcceptProposal(prop)}
+                                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2"
+                                >
+                                    {prop.actionLabel} <ArrowRight className="w-3 h-3" />
+                                </button>
+                            </div>
+                        ))
+                    )}
+
+                    {/* Proactive Signal Heatmap Placeholder */}
+                    <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 mt-8">
+                         <div className="flex items-center gap-2 mb-3">
+                            <TrendingUp className="w-4 h-4 text-cyan-400" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Market Alignment</span>
+                         </div>
+                         <div className="space-y-3">
+                            {[
+                                { label: 'Vibe Match', val: '92%' },
+                                { label: 'Release Lead', val: '14 Days' },
+                                { label: 'IP Safety', val: 'Critical' },
+                            ].map((s, i) => (
+                                <div key={i} className="flex items-center justify-between">
+                                    <span className="text-[10px] text-slate-600 font-bold">{s.label}</span>
+                                    <span className={`text-[10px] font-mono ${s.val === 'Critical' ? 'text-red-500 animate-pulse' : 'text-cyan-500'}`}>{s.val}</span>
+                                </div>
+                            ))}
+                         </div>
+                    </div>
                 </div>
             </div>
         </div>

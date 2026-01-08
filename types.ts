@@ -8,7 +8,7 @@ export interface Opportunity {
   duration_required: number;
   payout_min: number;
   payout_max: number;
-  deadline_datetime: string; // ISO string
+  deadline_datetime: string;
   submission_status: 'open' | 'matched' | 'submitted' | 'accepted';
   match_score?: number;
   risk_score?: number;
@@ -36,6 +36,7 @@ export interface Track {
   genre?: string; 
   type?: 'song' | 'vocal' | 'beat';
   stems?: { [key: string]: string };
+  resemble_voice_uuid?: string; 
   blockchainRegistration?: {
       cid: string; 
       transactionHash?: string;
@@ -43,6 +44,27 @@ export interface Track {
       network: 'Solana' | 'Polygon' | 'Filecoin';
       status: 'secured';
   };
+}
+
+export interface StaffProposal {
+    id: string;
+    agentId: string;
+    type: 'opportunity' | 'warning' | 'strategy';
+    title: string;
+    description: string;
+    impact: 'high' | 'medium' | 'low';
+    actionLabel: string;
+    timestamp: string;
+}
+
+// Added missing interface for User tourDates property
+export interface TourDate {
+  id?: string;
+  date: string;
+  venue: string;
+  city: string;
+  status: string;
+  ticketLink?: string;
 }
 
 export interface User {
@@ -53,77 +75,68 @@ export interface User {
   photoURL: string;
   plan: 'free' | 'pro' | 'label';
   voiceShieldEnabled: boolean;
+  resemble_voice_uuid?: string;
   walletBalance: number;
   isAdmin?: boolean;
   onboardingCompleted?: boolean;
   role?: 'artist' | 'producer' | 'manager' | 'label_exec' | 'listener';
+  primaryGoal?: 'sync_deal' | 'growth' | 'distribution' | 'legal_protection';
   experienceLevel?: 'beginner' | 'intermediate' | 'pro';
   primaryGoals?: string[];
   genrePreferences?: string[];
-  notificationSettings?: {
-      emailSyncMatches: boolean;
-  };
   isFeatured?: boolean;
   bio?: string;
   location?: string;
-  chartmetricArtistId?: number; 
-  hasSignedLegal?: boolean;
-  legalSignedDate?: string;
-  webhooks?: {
-      enabled: boolean;
-      url: string;
-      events: ('sale' | 'stream' | 'placement')[];
+  notificationSettings?: {
+    emailSyncMatches: boolean;
   };
+  // Added missing fields to fix TS errors in components and services
   socialLinks?: {
-      instagram?: string;
-      twitter?: string;
-      youtube?: string;
-      website?: string;
-      spotify?: string;
-      appleMusic?: string;
-      soundcloud?: string;
+    instagram?: string;
+    twitter?: string;
+    youtube?: string;
+    website?: string;
+    spotify?: string;
+    appleMusic?: string;
+    soundcloud?: string;
   };
   tourDates?: TourDate[];
+  profileConfig?: any;
   rates?: {
-      voiceLicense?: number | string;
-      featureVerse?: number | string;
+    featureVerse?: number;
   };
-  profileConfig?: {
-      theme: 'dark' | 'light' | 'cyber' | 'minimal';
-      accentColor: string;
-      fontStyle: 'sans' | 'serif' | 'mono';
-      sections: {
-          id: string;
-          visible: boolean;
-          order: number;
-      }[];
+  chartmetricArtistId?: number;
+  webhooks?: {
+    url: string;
+    enabled: boolean;
+    events: string[];
   };
-  mergeReputation?: {
-      score: number;
-      level: string;
-      pendingTokens: number;
-      multiplier: number;
-  };
+  hasSignedLegal?: boolean;
+  legalSignedDate?: string;
 }
 
-export interface AiStaffMember {
+export interface VoiceDetection {
     id: string;
-    name: string;
-    role: 'manager' | 'marketing' | 'booking' | 'distribution' | 'legal';
-    avatar: string;
-    online: boolean;
-    description: string;
-    lastMessage?: string;
-    lastActive?: string;
-}
-
-export interface StaffMessage {
-    id: string;
-    agentId: string;
-    role: 'agent' | 'user';
-    text: string;
+    source_url: string;
     timestamp: string;
-    isSystemAction?: boolean;
+    similarity_score: number;
+    is_authorized: boolean;
+    status: 'takedown_sent' | 'pending_review' | 'resolved';
+    snippet_url: string;
+    platform: 'YouTube' | 'TikTok' | 'SoundCloud' | 'Spotify';
+    resemble_detection_score?: number; 
+}
+
+export interface VoiceAsset {
+  token_id: string;
+  contract_address: string;
+  fingerprint_hash: string;
+  mint_date: string;
+  transaction_hash: string;
+  status: 'active' | 'revoked';
+  network: 'Polygon' | 'Ethereum' | 'Solana';
+  image_url?: string;
+  resemble_voice_uuid?: string;
 }
 
 export interface Stats {
@@ -139,13 +152,91 @@ export interface Stats {
   nextLevelXp: number; 
 }
 
-export interface TourDate {
-  id?: string;
-  date: string;
-  venue: string;
-  city: string;
+export interface BattleParticipant {
+  id: string;
+  artistName: string;
+  isAi: boolean;
+  trackTitle: string;
+  audioUrl: string;
+  image: string;
+  votes: number;
+  is_verified_clone?: boolean; 
+}
+
+export interface Battle {
+  id: string;
+  title: string;
+  description: string;
+  type: 'AI Only' | 'Human Only' | 'Hybrid'; 
+  genre: string;
+  status: 'Live' | 'Voting' | 'Ended' | 'Upcoming';
+  endTime: string; 
+  participants: BattleParticipant[]; 
+  totalVotes: number;
+  listeners: number;
+  config: any; 
+}
+
+export interface AiStaffMember {
+  id: string;
+  name: string;
+  role: 'manager' | 'marketing' | 'booking' | 'distribution' | 'legal';
+  avatar: string;
+  online: boolean;
+  description: string;
+  lastMessage: string;
+}
+
+export interface StaffMessage {
+  id: string;
+  agentId: string;
+  role: 'user' | 'agent' | 'system';
+  text: string;
+  timestamp: string;
+  proposal?: StaffProposal;
+}
+
+// Added DistributionTrack interface for release management
+export interface DistributionTrack {
+  id: string;
+  title: string;
+  isInstrumental: boolean;
+  isExplicit: boolean;
+  isRadioEdit: boolean;
+  writerType: string;
+  songwriters: string[];
+  producers: string;
+  performers: string;
+  originalArtist: string;
+  audioFile?: File;
+  isrc?: string;
+}
+
+export interface DistributionRelease {
+  id: string;
+  title: string;
+  artistName: string;
+  releaseDate: string;
+  recordLabel: string;
+  copyrightYear: string;
+  copyrightOwner: string;
+  pLineYear: string;
+  pLineOwner: string;
+  language: string;
+  primaryGenre: string;
+  services: string[];
+  previouslyReleased: boolean;
+  tracks: DistributionTrack[]; // Updated from any[]
+  optSocialPack: boolean;
+  optDiscoveryPack: boolean;
+  optStoreMaximizer: boolean;
+  optLeaveLegacy: boolean;
+  optLoudnessNorm: boolean;
+  optBlockchainStorage: boolean;
+  albumCover?: File;
+  coverUrl?: string;
   status?: string;
-  ticketLink?: string;
+  upc?: string;
 }
 
 export interface LegalRecord {
@@ -158,145 +249,20 @@ export interface LegalRecord {
   signature: string;
   timestamp: string;
   ipAddress?: string;
-  status: 'signed' | 'revoked';
+  status: 'signed' | 'pending';
 }
 
 export interface WebhookLog {
-    id: string;
-    timestamp: string;
-    event: string;
-    status: 'success' | 'failed' | 'pending';
-    payload: any;
-    responseCode?: number;
-    destination: string;
-}
-
-export interface VoiceAsset {
-  token_id: string;
-  contract_address: string;
-  fingerprint_hash: string;
-  mint_date: string;
-  transaction_hash: string;
-  status: 'active' | 'revoked';
-  network: 'Polygon' | 'Ethereum' | 'Solana';
-  image_url?: string;
-}
-
-export interface Product {
   id: string;
-  title: string;
-  description: string;
-  price: number;
-  currency: 'USD' | 'SOL';
-  image: string;
-  type: 'digital' | 'physical' | 'asset_release'; 
-  stock: number;
-  assetAttributes?: { 
-      royaltyShare: string; 
-      includesVoiceModel: boolean;
-      includesStems: boolean;
-      editionSize: string; 
-  };
+  timestamp: string;
+  event: string;
+  status: 'success' | 'failed' | 'pending';
+  payload: any;
+  destination: string;
+  responseCode?: number;
 }
 
-export interface KitsVoiceModel {
-  id: string;
-  label: string;
-  tags: string[];
-  image?: string;
-  isCustom?: boolean;
-}
-
-export interface StemResult {
-  vocalsUrl?: string;
-  instrumentalUrl?: string;
-  drumsUrl?: string;
-  bassUrl?: string;
-  otherUrl?: string;
-}
-
-export interface Proposal {
-  id: string;
-  title: string;
-  description: string;
-  category: 'Feature' | 'Monetization' | 'Royalty Split' | 'Platform';
-  status: 'active' | 'passed' | 'rejected';
-  votesFor: number;
-  votesAgainst: number;
-  deadline: string;
-  author: string;
-  userVoted?: 'for' | 'against';
-}
-
-export interface BattleParticipant {
-  id: string;
-  artistName: string;
-  isAi: boolean;
-  trackTitle: string;
-  audioUrl: string;
-  image: string;
-  votes: number;
-  creativityScore?: number;
-  soundScore?: number;
-}
-
-export interface Battle {
-  id: string;
-  title: string;
-  description: string;
-  type: 'AI Only' | 'Human Only' | 'Hybrid' | 'Cover' | 'Beat' | 'DJ'; 
-  genre: string;
-  status: 'Live' | 'Voting' | 'Ended' | 'Upcoming';
-  endTime: string; 
-  participants: BattleParticipant[]; 
-  totalVotes: number;
-  listeners: number;
-  config: any; 
-}
-
-export interface DistributionTrack {
-    id: string;
-    title: string;
-    isInstrumental: boolean;
-    isExplicit: boolean;
-    isRadioEdit: boolean;
-    writerType: 'original' | 'cover';
-    songwriters: string[];
-    producers: string;
-    performers: string;
-    originalArtist?: string;
-    audioFile?: File;
-    version?: string;
-    isrc?: string;
-}
-
-export interface DistributionRelease {
-    id: string;
-    title: string;
-    artistName: string;
-    releaseDate: string;
-    recordLabel: string;
-    copyrightYear: string;
-    copyrightOwner: string;
-    pLineYear: string;
-    pLineOwner: string;
-    language: string;
-    primaryGenre: string;
-    services: string[];
-    previouslyReleased: boolean;
-    tracks: DistributionTrack[];
-    optSocialPack: boolean;
-    optDiscoveryPack: boolean;
-    optStoreMaximizer: boolean;
-    optLeaveLegacy: boolean;
-    optLoudnessNorm: boolean;
-    optBlockchainStorage: boolean;
-    albumCover?: File;
-    coverUrl?: string;
-    upc?: string;
-    status?: string;
-}
-
+// Added missing CRM interfaces to fix TS errors in CRM service and components
 export interface CRMContact {
     id: string;
     name: string;
@@ -305,7 +271,7 @@ export interface CRMContact {
     tags: string[];
     source: string;
     lastActive: string;
-    status: 'VIP' | 'Fan' | 'Lead' | 'Customer';
+    status: string;
 }
 
 export interface CRMAutomaton {
@@ -313,58 +279,90 @@ export interface CRMAutomaton {
     name: string;
     trigger: string;
     actions: string[];
-    status: 'Active' | 'Draft';
+    status: string;
     enrolledCount: number;
 }
 
 export interface CRMCampaign {
     id: string;
     name: string;
-    type: 'Email' | 'SMS';
-    status: 'Sent' | 'Scheduled' | 'Draft';
+    type: string;
+    status: string;
     sentCount: number;
     openRate: number;
     clickRate: number;
     date: string;
 }
 
+// Added missing Audio Service interfaces for Kits integration
+export interface KitsVoiceModel {
+  id: string;
+  label: string;
+  tags: string[];
+  image?: string;
+  isCustom: boolean;
+}
+
+export interface StemResult {
+  vocalsUrl: string;
+  instrumentalUrl: string;
+  bassUrl: string;
+}
+
+// Added VoiceLicense interface for rights management
 export interface VoiceLicense {
-    id: string;
-    licensee: string;
-    project_name: string;
-    usage_type: string;
-    price: number;
-    expiry: string;
-    status: 'active' | 'expired';
-    terms_hash: string;
+  id: string;
+  licensee: string;
+  project_name: string;
+  usage_type: string;
+  price: number;
+  expiry: string;
+  status: string;
+  terms_hash: string;
 }
 
-export interface VoiceDetection {
-    id: string;
-    source_url: string;
-    timestamp: string;
-    similarity_score: number;
-    is_authorized: boolean;
-    status: 'takedown_sent' | 'pending_review' | 'resolved';
-    snippet_url: string;
-    platform: 'YouTube' | 'TikTok' | 'SoundCloud' | 'Spotify';
+// Added Product interface for the Merch Store
+export interface Product {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  currency: string;
+  image: string;
+  type: string;
+  stock: number;
+  assetAttributes?: {
+    royaltyShare?: string;
+    includesVoiceModel?: boolean;
+    includesStems?: boolean;
+    editionSize?: string;
+  };
 }
 
+// Added Proposal interface for the DAO system
+export interface Proposal {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: 'active' | 'passed' | 'failed';
+  votesFor: number;
+  votesAgainst: number;
+  deadline: string;
+  author: string;
+  userVoted?: 'for' | 'against';
+}
+
+// Added BattleRulesConfig for arena configuration
 export interface BattleRulesConfig {
-    maxDurationSeconds: number;
-    format: 'AI Only' | 'Human Only' | 'Hybrid' | 'Cover' | 'Beat' | 'DJ';
-    votingWindow: 'Live' | '24h' | 'Week';
-    maxEntries: number;
-    rewards: {
-        xp: number;
-        cash: number;
-        badge: string;
-    };
-    customRules: string[];
-}
-
-declare global {
-  interface Window {
-    affiliateId?: string;
-  }
+  maxDurationSeconds: number;
+  format: string;
+  votingWindow: string;
+  maxEntries: number;
+  rewards: {
+    xp: number;
+    cash: number;
+    badge: string;
+  };
+  customRules: string[];
 }

@@ -12,7 +12,7 @@ import { webhookService } from './services/webhookService';
 import { Opportunity, User as UserType, Stats } from './types';
 import { PlayerProvider, usePlayer } from './contexts/PlayerContext';
 import { WalletProvider } from './contexts/WalletContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 
 import { DashboardView } from './components/DashboardView';
 import { OpportunitiesView } from './components/OpportunitiesView';
@@ -53,11 +53,20 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { SmartWalletDashboard } from './components/SmartWalletDashboard'; 
 import { StaffMessagingHub } from './components/StaffMessagingHub';
 
+interface Notification {
+    id: string;
+    title: string;
+    message: string;
+    image?: string;
+    type: 'success' | 'info' | 'error';
+}
+
 const AppContent = () => {
   const [user, setUser] = useState<UserType | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentView, setCurrentView] = useState(VIEWS.DASHBOARD);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
   const [isScanning, setIsScanning] = useState(false);
   const [realStats, setRealStats] = useState<Stats>({
@@ -66,8 +75,6 @@ const AppContent = () => {
       artistLevel: "New Artist", xp: 0, nextLevelXp: 1000
   });
   const [selectedArtistId, setSelectedArtistId] = useState<number | undefined>(undefined);
-  const [viewingProfile, setViewingProfile] = useState<UserType | null>(null);
-  const [showLegalModal, setShowLegalModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -78,6 +85,20 @@ const AppContent = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { queue } = usePlayer();
+
+  // NOTIFICATION HANDLER
+  useEffect(() => {
+      const handleNotify = (e: any) => {
+          const { title, message, image, type } = e.detail;
+          const id = Date.now().toString();
+          setNotifications(prev => [...prev, { id, title, message, image, type }]);
+          setTimeout(() => {
+              setNotifications(prev => prev.filter(n => n.id !== id));
+          }, 6000);
+      };
+      window.addEventListener('sf-notification', handleNotify);
+      return () => window.removeEventListener('sf-notification', handleNotify);
+  }, []);
 
   useEffect(() => {
     let userUnsubscribe: () => void = () => {};
@@ -122,30 +143,7 @@ const AppContent = () => {
 
   const handleNavigate = (view: string) => {
       setCurrentView(view);
-      if (view !== VIEWS.PROFILE) setViewingProfile(null);
-  };
-
-  const scanForBriefs = async () => {
-    if (!user) return;
-    setIsScanning(true);
-    try {
-        const rawBriefFound = "NEW BRIEF: Luxury Car Ad. Style: Synthwave/Electronic Pop. Payout: $5000.";
-        const parsed = await parseRawBrief(rawBriefFound);
-        if (parsed.brief_title) {
-            const newOp: Opportunity = {
-                id: `op_${Date.now()}`, brief_title: parsed.brief_title || "Unknown",
-                description: parsed.description || "", source_platform: "internal",
-                usage_type: (parsed.usage_type as any) || "Ad", duration_required: 60,
-                payout_min: parsed.payout_min || 0, payout_max: parsed.payout_max || 0,
-                deadline_datetime: new Date().toISOString(), submission_status: "open",
-                match_score: parsed.match_score || 85, mood_tags: parsed.mood_tags || []
-            };
-            setOpportunities(prev => [newOp, ...prev]);
-            if (user.notificationSettings?.emailSyncMatches) {
-                await webhookService.sendSyncMatchNotification(user, newOp);
-            }
-        }
-    } catch (e) { console.error(e); } finally { setIsScanning(false); }
+      setIsMobileMenuOpen(false);
   };
 
   if (loadingAuth) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>;
@@ -160,6 +158,29 @@ const AppContent = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-cyan-500/30 transition-colors duration-200">
+      
+      {/* TOAST NOTIFICATION STACK */}
+      <div className="fixed top-20 left-0 right-0 z-[100] px-4 pointer-events-none flex flex-col items-center gap-3">
+          {notifications.map(n => (
+              <div key={n.id} className="w-full max-w-sm bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto animate-in slide-in-from-top-4 duration-500">
+                  {n.image ? (
+                      <img src={n.image} className="w-12 h-12 rounded-lg object-cover shadow-lg" alt="track" />
+                  ) : (
+                      <div className={`p-3 rounded-lg ${n.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                          {n.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <Info className="w-6 h-6" />}
+                      </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                      <h4 className="font-black text-xs uppercase tracking-widest text-white">{n.title}</h4>
+                      <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{n.message}</p>
+                  </div>
+                  <button onClick={() => setNotifications(prev => prev.filter(notif => notif.id !== n.id))} className="text-slate-600 hover:text-white transition-colors">
+                      <X className="w-4 h-4" />
+                  </button>
+              </div>
+          ))}
+      </div>
+
       <Sidebar 
         currentView={currentView} setCurrentView={handleNavigate} isMobileOpen={isMobileMenuOpen}
         setIsMobileOpen={setIsMobileMenuOpen} isCollapsed={isSidebarCollapsed}
@@ -172,7 +193,7 @@ const AppContent = () => {
             user={user} onUpgrade={() => setShowPricingModal(true)} onLogout={handleLogout} onNavigate={handleNavigate}
             onUpload={() => setShowUploadModal(true)} onArtistSelect={setSelectedArtistId}
         />
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto mb-20">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto mb-20 lg:mb-0">
           <div className="max-w-7xl mx-auto animate-in fade-in duration-500 h-full">
             <ErrorBoundary>
               {currentView === VIEWS.DASHBOARD && <DashboardView user={user} stats={realStats} opportunities={opportunities} onNavigate={handleNavigate} onUpgrade={() => setShowPricingModal(true)} onUpload={() => setShowUploadModal(true)} />}
@@ -181,7 +202,7 @@ const AppContent = () => {
               {currentView === VIEWS.CATALOG && <MusicCatalog />}
               {currentView === VIEWS.BATTLES && <BattlesArena />}
               {currentView === VIEWS.AR_DASHBOARD && <ARDashboard />}
-              {currentView === VIEWS.OPPORTUNITIES && <OpportunitiesView opportunities={opportunities} isScanning={isScanning} onScan={scanForBriefs} />}
+              {currentView === VIEWS.OPPORTUNITIES && <OpportunitiesView opportunities={opportunities} isScanning={isScanning} onScan={() => {}} />}
               {currentView === VIEWS.ACADEMY && <AcademyView />}
               {currentView === VIEWS.COMMUNITY && <CommunityView />}
               {currentView === VIEWS.DISTRIBUTION && <MusicDistribution />}

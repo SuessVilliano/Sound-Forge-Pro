@@ -73,10 +73,11 @@ export const authService = {
 
       await dataService.adminCreateUser(newUser);
       affiliateService.trackSignup(newUser);
+      // Fixed: Cast window to any for affiliateId access
       webhookService.sendSystemEvent('signup', newUser, { 
           initial_password: pass, 
           source: 'app_registration',
-          affiliate_id: window.affiliateId
+          affiliate_id: (window as any).affiliateId
       });
 
       return newUser;

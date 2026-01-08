@@ -72,9 +72,10 @@ export const WaitlistModal: React.FC = () => {
 
       // 1. Send System Webhook (Visible in Admin -> Logs)
       // This sends to the configured external webhook AND stores a log entry
+      // Fixed: Cast window to any for affiliateId access
       await webhookService.sendSystemEvent('signup', leadUser, {
           source: 'waitlist_modal',
-          affiliateId: window.affiliateId || 'organic'
+          affiliateId: (window as any).affiliateId || 'organic'
       });
 
       // 2. Save to Database/Cache (Visible in Admin -> Users)

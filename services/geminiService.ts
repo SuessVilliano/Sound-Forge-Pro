@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import { Opportunity, Stats, AiStaffMember } from "../types";
+import { Opportunity, Stats, AiStaffMember, User, StaffProposal } from "../types";
 
 const getAiClient = () => {
   const apiKey = process.env.API_KEY;
@@ -12,51 +12,32 @@ export interface ChatContext {
   currentView: string;
   stats: Stats;
   opportunities: Opportunity[];
+  user?: User;
   agentRole?: AiStaffMember['role'];
-  studioContext?: {
-      tracks: any[];
-      currentTime: number;
-      bpm: number;
-  };
 }
-
-const cleanJson = (text: string) => {
-  return text.replace(/```json\n?|```/g, '').trim();
-};
 
 export const chatWithGemini = async (message: string, history: any[], context: ChatContext): Promise<string> => {
   const ai = getAiClient();
   if (!ai) return "I'm offline right now (No API Key).";
 
-  let systemInstruction = `You are a world-class Music Business Professional at Sound Merge.`;
+  const goalText = context.user?.primaryGoal ? `The artist's current primary goal is: ${context.user.primaryGoal}.` : "";
 
-  // Role-based personality injection
-  if (context.agentRole === 'manager') {
-      systemInstruction = `You are the Executive Artist Manager for the user at Sound Merge. 
-      Tone: Professional, big-picture, strategic, supportive.
-      Goals: Grow the artist's brand, coordinate other staff, and ensure financial stability.
-      You focus on "Digital Asset Valuation" and high-level career milestones.`;
-  } else if (context.agentRole === 'marketing') {
-      systemInstruction = `You are the Head of Growth and Marketing at Sound Merge.
-      Tone: High-energy, creative, data-driven, trendy.
-      Goals: Increase streams, grow social following, and run effective ad campaigns.
-      Speak in terms of "hooks," "viral potential," and "engagement metrics."`;
-  } else if (context.agentRole === 'booking') {
-      systemInstruction = `You are the Senior Booking and Touring Agent at Sound Merge.
-      Tone: Pragmatic, logistical, persistent, industry-savvy.
-      Goals: Secure live performances, plan tour routes, and negotiate gig fees.
-      Focus on "routing," "venue capacity," and "tech riders."`;
-  } else if (context.agentRole === 'distribution') {
-      systemInstruction = `You are the Head of Global Distribution and Metadata at Sound Merge.
-      Tone: Detail-oriented, technical, organized.
-      Goals: Ensure music is delivered to all stores correctly, manage ISRC/UPC, and optimize SEO in stores.
-      Focus on "DSP standards," "delivery windows," and "playlist pitching."`;
-  } else if (context.agentRole === 'legal') {
-      systemInstruction = `You are the Intellectual Property and Rights Officer at Sound Merge.
-      Tone: Authoritative, protective, precise, logical.
-      Goals: Secure VoiceShield registrations, monitor for deepfakes, and review sync license contracts.
-      Focus on "ownership," "royalties," "smart contracts," and "DMCA."`;
-  }
+  let systemInstruction = `
+    You are a world-class Music Industry Professional and Proactive Strategist at Sound Merge.
+    DO NOT wait for the user to ask for everything. If you see a gap in their strategy based on the stats provided, BRING IT UP.
+    
+    Stats: Earnings $${context.stats.totalEarnings}, Streams ${context.stats.totalStreams}.
+    ${goalText}
+
+    Industry Rails:
+    - Sync Licensing: Focus on metadata and "vibe" consistency.
+    - Distribution: Suggest Friday releases and 4-week lead times.
+    - Voice IP: Push for VoiceShield protection for any track with >1k streams.
+    - Growth: If streams are low, suggest a TikTok hook campaign.
+
+    Role: ${context.agentRole || 'Expert Advisor'}.
+    Persona: Authoritative, proactive, and data-driven. Use industry terms like "Waterfall release," "ISRC metadata," "Sync brief," and "Biometric hash."
+  `;
 
   const chat = ai.chats.create({
     model: "gemini-3-pro-preview",
@@ -67,7 +48,42 @@ export const chatWithGemini = async (message: string, history: any[], context: C
   });
 
   const response = await chat.sendMessage({ message });
-  return response.text || "I'm processing that update.";
+  return response.text || "Analyzing the best path forward for your career.";
+};
+
+/**
+ * Proactively generates a career proposal based on current state
+ */
+export const generateProactiveProposal = async (context: ChatContext): Promise<StaffProposal | null> => {
+    const ai = getAiClient();
+    if (!ai) return null;
+
+    const prompt = `
+        ACT AS: ${context.agentRole || 'manager'}.
+        DATA: Streams ${context.stats.totalStreams}, Earnings ${context.stats.totalEarnings}.
+        GOAL: ${context.user?.primaryGoal || 'general growth'}.
+
+        Generate ONE proactive industry strategy proposal in JSON format.
+        Schema: { title: string, description: string, type: 'opportunity' | 'warning' | 'strategy', impact: 'high' | 'medium', actionLabel: string }
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: { responseMimeType: "application/json" }
+        });
+        
+        const data = JSON.parse(response.text || '{}');
+        return {
+            id: `prop_${Date.now()}`,
+            agentId: context.agentRole || 'mgr',
+            timestamp: new Date().toISOString(),
+            ...data
+        };
+    } catch (e) {
+        return null;
+    }
 };
 
 export const generatePitchEmail = async (opportunity: Opportunity, trackTitle: string): Promise<string> => {
@@ -195,7 +211,7 @@ export const analyzeImage = async (base64Image: string): Promise<string[]> => {
             },
             config: { responseMimeType: "application/json" }
         });
-        return response.text ? JSON.parse(cleanJson(response.text)) : [];
+        return response.text ? JSON.parse(response.text.replace(/```json\n?|```/g, '')) : [];
     } catch (e) { return []; }
 };
 
@@ -262,7 +278,7 @@ export const parseRawBrief = async (text: string): Promise<Partial<Opportunity>>
       contents: `Extract into JSON: brief_title, description, usage_type, payout_min, payout_max, mood_tags, match_score. Brief: ${text}`,
       config: { responseMimeType: "application/json" }
     });
-    return response.text ? JSON.parse(cleanJson(response.text)) : {};
+    return response.text ? JSON.parse(response.text.replace(/```json\n?|```/g, '')) : {};
   } catch (error) { return {}; }
 };
 

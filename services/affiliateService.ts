@@ -1,3 +1,4 @@
+
 import { User } from '../types';
 
 const PUSHLAP_API_KEY = process.env.PUSHLAP_API_KEY; 
@@ -12,7 +13,8 @@ export const affiliateService = {
   trackSignup: async (user: User) => {
     // 1. Check if an affiliate ID exists in the window (set by the script)
     // We check window.affiliateId as per the provided snippet
-    const affiliateId = window.affiliateId;
+    // Fixed: Cast window to any for affiliateId access
+    const affiliateId = (window as any).affiliateId;
     
     if (!affiliateId) {
         console.debug("No affiliate referral detected (organic signup).");
