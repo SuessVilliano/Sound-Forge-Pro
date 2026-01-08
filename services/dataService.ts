@@ -19,7 +19,8 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { GeneratedTrack } from './audioService';
-import { VoiceAsset, User, Stats, DistributionRelease, LegalRecord, FundingRequest } from '../types';
+import { VoiceAsset, User, Stats, DistributionRelease, LegalRecord, FundingRequest, SyncBrief, OpportunityRequest } from '../types';
+import { MOCK_BRIEFS } from '../constants';
 
 const MOCK_TRACKS_FALLBACK: GeneratedTrack[] = [
     { id: 'm1', title: 'Summer Vibes (Demo)', duration: '2:45', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', imageUrl: 'https://picsum.photos/300/300?random=1', tags: ['Pop', 'Upbeat'], type: 'song' },
@@ -43,6 +44,8 @@ let MOCK_USERS_CACHE: User[] = [
 
 let MOCK_VOICE_REGISTRATIONS_CACHE: VoiceAsset[] = [];
 let MOCK_FUNDING_REQUESTS_CACHE: FundingRequest[] = [];
+let MOCK_BRIEFS_CACHE: SyncBrief[] = [...MOCK_BRIEFS];
+let MOCK_OPPORTUNITY_REQUESTS_CACHE: OpportunityRequest[] = [];
 
 const isMockUser = (uid: string) => {
     return uid.startsWith('mock_') || 
@@ -53,9 +56,55 @@ const isMockUser = (uid: string) => {
 };
 
 export const dataService = {
+  // --- OPPORTUNITIES & BRIEFS ---
+  async getAllSyncBriefs(): Promise<SyncBrief[]> {
+    try {
+        const snap = await getDocs(query(collection(db, 'sync_briefs'), orderBy('createdAt', 'desc')));
+        const real = snap.docs.map(d => ({ id: d.id, ...d.data() } as SyncBrief));
+        return [...real, ...MOCK_BRIEFS_CACHE].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (e) {
+        return MOCK_BRIEFS_CACHE;
+    }
+  },
+
+  async addSyncBrief(brief: SyncBrief): Promise<void> {
+    MOCK_BRIEFS_CACHE.unshift(brief);
+    try {
+        await setDoc(doc(db, 'sync_briefs', brief.id), brief);
+    } catch (e) {}
+  },
+
+  async submitOpportunityRequest(request: OpportunityRequest): Promise<void> {
+    MOCK_OPPORTUNITY_REQUESTS_CACHE.unshift(request);
+    
+    // SERVER FORWARDING (Institutional Webhook)
+    try {
+        await fetch('/api/opportunity-request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+        });
+        
+        if (!isMockUser(request.userId)) {
+            await setDoc(doc(db, 'opportunity_requests', request.id), request);
+        }
+    } catch (e) {
+        console.error("Submission failed, stored locally", e);
+    }
+  },
+
+  async getAllOpportunityRequests(): Promise<OpportunityRequest[]> {
+    try {
+        const snap = await getDocs(query(collection(db, 'opportunity_requests'), orderBy('createdAt', 'desc')));
+        const real = snap.docs.map(d => ({ id: d.id, ...d.data() } as OpportunityRequest));
+        return [...real, ...MOCK_OPPORTUNITY_REQUESTS_CACHE];
+    } catch (e) {
+        return MOCK_OPPORTUNITY_REQUESTS_CACHE;
+    }
+  },
+
   // --- FUNDING ---
   async submitFundingRequest(request: Partial<FundingRequest>): Promise<{ requestId: string }> {
-      // PROXY CALL TO BACKEND
       const response = await fetch('/api/funding-request', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -69,7 +118,6 @@ export const dataService = {
 
       const result = await response.json();
       
-      // Update local cache if in mock/simulation mode
       if (isMockUser(request.userId || '')) {
           MOCK_FUNDING_REQUESTS_CACHE.unshift(result.request);
       }
@@ -318,7 +366,7 @@ export const dataService = {
           brandScore: 'B+',
           earningsGrowth: 12,
           streamsGrowth: 5,
-          opportunitiesNew: true,
+          opportunitiesNew: false,
           artistLevel: "Rising Artist",
           xp: 1200,
           nextLevelXp: 2500

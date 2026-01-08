@@ -3,19 +3,33 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <title>Sound Merge | Your Music Identity Asset</title>
     <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
     
+    <!-- GHL iFrame Smoothness: Prevent scroll bouncing -->
+    <style>
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+      #root {
+        height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    </style>
+
     <!-- PushLapGrowth Affiliate Tracker -->
     <script 
       src="https://pushlapgrowth.com/affiliate-tracker.js" 
       data-affiliate data-program-id="0f5888c5-e5fe-4743-97fc-53f44b7ee7f0" 
       async>
     </script>
-
-    <!-- Google Cast SDK -->
-    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -63,23 +77,14 @@
         background: transparent; 
       }
       ::-webkit-scrollbar-thumb {
-        background: #94a3b8; 
+        background: #334155; 
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #64748b; 
+        background: #475569; 
       }
       .dark ::-webkit-scrollbar-track {
         background: #0f172a;
-      }
-      .dark ::-webkit-scrollbar-thumb {
-        background: #334155;
-      }
-      .dark ::-webkit-scrollbar-thumb:hover {
-        background: #475569;
-      }
-      .clip-path-half {
-        clip-path: inset(0 50% 0 0);
       }
     </style>
   <script type="importmap">
@@ -108,5 +113,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js').catch(err => {
+            console.log('SW registration failed: ', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

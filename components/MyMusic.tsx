@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
-import { Play, Search, Plus, MoreHorizontal, Clock, Download, Trash2, Music, Heart } from 'lucide-react';
+/* Added Loader2 to the lucide-react imports */
+import { Play, Search, Plus, MoreHorizontal, Clock, Download, Trash2, Music, Heart, Filter, Loader2 } from 'lucide-react';
 import { Track, User } from '../types';
 import { dataService } from '../services/dataService';
 import { usePlayer } from '../contexts/PlayerContext';
@@ -15,6 +15,7 @@ export const MyMusic: React.FC<MyMusicProps> = ({ user, setShowUploadModal }) =>
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const { playTrack } = usePlayer();
 
   // Favorites State with persistence
@@ -117,15 +118,15 @@ export const MyMusic: React.FC<MyMusicProps> = ({ user, setShowUploadModal }) =>
     <div className="space-y-6 animate-in fade-in duration-500">
         <div className="flex justify-between items-center">
             <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Music Library</h1>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">My Library</h1>
                 <p className="text-slate-500 dark:text-slate-400 text-sm">Manage your uploads, AI generations, and masters.</p>
             </div>
             <div className="flex gap-2">
                 <button 
-                    onClick={handleSaveDemo}
-                    className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`px-4 py-2 border rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${showFilters ? 'bg-cyan-500/10 border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                 >
-                    + Save Demo
+                    <Filter className="w-4 h-4" /> Filter
                 </button>
                 <button 
                     onClick={() => setShowUploadModal(true)}
@@ -136,43 +137,48 @@ export const MyMusic: React.FC<MyMusicProps> = ({ user, setShowUploadModal }) =>
             </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex gap-2 overflow-x-auto">
-                {['all', 'uploaded', 'generated'].map(f => (
-                    <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${
-                            filter === f 
-                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' 
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                        }`}
-                    >
-                        {f}
-                    </button>
-                ))}
+        {/* Filters Panel */}
+        {showFilters && (
+            <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in slide-in-from-top-4">
+                <div className="flex gap-2 overflow-x-auto">
+                    {['all', 'uploaded', 'generated'].map(f => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${
+                                filter === f 
+                                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' 
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            {f}
+                        </button>
+                    ))}
+                </div>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input 
+                        type="text" 
+                        placeholder="Filter tracks..." 
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-9 pr-4 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-cyan-500 w-full sm:w-64 text-slate-900 dark:text-white"
+                    />
+                </div>
             </div>
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input 
-                    type="text" 
-                    placeholder="Filter tracks..." 
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 pr-4 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-cyan-500 w-full sm:w-64 text-slate-900 dark:text-white"
-                />
-            </div>
-        </div>
+        )}
 
         {/* Track List */}
         <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm min-h-[400px]">
             {loading ? (
-                <div className="flex items-center justify-center h-64 text-slate-500">Loading library...</div>
+                <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+                    <span className="text-xs font-black uppercase tracking-widest">Syncing Library...</span>
+                </div>
             ) : filteredTracks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-96 text-slate-500">
                     <Music className="w-16 h-16 mb-4 opacity-20" />
-                    <p className="text-lg font-medium">No tracks found</p>
+                    <p className="text-lg font-bold text-slate-400 uppercase tracking-tighter">Library Empty</p>
                     <p className="text-sm mt-1">Upload a track or generate one in AI Studio.</p>
                 </div>
             ) : (
@@ -213,7 +219,7 @@ export const MyMusic: React.FC<MyMusicProps> = ({ user, setShowUploadModal }) =>
                                                 </div>
                                                 <div className="flex gap-1 mt-1.5">
                                                     {track.mood_tags?.map((tag: string) => (
-                                                        <span key={tag} className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500 border border-slate-200 dark:border-slate-700">
+                                                        <span key={tag} className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500 border border-slate-200 dark:border-slate-700 font-bold uppercase tracking-tight">
                                                             {tag}
                                                         </span>
                                                     ))}
@@ -246,7 +252,7 @@ export const MyMusic: React.FC<MyMusicProps> = ({ user, setShowUploadModal }) =>
                                             >
                                                 <Heart className={`w-4 h-4 ${favorites.includes(track.id) ? 'fill-current' : ''}`} />
                                             </button>
-                                            <button className="p-2 text-slate-400 hover:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors">
+                                            <button className="p-2 text-slate-400 hover:text-cyan-500 hover:bg-cyan dark:hover:bg-cyan-900/20 rounded-lg transition-colors">
                                                 <Download className="w-4 h-4" />
                                             </button>
                                             <button 

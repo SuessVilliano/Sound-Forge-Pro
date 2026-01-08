@@ -1,5 +1,5 @@
 
-import { Opportunity, Track, Stats, Battle, User } from './types';
+import { Opportunity, Track, Stats, Battle, User, SyncBrief } from './types';
 import { 
   Music, LayoutDashboard, Zap, DollarSign, Briefcase, 
   BookOpen, Sliders, BarChart2, User as UserIcon, Mail, Mic, 
@@ -42,6 +42,7 @@ export const VIEWS = {
 export const NAVIGATION_ITEMS = [
   { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
   { id: VIEWS.STAFF, label: 'AI Staff', icon: MessageSquare, ai: true, badge: 3 },
+  { id: VIEWS.OPPORTUNITIES, label: 'Opportunities', icon: Zap, badge: 12, new: true },
   { id: VIEWS.SMART_WALLET, label: 'Smart Wallet', icon: Wallet, new: true },
   { id: VIEWS.FUNDING, label: 'Funding', icon: Landmark, new: true },
   { id: VIEWS.BATTLES, label: 'Music Battles', icon: Swords, new: true, ai: true },
@@ -49,7 +50,6 @@ export const NAVIGATION_ITEMS = [
   { id: VIEWS.STUDIO, label: 'AI Studio', icon: Wand2, ai: true },
   { id: VIEWS.AR_DASHBOARD, label: 'A&R Dashboard', icon: Star, badge: 3 },
   { id: VIEWS.MY_MUSIC, label: 'My Library', icon: Music },
-  { id: VIEWS.OPPORTUNITIES, label: 'Sync Ops', icon: Zap, badge: 8 },
   { id: VIEWS.TOURING, label: 'Gig Finder', icon: MapPin, ai: true },
   { id: VIEWS.REVENUE, label: 'Revenue Recovery', icon: DollarSign },
   { id: VIEWS.BRAND, label: 'Brand Builder', icon: Briefcase },
@@ -78,6 +78,45 @@ export const MOCK_STATS: Stats = {
   xp: 1250,
   nextLevelXp: 2000
 };
+
+export const MOCK_BRIEFS: SyncBrief[] = [
+  {
+    id: 'sb_1',
+    source: 'PartnerAPI',
+    title: 'High-Energy Electronic for Major Airline Campaign',
+    description: 'A global airline is looking for an uplifting, high-energy electronic or pop track for their 2025 global rebrand launch. The track needs a building intro and a powerful drop at 0:30.',
+    mediaType: 'Ad',
+    deadline: new Date(Date.now() + 86400000 * 5).toISOString(),
+    budget: { min: 5000, max: 15000, currency: 'USD' },
+    requiredGenres: ['Electronic', 'Modern Pop'],
+    moods: ['Uplifting', 'Expansive', 'Energetic'],
+    tempo: '124-128 BPM',
+    vocal: 'Either',
+    references: ['Flume', 'Odesza'],
+    deliverables: ['Full Mix', 'Instrumental', '30s Cut', 'Stems'],
+    territory: ['Worldwide'],
+    usage: ['1 Year', 'All Media'],
+    rightsRequired: { master: true, publishing: true },
+    createdAt: new Date().toISOString(),
+    readinessScore: 85
+  },
+  {
+    id: 'sb_2',
+    source: 'EmailFeed',
+    title: 'Subtle Lo-Fi Hip Hop for Tech Review Channel',
+    description: 'Premium tech reviewer needs unobtrusive but stylish lo-fi hip hop backgrounds. Needs to be clean with minimal vocal chops.',
+    mediaType: 'Other',
+    deadline: new Date(Date.now() + 86400000 * 12).toISOString(),
+    budget: { min: 200, max: 500, currency: 'USD' },
+    requiredGenres: ['Hip Hop', 'Lo-Fi'],
+    moods: ['Chill', 'Minimal', 'Focused'],
+    tempo: '80-90 BPM',
+    vocal: 'Instrumental',
+    deliverables: ['Loopable Full Mix'],
+    createdAt: new Date().toISOString(),
+    readinessScore: 92
+  }
+];
 
 export const MOCK_OPPORTUNITIES: Opportunity[] = [
   {
@@ -141,38 +180,6 @@ export const MOCK_BATTLES: Battle[] = [
         participants: [
             { id: 'p3', artistName: 'Synthetic Operator', isAi: true, trackTitle: 'Logic Gate', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', image: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?auto=format&fit=crop&w=400&q=80', votes: 640 },
             { id: 'p4', artistName: 'Neural Node 04', isAi: true, trackTitle: 'Data Stream', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', votes: 600 }
-        ]
-    },
-    {
-        id: 'b3',
-        title: 'Vocal Identity Duel',
-        description: 'Authorized AI voice clone vs the human artist. Who captures the soul?',
-        type: 'Hybrid',
-        genre: 'R&B',
-        status: 'Live',
-        endTime: new Date(Date.now() + 1800000).toISOString(),
-        totalVotes: 8900,
-        listeners: 312,
-        config: { rewards: { cash: 2500, xp: 5000 }, customRules: ['VoiceShield Verified'] },
-        participants: [
-            { id: 'p5', artistName: 'Alex Rivera', isAi: false, trackTitle: 'Authentic Love', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80', votes: 4500 },
-            { id: 'p6', artistName: 'Alex-AI (V3)', isAi: true, trackTitle: 'Digital Reflection', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', votes: 4400 }
-        ]
-    },
-    {
-        id: 'b4',
-        title: 'Traditionalist Showcase',
-        description: 'Acoustic mastery. No AI assistance permitted. Pure human talent.',
-        type: 'Human Only',
-        genre: 'Acoustic',
-        status: 'Upcoming',
-        endTime: new Date(Date.now() + 86400000).toISOString(),
-        totalVotes: 0,
-        listeners: 0,
-        config: { rewards: { cash: 1500, xp: 2000 }, customRules: ['Zero AI Stems'] },
-        participants: [
-            { id: 'p7', artistName: 'Luna Shade', isAi: false, trackTitle: 'Unplugged Reality', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80', votes: 0 },
-            { id: 'p8', artistName: 'Ghost Writer', isAi: false, trackTitle: 'Analog Heart', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', image: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80', votes: 0 }
         ]
     }
 ];

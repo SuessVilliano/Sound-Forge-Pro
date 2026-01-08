@@ -1,7 +1,9 @@
+
 {
-  "name": "SoundForge Player",
-  "short_name": "SoundForge",
-  "start_url": "./",
+  "name": "Sound Merge Pro",
+  "short_name": "SoundMerge",
+  "description": "The complete music industry agency platform. Headless GHL integration, AI Studio, and VoiceShield™.",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#06b6d4",
@@ -9,12 +11,15 @@
     {
       "src": "https://cdn-icons-png.flaticon.com/512/3043/3043665.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn-icons-png.flaticon.com/512/3043/3043665.png",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "orientation": "any",
+  "scope": "/"
 }

@@ -179,6 +179,22 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
       return 'font-sans';
   };
 
+  function addTourDate() {
+      setTourDates([...tourDates, { date: new Date().toISOString().split('T')[0], venue: 'New Venue', city: 'City, State', status: 'Announced', ticketLink: '' }]);
+  }
+
+  function removeTourDate(index: number) {
+      const newDates = [...tourDates];
+      newDates.splice(index, 1);
+      setTourDates(newDates);
+  }
+
+  const updateTourDate = (index: number, field: keyof TourDate, value: string) => {
+      const newDates = [...tourDates];
+      newDates[index] = { ...newDates[index], [field]: value };
+      setTourDates(newDates);
+  };
+
   return (
     <div className={`flex min-h-screen ${getThemeClasses()} ${getFontClass()} overflow-hidden`}>
       
@@ -403,34 +419,99 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
                         <div className="space-y-8">
                              <div className="flex justify-between items-end">
                                 <h3 className="text-sm font-black uppercase tracking-widest opacity-50">On Tour</h3>
-                                <div className="flex gap-4">
-                                    {isEditing && (
-                                        <button onClick={addTourDate} className="text-xs font-bold uppercase tracking-widest bg-white/10 px-4 py-1.5 rounded-full hover:bg-white/20 transition-all">Add Show</button>
-                                    )}
-                                </div>
+                                {isEditing && (
+                                    <button 
+                                        onClick={addTourDate} 
+                                        className="text-xs font-black uppercase tracking-widest bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-all flex items-center gap-2 border border-white/10"
+                                    >
+                                        <Plus className="w-3 h-3" /> Add Show
+                                    </button>
+                                )}
                              </div>
                              <div className="rounded-3xl border border-white/10 overflow-hidden bg-white/5 shadow-2xl">
                                 {tourDates.length > 0 ? (
                                     <div className="divide-y divide-white/5">
                                         {tourDates.map((date, i) => (
-                                            <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-8 hover:bg-white/5 transition-all">
-                                                <div className="flex items-center gap-8 mb-4 md:mb-0">
-                                                    <div className="text-center w-16">
-                                                        <div className="text-sm uppercase font-black opacity-40">{new Date(date.date).toLocaleString('default', { month: 'short' })}</div>
-                                                        <div className="text-3xl font-black">{new Date(date.date).getDate() || '??'}</div>
+                                            <div key={i} className="p-6 md:p-8 hover:bg-white/5 transition-all">
+                                                {isEditing ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-black uppercase text-slate-500">Date</label>
+                                                            <input 
+                                                                type="date"
+                                                                value={date.date}
+                                                                onChange={(e) => updateTourDate(i, 'date', e.target.value)}
+                                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-black uppercase text-slate-500">Venue</label>
+                                                            <input 
+                                                                value={date.venue}
+                                                                onChange={(e) => updateTourDate(i, 'venue', e.target.value)}
+                                                                placeholder="Venue Name"
+                                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-black uppercase text-slate-500">City</label>
+                                                            <input 
+                                                                value={date.city}
+                                                                onChange={(e) => updateTourDate(i, 'city', e.target.value)}
+                                                                placeholder="City, State"
+                                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-black uppercase text-slate-500">Status / Link</label>
+                                                            <input 
+                                                                value={date.ticketLink || ''}
+                                                                onChange={(e) => updateTourDate(i, 'ticketLink', e.target.value)}
+                                                                placeholder="Ticket URL"
+                                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none"
+                                                            />
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <select 
+                                                                value={date.status}
+                                                                onChange={(e) => updateTourDate(i, 'status', e.target.value)}
+                                                                className="flex-1 bg-slate-800/50 border border-white/10 rounded-lg p-2 text-xs text-white focus:border-cyan-500 outline-none"
+                                                            >
+                                                                <option>Announced</option>
+                                                                <option>Selling Fast</option>
+                                                                <option>Sold Out</option>
+                                                                <option>Cancelled</option>
+                                                            </select>
+                                                            <button onClick={() => removeTourDate(i)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h4 className="text-xl font-bold">{date.venue}</h4>
-                                                        <p className="text-sm opacity-50">{date.city}</p>
+                                                ) : (
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between">
+                                                        <div className="flex items-center gap-8 mb-4 md:mb-0">
+                                                            <div className="text-center w-16">
+                                                                <div className="text-sm uppercase font-black opacity-40">{new Date(date.date).toLocaleString('default', { month: 'short' })}</div>
+                                                                <div className="text-3xl font-black">{new Date(date.date).getDate() || '??'}</div>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="text-xl font-bold">{date.venue}</h4>
+                                                                <p className="text-sm opacity-50">{date.city}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-6">
+                                                            <span className="text-sm font-bold uppercase tracking-widest opacity-50">{date.status}</span>
+                                                            <a 
+                                                                href={date.ticketLink || '#'} 
+                                                                target="_blank" 
+                                                                rel="noreferrer"
+                                                                className={`px-8 py-3 rounded-full border font-bold transition-all text-center min-w-[160px] ${date.status === 'Sold Out' ? 'border-white/10 text-white/30 cursor-not-allowed pointer-events-none' : 'border-white/20 hover:bg-white hover:text-black'}`}
+                                                            >
+                                                                {date.status === 'Sold Out' ? 'Sold Out' : 'Tickets'}
+                                                            </a>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-6">
-                                                    <span className="text-sm font-bold uppercase tracking-widest opacity-50">{date.status}</span>
-                                                    <button className="px-8 py-3 rounded-full border border-white/20 font-bold hover:bg-white hover:text-black transition-all">Tickets</button>
-                                                    {isEditing && (
-                                                        <button onClick={() => removeTourDate(i)} className="text-red-500 hover:text-red-400"><Trash2 className="w-5 h-5" /></button>
-                                                    )}
-                                                </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -486,14 +567,4 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
 
     </div>
   );
-
-  function addTourDate() {
-      setTourDates([...tourDates, { date: new Date().toISOString().split('T')[0], venue: 'New Venue', city: 'City, State', status: 'Announced' }]);
-  }
-
-  function removeTourDate(index: number) {
-      const newDates = [...tourDates];
-      newDates.splice(index, 1);
-      setTourDates(newDates);
-  }
 };

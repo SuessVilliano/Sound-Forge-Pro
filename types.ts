@@ -1,4 +1,124 @@
 
+export type BriefSource = "Songtradr" | "DittoSync" | "Horus" | "EmailFeed" | "UserSubmitted" | "PartnerAPI";
+export type MediaType = "TV" | "Film" | "Ad" | "Game" | "Trailer" | "Brand" | "Other";
+
+// --- GHL HEADLESS TYPES ---
+export interface GHLIntegration {
+    userId: string;
+    ghlLocationId: string;
+    ghlContactId?: string;
+    status: 'provisioning' | 'active' | 'error' | 'disconnected';
+    lastError?: string;
+    connectedChannels: ('sms' | 'whatsapp' | 'email' | 'voice')[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface MessageThread {
+    id: string;
+    userId: string;
+    channel: 'sms' | 'whatsapp' | 'email' | 'voice';
+    contactId: string;
+    contactName: string;
+    contactPhoto?: string;
+    externalThreadId: string; // GHL Conversation ID
+    lastMessageText: string;
+    lastMessageAt: string;
+    unreadCount: number;
+    status: 'open' | 'closed';
+}
+
+export interface ChatMessage {
+    id: string;
+    threadId: string;
+    direction: 'inbound' | 'outbound';
+    body: string;
+    attachments?: string[];
+    provider: 'ghl';
+    externalMessageId: string;
+    timestamp: string;
+    status: 'sent' | 'delivered' | 'read' | 'failed';
+}
+
+export interface SocialAccount {
+    id: string;
+    network: 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'tiktok';
+    name: string;
+    handle: string;
+    avatar?: string;
+    isConnected: boolean;
+}
+
+export interface SocialPost {
+    id: string;
+    userId: string;
+    ghlPostId?: string;
+    networks: string[];
+    caption: string;
+    mediaUrls: string[];
+    scheduledAt: string;
+    status: 'draft' | 'scheduled' | 'published' | 'failed';
+    errorMessage?: string;
+    createdAt: string;
+}
+
+// ... existing types remain
+export interface SyncBrief {
+  id: string;
+  source: BriefSource;
+  sourceUrl?: string;
+  title: string;
+  description: string;
+  mediaType: MediaType;
+  deadline?: string;
+  budget?: { min?: number, max?: number, currency?: string };
+  requiredGenres?: string[];
+  moods?: string[];
+  tempo?: string;
+  vocal?: "Instrumental" | "Vocal" | "Either";
+  references?: string[];
+  deliverables?: string[];
+  territory?: string[];
+  usage?: string[];
+  rightsRequired?: { master: boolean, publishing: boolean };
+  createdAt: string;
+  readinessScore?: number; // Calculated field
+}
+
+export interface OpportunityRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  briefId: string;
+  briefTitle: string;
+  type: "I have a track to pitch" | "I want to generate a track from this brief" | "I need help clearing rights";
+  notes: string;
+  trackLinks?: string[];
+  status: 'pending' | 'reviewed' | 'forwarded' | 'contacted';
+  createdAt: string;
+}
+
+export interface BriefArtifacts {
+  id: string;
+  briefId: string;
+  productionPromptPack?: {
+    mood: string;
+    genre: string;
+    tempo: string;
+    instruments: string[];
+    arrangement: string;
+    keywordsInclude: string[];
+    keywordsAvoid: string[];
+    deliverables: string[];
+  };
+  pitchChecklist?: {
+    technical: string[];
+    legal: string[];
+    submission: string[];
+  };
+}
+
 export interface Opportunity {
   id: string;
   source_platform: 'songtradr' | 'google_search' | 'artlist' | 'internal';
@@ -75,19 +195,13 @@ export interface FundingRequest {
     catalogNotes: string;
     requestedAmount?: number;
     consentToShareData: boolean;
-    
-    // Derived
     avgMonthlyRoyalties: number;
     calculatedOfferLow: number;
     calculatedOfferHigh: number;
-
-    // Admin
     status: 'new' | 'reviewing' | 'forwarded' | 'needs-info' | 'approved-partner' | 'declined';
     adminNotes?: string;
     forwardedAt?: string;
     forwardedToPartner?: string;
-
-    // Webhook Log
     webhookDelivery: {
         attemptedAt?: string;
         success: boolean;
@@ -151,6 +265,7 @@ export interface User {
   };
   hasSignedLegal?: boolean;
   legalSignedDate?: string;
+  ghlIntegration?: GHLIntegration;
 }
 
 export interface VoiceDetection {
