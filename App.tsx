@@ -53,6 +53,7 @@ import { CommunityView } from './components/CommunityView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { SmartWalletDashboard } from './components/SmartWalletDashboard'; 
 import { StaffMessagingHub } from './components/StaffMessagingHub';
+import { GuidedTour } from './components/GuidedTour';
 
 interface Notification {
     id: string;
@@ -80,12 +81,25 @@ const AppContent = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showGuidedTour, setShowGuidedTour] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('sf_theme') as 'dark' | 'light') || 'dark';
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { queue } = usePlayer();
+
+  // Sync theme with document class
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('sf_theme', theme);
+  }, [theme]);
 
   useEffect(() => {
       const handleNotify = (e: any) => {
@@ -111,6 +125,8 @@ const AppContent = () => {
                 const isLocallyDismissed = localStorage.getItem('sf_onboarding_skip') === 'true';
                 if (updatedUser.uid !== 'demo_master_account' && !updatedUser.onboardingCompleted && !onboardingDismissed && !isLocallyDismissed) {
                     setShowOnboarding(true);
+                } else if (updatedUser.onboardingCompleted && !updatedUser.tourCompleted) {
+                    setShowGuidedTour(true);
                 }
             });
             setShowAuthModal(false); 
@@ -137,6 +153,8 @@ const AppContent = () => {
       setUser(prev => prev ? { ...prev, ...updatedData, onboardingCompleted: true } : null);
       try {
           await authService.updateUserProfile({ ...updatedData, onboardingCompleted: true });
+          // Force guide after save
+          setShowGuidedTour(true);
       } catch (e) { console.error(e); }
       localStorage.setItem('sf_favorites', JSON.stringify(favorites));
   };
@@ -146,7 +164,14 @@ const AppContent = () => {
       setIsMobileMenuOpen(false);
   };
 
-  if (loadingAuth) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>;
+  const handleCompleteTour = async () => {
+      setShowGuidedTour(false);
+      if (user) {
+          await authService.updateUserProfile({ tourCompleted: true });
+      }
+  };
+
+  if (loadingAuth) return <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>;
   if (!user) return (
     <>
       <WaitlistModal />
@@ -159,21 +184,23 @@ const AppContent = () => {
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-cyan-500/30 transition-colors duration-200">
       
+      {showGuidedTour && <GuidedTour onComplete={handleCompleteTour} onNavigate={handleNavigate} />}
+
       <div className="fixed top-20 left-0 right-0 z-[100] px-4 pointer-events-none flex flex-col items-center gap-3">
           {notifications.map(n => (
-              <div key={n.id} className="w-full max-w-sm bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto animate-in slide-in-from-top-4 duration-500">
+              <div key={n.id} className="w-full max-w-sm bg-white dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto animate-in slide-in-from-top-4 duration-500">
                   {n.image ? (
                       <img src={n.image} className="w-12 h-12 rounded-lg object-cover shadow-lg" alt="track" />
                   ) : (
-                      <div className={`p-3 rounded-lg ${n.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                      <div className={`p-3 rounded-lg ${n.type === 'success' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'}`}>
                           {n.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <Info className="w-6 h-6" />}
                       </div>
                   )}
                   <div className="flex-1 min-w-0">
-                      <h4 className="font-black text-xs uppercase tracking-widest text-white">{n.title}</h4>
-                      <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{n.message}</p>
+                      <h4 className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-white">{n.title}</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">{n.message}</p>
                   </div>
-                  <button onClick={() => setNotifications(prev => prev.filter(notif => notif.id !== n.id))} className="text-slate-600 hover:text-white transition-colors">
+                  <button onClick={() => setNotifications(prev => prev.filter(notif => notif.id !== n.id))} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                       <X className="w-4 h-4" />
                   </button>
               </div>
@@ -188,7 +215,9 @@ const AppContent = () => {
       />
       <div className={`flex-1 flex flex-col relative transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
         <Header 
-            onMenuClick={() => setIsMobileMenuOpen(true)} theme={theme} toggleTheme={() => setTheme(t => t==='dark'?'light':'dark')}
+            onMenuClick={() => setIsMobileMenuOpen(true)} 
+            theme={theme} 
+            toggleTheme={() => setTheme(t => t==='dark'?'light':'dark')}
             user={user} onUpgrade={() => setShowPricingModal(true)} onLogout={handleLogout} onNavigate={handleNavigate}
             onUpload={() => setShowUploadModal(true)} onArtistSelect={setSelectedArtistId}
         />

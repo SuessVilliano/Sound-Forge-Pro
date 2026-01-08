@@ -63,13 +63,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
       
       searchTimeoutRef.current = window.setTimeout(async () => {
           try {
-              // 1. Get Live Search results from Agent (Spotify + Billboard Chart Mix)
               const globalResults = await RapidApiAgent.globalSearch(query);
-              
-              // 2. Get Chartmetric Artist metadata if available
               const cmArtists = await searchArtists(query);
               
-              // Merge results
               const merged = [...globalResults];
               cmArtists.forEach(a => {
                   if (!merged.find(m => m.artist?.toLowerCase() === a.name.toLowerCase() || m.name?.toLowerCase() === a.name.toLowerCase())) {
@@ -91,20 +87,17 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
       setSearchQuery('');
       
       if (result.rank) {
-          // If it's a chart entry, route to A&R Dashboard
           onNavigate('ar-dashboard');
       } else if (result.source === 'Chartmetric') {
-          // If it's a Chartmetric artist, route to Analytics
           onArtistSelect?.(result.id);
           onNavigate('analytics');
       } else {
-          // Default to profile/search view
           onNavigate('profile');
       }
   };
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between transition-colors duration-200">
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between transition-colors duration-200">
       
       <div className="flex items-center gap-6">
          <button onClick={onMenuClick} className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white md:hidden">
@@ -123,7 +116,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
          </div>
       </div>
 
-      {/* GLOBAL LIVE SEARCH */}
       <div className="relative w-96 hidden md:block" ref={searchRef}>
         <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isSearching ? 'text-cyan-500' : 'text-slate-400'}`} />
         <input 
@@ -132,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
           onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
           onChange={handleSearchChange}
           placeholder="Search Live Billboard & Spotify..." 
-          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-full py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20 dark:focus:ring-white/10 transition-all placeholder:text-slate-500"
+          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-full py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500 dark:focus:border-white focus:ring-2 focus:ring-cyan-500/20 dark:focus:ring-white/10 transition-all placeholder:text-slate-500"
         />
         {isSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2"><Loader2 className="w-3 h-3 animate-spin text-cyan-500" /></div>}
         
@@ -176,15 +168,11 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
                                 </div>
                             </button>
                         ))}
-                        <div className="p-4 text-center border-t border-slate-100 dark:border-slate-800">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">End of Deep Results</p>
-                        </div>
                     </div>
                 ) : !isSearching && searchQuery.length >= 2 && (
                     <div className="p-8 text-center text-slate-500 animate-in fade-in">
                         <AlertCircle className="w-8 h-8 mx-auto mb-3 opacity-20" />
-                        <p className="text-sm font-medium">No matches found on Billboard or Spotify.</p>
-                        <p className="text-[10px] mt-1 opacity-50 uppercase tracking-widest">Global Scan Complete</p>
+                        <p className="text-sm font-medium">No matches found.</p>
                     </div>
                 )}
             </div>
@@ -192,6 +180,14 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
       </div>
 
       <div className="flex items-center gap-3">
+        <button 
+            onClick={toggleTheme} 
+            className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+        >
+            {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-indigo-600" />}
+        </button>
+
         <div className="relative" ref={quickActionRef}>
             <button onClick={() => setShowQuickActions(!showQuickActions)} className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-cyan-500 hover:text-white transition-all shadow-sm">
                 <Plus className="w-5 h-5" />
@@ -202,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
                         <Upload className="w-4 h-4 text-cyan-500" /> New Upload
                     </button>
                     <button onClick={() => { onNavigate('studio'); setShowQuickActions(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <Music className="w-4 h-4 text-purple-500" /> AI Studio Session
+                        <Music className="w-4 h-4 text-purple-500" /> Studio Session
                     </button>
                 </div>
             )}
@@ -233,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
                     <UserIcon className="w-4 h-4 text-slate-400" /> Artist Profile
                 </button>
                 <button onClick={() => { onNavigate('settings'); setShowProfileMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800">
-                    <Settings className="w-4 h-4 text-slate-400" /> Studio Config
+                    <Settings className="w-4 h-4 text-slate-400" /> Hub Settings
                 </button>
                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
                 <button onClick={onLogout} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10">

@@ -62,6 +62,56 @@ export interface SocialPost {
     createdAt: string;
 }
 
+export interface User {
+  uid: string;
+  displayName: string;
+  email: string;
+  phoneNumber?: string; 
+  photoURL: string;
+  identityAssets?: string[]; // Multiple photos for AI training
+  plan: 'free' | 'pro' | 'label';
+  voiceShieldEnabled: boolean;
+  resemble_voice_uuid?: string;
+  walletBalance: number;
+  isAdmin?: boolean;
+  onboardingCompleted?: boolean;
+  tourCompleted?: boolean; // Mission system tracking
+  role?: 'artist' | 'producer' | 'manager' | 'label_exec' | 'listener';
+  primaryGoal?: 'sync_deal' | 'growth' | 'distribution' | 'legal_protection';
+  experienceLevel?: 'beginner' | 'intermediate' | 'pro';
+  primaryGoals?: string[];
+  genrePreferences?: string[];
+  isFeatured?: boolean;
+  bio?: string;
+  location?: string;
+  notificationSettings?: {
+    emailSyncMatches: boolean;
+  };
+  socialLinks?: {
+    instagram?: string;
+    twitter?: string;
+    youtube?: string;
+    website?: string;
+    spotify?: string;
+    appleMusic?: string;
+    soundcloud?: string;
+  };
+  tourDates?: TourDate[];
+  profileConfig?: any;
+  rates?: {
+    featureVerse?: number;
+  };
+  chartmetricArtistId?: number;
+  webhooks?: {
+    url: string;
+    enabled: boolean;
+    events: string[];
+  };
+  hasSignedLegal?: boolean;
+  legalSignedDate?: string;
+  ghlIntegration?: GHLIntegration;
+}
+
 // ... existing types remain
 export interface SyncBrief {
   id: string;
@@ -218,54 +268,6 @@ export interface TourDate {
   city: string;
   status: string;
   ticketLink?: string;
-}
-
-export interface User {
-  uid: string;
-  displayName: string;
-  email: string;
-  phoneNumber?: string; 
-  photoURL: string;
-  plan: 'free' | 'pro' | 'label';
-  voiceShieldEnabled: boolean;
-  resemble_voice_uuid?: string;
-  walletBalance: number;
-  isAdmin?: boolean;
-  onboardingCompleted?: boolean;
-  role?: 'artist' | 'producer' | 'manager' | 'label_exec' | 'listener';
-  primaryGoal?: 'sync_deal' | 'growth' | 'distribution' | 'legal_protection';
-  experienceLevel?: 'beginner' | 'intermediate' | 'pro';
-  primaryGoals?: string[];
-  genrePreferences?: string[];
-  isFeatured?: boolean;
-  bio?: string;
-  location?: string;
-  notificationSettings?: {
-    emailSyncMatches: boolean;
-  };
-  socialLinks?: {
-    instagram?: string;
-    twitter?: string;
-    youtube?: string;
-    website?: string;
-    spotify?: string;
-    appleMusic?: string;
-    soundcloud?: string;
-  };
-  tourDates?: TourDate[];
-  profileConfig?: any;
-  rates?: {
-    featureVerse?: number;
-  };
-  chartmetricArtistId?: number;
-  webhooks?: {
-    url: string;
-    enabled: boolean;
-    events: string[];
-  };
-  hasSignedLegal?: boolean;
-  legalSignedDate?: string;
-  ghlIntegration?: GHLIntegration;
 }
 
 export interface VoiceDetection {
