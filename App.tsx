@@ -91,7 +91,7 @@ const AppContent = () => {
 
   const { queue } = usePlayer();
 
-  // Sync theme with document class
+  // Sync theme with document class for clean Light Mode support
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -121,7 +121,7 @@ const AppContent = () => {
             setUser(observedUser); 
             userUnsubscribe = dataService.subscribeToUserProfile(observedUser.uid, (updatedUser) => {
                 setUser(updatedUser);
-                dataService.getRealStats(updatedUser.uid).then(stats => setRealStats(stats));
+                dataService.getRealStats(observedUser.uid).then(stats => setRealStats(stats));
                 const isLocallyDismissed = localStorage.getItem('sf_onboarding_skip') === 'true';
                 if (updatedUser.uid !== 'demo_master_account' && !updatedUser.onboardingCompleted && !onboardingDismissed && !isLocallyDismissed) {
                     setShowOnboarding(true);
@@ -150,10 +150,11 @@ const AppContent = () => {
       if (!user) return;
       setOnboardingDismissed(true);
       setShowOnboarding(false);
-      setUser(prev => prev ? { ...prev, ...updatedData, onboardingCompleted: true } : null);
+      const finalUser = { ...user, ...updatedData, onboardingCompleted: true };
+      setUser(finalUser);
       try {
           await authService.updateUserProfile({ ...updatedData, onboardingCompleted: true });
-          // Force guide after save
+          // Trigger tutorial mission immediately after save
           setShowGuidedTour(true);
       } catch (e) { console.error(e); }
       localStorage.setItem('sf_favorites', JSON.stringify(favorites));
@@ -179,12 +180,13 @@ const AppContent = () => {
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
+  
   if (showOnboarding) return <OnboardingFlow user={user} onComplete={handleOnboardingComplete} onDismiss={() => setShowOnboarding(false)} />;
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-cyan-500/30 transition-colors duration-200">
       
-      {showGuidedTour && <GuidedTour onComplete={handleCompleteTour} onNavigate={handleNavigate} />}
+      {showGuidedTour && <GuidedTour user={user} onComplete={handleCompleteTour} onNavigate={handleNavigate} />}
 
       <div className="fixed top-20 left-0 right-0 z-[100] px-4 pointer-events-none flex flex-col items-center gap-3">
           {notifications.map(n => (
@@ -230,7 +232,7 @@ const AppContent = () => {
               {currentView === VIEWS.CATALOG && <MusicCatalog />}
               {currentView === VIEWS.BATTLES && <BattlesArena />}
               {currentView === VIEWS.AR_DASHBOARD && <ARDashboard />}
-              {currentView === VIEWS.OPPORTUNITIES && <OpportunitiesView opportunities={opportunities} isScanning={isScanning} onScan={() => {}} />}
+              {currentView === VIEWS.OPPORTUNITIES && <OpportunitiesView />}
               {currentView === VIEWS.ACADEMY && <AcademyView />}
               {currentView === VIEWS.COMMUNITY && <CommunityView />}
               {currentView === VIEWS.DISTRIBUTION && <MusicDistribution />}

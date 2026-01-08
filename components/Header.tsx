@@ -182,22 +182,22 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
       <div className="flex items-center gap-3">
         <button 
             onClick={toggleTheme} 
-            className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+            className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700"
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
         >
-            {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-indigo-600" />}
+            {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5 text-indigo-600" />}
         </button>
 
         <div className="relative" ref={quickActionRef}>
-            <button onClick={() => setShowQuickActions(!showQuickActions)} className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-cyan-500 hover:text-white transition-all shadow-sm">
+            <button onClick={() => setShowQuickActions(!showQuickActions)} className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-cyan-500 hover:text-white transition-all shadow-sm border border-slate-200 dark:border-slate-700">
                 <Plus className="w-5 h-5" />
             </button>
             {showQuickActions && (
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 py-2 animate-in fade-in zoom-in-95">
-                    <button onClick={() => { onUpload(); setShowQuickActions(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <button onClick={() => { onUpload(); setShowQuickActions(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
                         <Upload className="w-4 h-4 text-cyan-500" /> New Upload
                     </button>
-                    <button onClick={() => { onNavigate('studio'); setShowQuickActions(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <button onClick={() => { onNavigate('studio'); setShowQuickActions(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
                         <Music className="w-4 h-4 text-purple-500" /> Studio Session
                     </button>
                 </div>
@@ -206,12 +206,12 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
 
         <div className="relative" ref={walletRef}>
             {walletAddress ? (
-                <button onClick={() => setShowWalletMenu(!showWalletMenu)} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2 rounded-full transition-colors text-xs font-bold text-slate-900 dark:text-slate-200 shadow-sm">
+                <button onClick={() => setShowWalletMenu(!showWalletMenu)} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 px-4 py-2 rounded-full transition-colors text-xs font-bold text-slate-900 dark:text-slate-200 shadow-sm">
                     <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
                     {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
                 </button>
             ) : (
-                <button onClick={() => setShowWalletMenu(!showWalletMenu)} disabled={isConnecting} className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-full text-xs font-bold transition-all shadow-lg shadow-indigo-500/20">
+                <button onClick={() => setShowWalletMenu(!showWalletMenu)} disabled={isConnecting} className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-full text-xs font-bold transition-all shadow-lg shadow-indigo-500/20 border border-indigo-400/50">
                     Connect Ledger
                 </button>
             )}
@@ -219,16 +219,16 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
 
         <div className="relative" ref={profileRef}>
           <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-full bg-slate-800 border-2 border-white dark:border-slate-800 overflow-hidden shadow-lg group-hover:border-cyan-500 transition-all">
-                {user?.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white font-bold">{user?.displayName?.[0]}</div>}
+            <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-white dark:border-slate-800 overflow-hidden shadow-lg group-hover:border-cyan-500 transition-all">
+                {user?.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-white font-bold">{user?.displayName?.[0]}</div>}
             </div>
           </button>
           {showProfileMenu && (
             <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 py-2">
-                <button onClick={() => { onNavigate('profile'); setShowProfileMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <button onClick={() => { onNavigate('profile'); setShowProfileMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
                     <UserIcon className="w-4 h-4 text-slate-400" /> Artist Profile
                 </button>
-                <button onClick={() => { onNavigate('settings'); setShowProfileMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <button onClick={() => { onNavigate('settings'); setShowProfileMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
                     <Settings className="w-4 h-4 text-slate-400" /> Hub Settings
                 </button>
                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
