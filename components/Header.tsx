@@ -129,9 +129,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, theme, toggleTheme,
         <input 
           type="text" 
           value={searchQuery}
+          onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
           onChange={handleSearchChange}
           placeholder="Search Live Billboard & Spotify..." 
-          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-full py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-500"
+          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-full py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20 dark:focus:ring-white/10 transition-all placeholder:text-slate-500"
         />
         {isSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2"><Loader2 className="w-3 h-3 animate-spin text-cyan-500" /></div>}
         
