@@ -36,7 +36,8 @@ export const VIEWS = {
   LIVE_AGENT: 'live-agent',
   AFFILIATES: 'affiliates',
   SMART_WALLET: 'smart-wallet',
-  ADMIN: 'admin'
+  ADMIN: 'admin',
+  BOOKING: 'booking'
 };
 
 export const NAVIGATION_ITEMS = [

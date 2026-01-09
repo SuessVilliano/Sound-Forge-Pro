@@ -2,6 +2,13 @@
 export type BriefSource = "Songtradr" | "DittoSync" | "Horus" | "EmailFeed" | "UserSubmitted" | "PartnerAPI";
 export type MediaType = "TV" | "Film" | "Ad" | "Game" | "Trailer" | "Brand" | "Other";
 
+export interface Contributor {
+    id: string;
+    name: string;
+    role: 'Songwriter' | 'Producer' | 'Featured Artist' | 'Remixer' | 'Mixer' | 'Mastering Engineer' | 'Composer';
+    share?: number; // Optional royalty percentage
+}
+
 // --- GHL HEADLESS TYPES ---
 export interface GHLIntegration {
     userId: string;
@@ -68,14 +75,14 @@ export interface User {
   email: string;
   phoneNumber?: string; 
   photoURL: string;
-  identityAssets?: string[]; // Multiple photos for AI training
+  identityAssets?: string[]; 
   plan: 'free' | 'pro' | 'label';
   voiceShieldEnabled: boolean;
   resemble_voice_uuid?: string;
   walletBalance: number;
   isAdmin?: boolean;
   onboardingCompleted?: boolean;
-  tourCompleted?: boolean; // Mission system tracking
+  tourCompleted?: boolean; 
   role?: 'artist' | 'producer' | 'manager' | 'label_exec' | 'listener';
   primaryGoal?: 'sync_deal' | 'growth' | 'distribution' | 'legal_protection';
   experienceLevel?: 'beginner' | 'intermediate' | 'pro';
@@ -131,7 +138,7 @@ export interface SyncBrief {
   usage?: string[];
   rightsRequired?: { master: boolean, publishing: boolean };
   createdAt: string;
-  readinessScore?: number; // Calculated field
+  readinessScore?: number; 
 }
 
 export interface OpportunityRequest {
@@ -206,6 +213,17 @@ export interface Track {
   type?: 'song' | 'vocal' | 'beat';
   stems?: StemResult;
   resemble_voice_uuid?: string; 
+  
+  // Advanced Industry Metadata
+  isrc?: string;
+  upc?: string;
+  recordLabel?: string;
+  releaseDate?: string;
+  language?: string;
+  isExplicit?: boolean;
+  isInstrumental?: boolean;
+  contributors?: Contributor[];
+
   blockchainRegistration?: {
       cid: string; 
       transactionHash?: string;
@@ -363,6 +381,8 @@ export interface DistributionTrack {
   originalArtist: string;
   audioFile?: File;
   isrc?: string;
+  upc?: string;
+  contributors?: Contributor[];
 }
 
 export interface DistributionRelease {

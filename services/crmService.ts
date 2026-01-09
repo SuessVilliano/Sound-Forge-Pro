@@ -1,8 +1,8 @@
 
 import { CRMContact, CRMAutomaton, CRMCampaign, MessageThread, ChatMessage, SocialPost, SocialAccount } from '../types';
 
-// Headless GHL Gateway URL (Our server)
-const API_BASE = "/api";
+// Headless GHL Gateway URL (Dedicated Domain)
+const API_BASE = "https://api.soundmerge.co/api";
 
 export const crmService = {
     

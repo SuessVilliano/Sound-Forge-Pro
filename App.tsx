@@ -32,6 +32,7 @@ import { ChatBot } from './components/ChatBot';
 import { GigFinder } from './components/GigFinder';
 import { LiveAgent } from './components/LiveAgent';
 import { LandingPage } from './components/LandingPage';
+import { BookingView } from './components/BookingView';
 import { LegalOnboarding } from './components/LegalOnboarding';
 import { VoiceShield } from './components/VoiceShield';
 import { PricingModal } from './components/PricingModal';
@@ -173,13 +174,19 @@ const AppContent = () => {
   };
 
   if (loadingAuth) return <div className="min-h-screen bg-white dark:bg-slate-950 flex items-center justify-center"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>;
-  if (!user) return (
-    <>
-      <WaitlistModal />
-      <LandingPage onOpenAuth={() => setShowAuthModal(true)} />
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-    </>
-  );
+  
+  if (!user) {
+      if (currentView === VIEWS.BOOKING) {
+          return <BookingView onBack={() => handleNavigate(VIEWS.DASHBOARD)} />;
+      }
+      return (
+        <>
+          <WaitlistModal />
+          <LandingPage onOpenAuth={() => setShowAuthModal(true)} onNavigate={handleNavigate} />
+          <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+        </>
+      );
+  }
   
   if (showOnboarding) return <OnboardingFlow user={user} onComplete={handleOnboardingComplete} onDismiss={() => setShowOnboarding(false)} />;
 
@@ -253,6 +260,7 @@ const AppContent = () => {
               {currentView === VIEWS.LIVE_AGENT && <LiveAgent />}
               {currentView === VIEWS.ADMIN && user.isAdmin && <AdminDashboard />}
               {currentView === VIEWS.PROFILE && <ArtistProfile user={user} onBack={() => handleNavigate(VIEWS.DASHBOARD)} />}
+              {currentView === VIEWS.BOOKING && <BookingView onBack={() => handleNavigate(VIEWS.DASHBOARD)} />}
             </ErrorBoundary>
           </div>
         </main>
