@@ -102,7 +102,11 @@ export interface User {
     spotify?: string;
     appleMusic?: string;
     soundcloud?: string;
+    tiktok?: string;
+    linkedin?: string;
   };
+  referenceVideoLinks?: string[];
+  referenceWebsites?: string[];
   tourDates?: TourDate[];
   profileConfig?: any;
   rates?: {

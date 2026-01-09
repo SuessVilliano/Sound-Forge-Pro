@@ -1,8 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
-import { Music2, LogOut, PanelLeftClose, PanelLeft, X, Star, History, List, AlertCircle, Trophy, HelpCircle, Shield } from 'lucide-react';
+import { 
+  Music2, LogOut, PanelLeftClose, PanelLeft, X, Star, History, List, AlertCircle, 
+  Trophy, HelpCircle, Shield, LayoutDashboard, MessageSquare, Zap, Wallet, 
+  Landmark, Swords, Disc, Wand2, MapPin, DollarSign, Briefcase, BookOpen, 
+  Users, Sliders, BarChart2, User, Mail, Mic, Radio, Activity, Vote, Link
+} from 'lucide-react';
 import { NAVIGATION_ITEMS, APP_NAME, MOCK_STATS, VIEWS } from '../constants';
 import { authService } from '../services/authService';
+
+const ICON_MAP: Record<string, any> = {
+  LayoutDashboard, MessageSquare, Zap, Wallet, Landmark, Swords, Disc, Wand2, 
+  Star, Music: Music2, MapPin, DollarSign, Briefcase, BookOpen, Users, 
+  Sliders, BarChart2, User, Mail, Mic, Radio, Vote, Link, Activity
+};
 
 interface SidebarProps {
   currentView: string;
@@ -57,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const allowedItems = NAVIGATION_ITEMS.filter(item => !item.adminOnly || currentUser?.isAdmin);
   let displayItems = allowedItems;
   if (filterMode === 'favorites') displayItems = allowedItems.filter(item => favorites.includes(item.id));
-  else if (filterMode === 'recent') displayItems = recents.map(id => allowedItems.find(item => item.id === id)).filter(item => !!item) as typeof NAVIGATION_ITEMS;
+  else if (filterMode === 'recent') displayItems = recents.map(id => allowedItems.find(item => item.id === id)).filter(item => !!item) as any;
 
   const xpPercent = Math.min(100, Math.max(0, (MOCK_STATS.xp / MOCK_STATS.nextLevelXp) * 100));
 
@@ -97,11 +108,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
               displayItems.map((item) => {
                 const isActive = currentView === item.id;
-                const Icon = item.icon;
+                const IconComponent = typeof item.icon === 'string' ? ICON_MAP[item.icon] : item.icon;
+                
                 return (
                   <button key={item.id} onClick={() => handleNavigation(item.id)} className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between px-3'} py-2.5 rounded-xl transition-all duration-200 group relative ${isActive ? 'bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400 group-hover:text-slate-700'}`} />
+                      {IconComponent && <IconComponent className={`w-5 h-5 shrink-0 ${isActive ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400 group-hover:text-slate-700'}`} />}
                       {!isCollapsed && <span className="text-sm font-bold whitespace-nowrap truncate tracking-tight">{item.label}</span>}
                     </div>
                     {!isCollapsed && item.ai && <span className="text-[8px] font-black uppercase text-purple-500 dark:text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded ml-2">AI</span>}

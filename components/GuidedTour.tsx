@@ -1,11 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
     Sparkles, ArrowRight, X, Bot, Music, Briefcase, 
     Globe, Users, Zap, CheckCircle2, Trophy, BarChart3, Building2, Layout
 } from 'lucide-react';
 import { VIEWS } from '../constants';
 import { User } from '../types';
+
+const ICON_MAP: Record<string, any> = {
+    Music, Briefcase, Globe, Users, BarChart3, Layout, Building2
+};
 
 interface GuidedTourProps {
     user: User;
@@ -18,7 +22,7 @@ interface Mission {
     title: string;
     description: string;
     view: string;
-    icon: any;
+    icon: string;
     color: string;
 }
 
@@ -28,7 +32,7 @@ const ARTIST_MISSIONS: Mission[] = [
         title: "Forge Your Signature Sound", 
         description: "Welcome! Your first objective is the AI Studio. Use our neural engines to create radio-ready tracks from simple ideas.", 
         view: VIEWS.STUDIO, 
-        icon: Music, 
+        icon: 'Music', 
         color: "text-purple-500 dark:text-purple-400" 
     },
     { 
@@ -36,7 +40,7 @@ const ARTIST_MISSIONS: Mission[] = [
         title: "Develop Visual Identity", 
         description: "Great music needs a visual world. We're going to the Brand Builder to generate cinematic promo videos and cover art.", 
         view: VIEWS.BRAND, 
-        icon: Briefcase, 
+        icon: 'Briefcase', 
         color: "text-cyan-600 dark:text-cyan-400" 
     },
     { 
@@ -44,7 +48,7 @@ const ARTIST_MISSIONS: Mission[] = [
         title: "Deploy to Global Stores", 
         description: "It's time to go live. Our AI agents automate distribution to 150+ stores while you keep 100% ownership.", 
         view: VIEWS.DISTRIBUTION, 
-        icon: Globe, 
+        icon: 'Globe', 
         color: "text-green-600 dark:text-green-400" 
     },
     { 
@@ -52,7 +56,7 @@ const ARTIST_MISSIONS: Mission[] = [
         title: "Meet Your AI Staff", 
         description: "Finally, head to the Team Hub. Your AI staff handles strategy, marketing, and legal while you focus on art.", 
         view: VIEWS.STAFF, 
-        icon: Users, 
+        icon: 'Users', 
         color: "text-indigo-600 dark:text-indigo-400" 
     }
 ];
@@ -63,7 +67,7 @@ const LABEL_MISSIONS: Mission[] = [
         title: "Identify Roster Gaps", 
         description: "Welcome to Label Operations. First, head to the A&R Dashboard to find trending sounds that align with your roster.", 
         view: VIEWS.AR_DASHBOARD, 
-        icon: BarChart3, 
+        icon: 'BarChart3', 
         color: "text-red-500 dark:text-red-400" 
     },
     { 
@@ -71,7 +75,7 @@ const LABEL_MISSIONS: Mission[] = [
         title: "Scale Artist Brands", 
         description: "Consistency is key for your roster. Use the Brand Builder to generate bulk marketing assets for your artists simultaneously.", 
         view: VIEWS.BRAND, 
-        icon: Layout, 
+        icon: 'Layout', 
         color: "text-cyan-600 dark:text-cyan-400" 
     },
     { 
@@ -79,7 +83,7 @@ const LABEL_MISSIONS: Mission[] = [
         title: "Institutional Distribution", 
         description: "Manage global deployments for all roster artists in one central ledger. Fast-track submissions to Spotify and Apple Music.", 
         view: VIEWS.DISTRIBUTION, 
-        icon: Building2, 
+        icon: 'Building2', 
         color: "text-indigo-600 dark:text-indigo-400" 
     },
     { 
@@ -87,7 +91,7 @@ const LABEL_MISSIONS: Mission[] = [
         title: "Manage Global Staff", 
         description: "Scale your workload. Delegate marketing and legal tasks to your AI team members for each artist on your roster.", 
         view: VIEWS.STAFF, 
-        icon: Users, 
+        icon: 'Users', 
         color: "text-green-600 dark:text-green-400" 
     }
 ];
@@ -128,12 +132,17 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ user, onComplete, onNavi
                         </p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mb-12">
-                            {activeMissions.map(m => (
-                                <div key={m.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                    <div className={`p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm ${m.color}`}><m.icon className="w-4 h-4" /></div>
-                                    <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{m.title}</span>
-                                </div>
-                            ))}
+                            {activeMissions.map(m => {
+                                const IconComponent = ICON_MAP[m.icon];
+                                return (
+                                    <div key={m.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <div className={`p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm ${m.color}`}>
+                                            {IconComponent && <IconComponent className="w-4 h-4" />}
+                                        </div>
+                                        <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{m.title}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         <button 
@@ -147,6 +156,8 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ user, onComplete, onNavi
             </div>
         );
     }
+
+    const MissionIcon = ICON_MAP[mission.icon];
 
     return (
         <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[150] w-full max-w-xl animate-in slide-in-from-bottom-10 duration-500 px-6">

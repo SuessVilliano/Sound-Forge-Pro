@@ -22,11 +22,11 @@ interface MusicCreationStudioProps {
 type StudioTab = 'forge' | 'separator' | 'history';
 
 const MODEL_VERSIONS = [
-    { label: 'Pro (Udio)', value: 'udio' },
-    { label: 'Cinema (Mureka)', value: 'mureka' },
-    { label: 'Turbo (MusicGPT)', value: 'musicgpt' },
-    { label: 'V4 (Suno)', value: 'suno' },
-    { label: 'X-Gen (AI Music)', value: 'aimusic' }
+    { label: 'High-Fidelity Neural Node', value: 'udio' },
+    { label: 'Cinematic Score Processor', value: 'mureka' },
+    { label: 'Rapid Prototype Engine', value: 'musicgpt' },
+    { label: 'Standard Vocal Synthesis', value: 'suno' },
+    { label: 'Experimental Hybrid Node', value: 'aimusic' }
 ];
 
 export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, onUpgrade }) => {
@@ -68,7 +68,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
       
       togglePlayPause(false); 
       setIsProcessing(true);
-      setOperationalMessage(`Connecting to ${activeEngine.toUpperCase()} hardware...`);
+      setOperationalMessage(`Connecting to Institutional Hardware...`);
 
       const options: ForgeOptions = {
           engine: activeEngine,
@@ -200,7 +200,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                     <div className="space-y-6">
                         <div className="text-center">
                             <h3 className="text-xl font-black text-white uppercase tracking-tighter">Neural Separator</h3>
-                            <p className="text-xs text-slate-500 mt-1">Institutional isolation powered by Kits.ai</p>
+                            <p className="text-xs text-slate-500 mt-1">Institutional isolation powered by Sound Merge Nodes</p>
                         </div>
                         <div 
                             onClick={() => sepInputRef.current?.click()}
@@ -297,7 +297,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                                             </div>
                                             <div className="flex justify-between items-center border-t border-slate-800/50 pt-4">
                                                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                                    {track.duration} • <span className="text-slate-400">{track.tags?.includes('Udio') ? 'UDIO PRO' : track.tags?.includes('Mureka') ? 'MUREKA' : 'TURBO'}</span>
+                                                    {track.duration} • <span className="text-slate-400">INSTITUTIONAL NODE</span>
                                                 </div>
                                                 <div className="flex gap-4">
                                                     <button onClick={() => dataService.deleteTrack(track.id)} className="text-slate-700 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>

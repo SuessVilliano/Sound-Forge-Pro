@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-/* Added Sliders to the lucide-react imports to fix the error on line 286 */
-import { Search, Filter, Play, Heart, Download, Edit3, Music, Scissors, Plus, Trash2, Clock, Save, ArrowUpDown, DollarSign, ListFilter, Tag, FileText, Check, Youtube, Video, ExternalLink, Users, Database, Sliders } from 'lucide-react';
+import { Search, Filter, Play, Heart, Download, Edit3, Music, Scissors, Plus, Trash2, Clock, Save, ArrowUpDown, DollarSign, ListFilter, Tag, FileText, Check, Youtube, Video, ExternalLink, Users, Database, Sliders, Zap } from 'lucide-react';
 import { Track, Contributor } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { dataService } from '../services/dataService';
+import { MintNFTModal } from './MintNFTModal';
 
 // Extended Track type locally to include genre for this view
 type SyncPoint = {
@@ -71,6 +71,9 @@ export const MusicCatalog: React.FC = () => {
   const [expandedTrackId, setExpandedTrackId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'sync'>('details');
   
+  // Mint Modal State
+  const [mintTrack, setMintTrack] = useState<CatalogTrack | null>(null);
+
   const [favorites, setFavorites] = useState<string[]>(() => {
       try {
           const saved = localStorage.getItem('sf_track_favorites');
@@ -264,6 +267,7 @@ export const MusicCatalog: React.FC = () => {
                                     <td className="py-3 text-right pr-6 text-slate-500 text-sm font-mono">{track.duration}</td>
                                     <td className="py-3 pr-6">
                                         <div className="flex items-center justify-end gap-2 transition-opacity opacity-0 group-hover:opacity-100">
+                                            <button onClick={() => setMintTrack(track)} className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-500/10" title="Mint as NFT"><Zap className="w-4 h-4" /></button>
                                             <button onClick={(e) => toggleExpanded(e, track.id, 'sync')} className="p-2 rounded-lg text-slate-400 hover:text-cyan-500 hover:bg-slate-100 dark:hover:bg-slate-700"><Scissors className="w-4 h-4" /></button>
                                             <button onClick={(e) => toggleExpanded(e, track.id, 'details')} className="p-2 rounded-lg text-slate-400 hover:text-purple-500 hover:bg-slate-100 dark:hover:bg-slate-700"><Edit3 className="w-4 h-4" /></button>
                                             <button onClick={(e) => toggleFavorite(e, track.id)} className={`p-2 rounded-lg ${favorites.includes(track.id) ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}><Heart className={`w-4 h-4 ${favorites.includes(track.id) ? 'fill-current' : ''}`} /></button>
@@ -307,6 +311,12 @@ export const MusicCatalog: React.FC = () => {
                                                                     </select>
                                                                 </div>
                                                             </div>
+                                                            <button 
+                                                                onClick={() => setMintTrack(track)}
+                                                                className="w-full py-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all flex items-center justify-center gap-2"
+                                                            >
+                                                                <Zap className="w-4 h-4 fill-current" /> Initialize On-Chain Mint
+                                                            </button>
                                                         </div>
 
                                                         <div className="space-y-6">
@@ -360,6 +370,24 @@ export const MusicCatalog: React.FC = () => {
                 </table>
             </div>
         </div>
+
+        {/* Mint NFT Modal Integration */}
+        {mintTrack && (
+            <MintNFTModal 
+                isOpen={!!mintTrack} 
+                onClose={() => setMintTrack(null)} 
+                asset={mintTrack} 
+                type="music" 
+                onSuccess={(data) => {
+                    handleUpdateTrack(mintTrack.id, 'blockchainRegistration', {
+                        cid: data.mintAddress,
+                        timestamp: data.timestamp,
+                        network: 'Solana',
+                        status: 'secured'
+                    });
+                }}
+            />
+        )}
     </div>
   );
 };

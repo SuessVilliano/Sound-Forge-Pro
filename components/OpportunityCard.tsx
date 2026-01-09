@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Opportunity } from '../types';
-import { CheckCircle2, AlertTriangle, ArrowRight, Wand2, Loader2, Globe, Send } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ArrowRight, Wand2, Loader2, Globe, Send, Zap, ShieldCheck } from 'lucide-react';
 import { generatePitchEmail } from '../services/geminiService';
 import { songtradrService } from '../services/songtradrService';
 
@@ -14,140 +14,173 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity })
   const [loadingPitch, setLoadingPitch] = useState(false);
   
   // Submission State
-  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'connecting' | 'submitting' | 'success'>('idle');
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'connecting' | 'optimizing' | 'submitting' | 'success'>('idle');
+  const [statusText, setStatusText] = useState('');
 
   const handleGeneratePitch = async () => {
     setLoadingPitch(true);
-    const generated = await generatePitchEmail(opportunity, "My Best Track");
-    setPitch(generated);
-    setLoadingPitch(false);
+    try {
+        const generated = await generatePitchEmail(opportunity, "My Best Track");
+        setPitch(generated);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setLoadingPitch(false);
+    }
   };
 
   const handleSubmit = async () => {
-      // Logic for Songtradr integration
       if (opportunity.source_platform === 'songtradr') {
           try {
               setSubmissionStatus('connecting');
+              setStatusText('Authenticating Node...');
               await songtradrService.connect();
               
+              setSubmissionStatus('optimizing');
+              setStatusText('Optimizing Rights Data...');
+              await new Promise(r => setTimeout(r, 1500));
+
               setSubmissionStatus('submitting');
-              // Mock selecting the best track
-              const bestTrack = { id: 't_123', title: 'Midnight City', artist: 'Neon Dreams' };
+              setStatusText('Injecting Asset into Songtradr...');
+              // Mock selecting the current project track
+              const bestTrack = { id: 'isrc_123', title: 'Midnight City', artist: 'Neon Dreams' };
               await songtradrService.submitToBrief(opportunity.id, bestTrack);
               
               setSubmissionStatus('success');
+              setStatusText('Submission Secured');
+              
+              window.dispatchEvent(new CustomEvent('sf-notification', { 
+                  detail: { title: 'Direct Submit Success', message: `"${bestTrack.title}" is now under review by Songtradr.`, type: 'success' } 
+              }));
+
           } catch (e) {
               console.error(e);
-              setSubmissionStatus('idle'); // Reset on error
-              alert("Submission failed. Please try again.");
+              setSubmissionStatus('idle'); 
+              alert("Node synchronization failed. Please re-authenticate your Songtradr credentials.");
           }
       } else {
-          // Default behavior for other platforms (Mock)
           setSubmissionStatus('submitting');
+          setStatusText('Processing...');
           await new Promise(r => setTimeout(r, 1500));
           setSubmissionStatus('success');
+          setStatusText('Request Forwarded');
       }
   };
 
   const getMatchColor = (score?: number) => {
     if (!score) return 'text-slate-500';
-    if (score >= 80) return 'text-green-600 dark:text-green-400';
-    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-yellow-500';
+    return 'text-red-500';
   };
 
+  const isSongtradr = opportunity.source_platform === 'songtradr';
+
   return (
-    <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:border-cyan-500/50 dark:hover:border-slate-700 transition-all group shadow-sm">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1 ${
-              opportunity.source_platform === 'songtradr'
-              ? 'bg-pink-100 dark:bg-pink-500/20 text-pink-700 dark:text-pink-400'
-              : opportunity.source_platform === 'internal' 
-              ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400' 
-              : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-            }`}>
-              {opportunity.source_platform === 'songtradr' && <Globe className="w-3 h-3" />}
-              {opportunity.source_platform.replace('_', ' ')}
-            </span>
-            <span className="text-xs text-slate-500">• {opportunity.usage_type}</span>
-            <span className="text-xs text-slate-500">• Due {new Date(opportunity.deadline_datetime).toLocaleDateString()}</span>
+    <div className={`bg-white dark:bg-slate-900 rounded-[2rem] border p-8 hover:border-cyan-500/50 transition-all group shadow-sm relative overflow-hidden ${submissionStatus === 'success' ? 'border-green-500/30' : 'border-slate-200 dark:border-slate-800'}`}>
+      
+      {isSongtradr && (
+          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
+              <Globe className="w-32 h-32 text-pink-500" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{opportunity.brief_title}</h3>
+      )}
+
+      <div className="flex justify-between items-start mb-6">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase flex items-center gap-1.5 border ${
+              isSongtradr
+              ? 'bg-pink-500/10 text-pink-500 border-pink-500/20'
+              : opportunity.source_platform === 'internal' 
+              ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' 
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+            }`}>
+              {isSongtradr ? <Globe className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
+              {isSongtradr ? 'Songtradr Direct' : opportunity.source_platform.replace('_', ' ')}
+            </span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{opportunity.usage_type}</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">• {new Date(opportunity.deadline_datetime).toLocaleDateString()}</span>
+          </div>
+          <h3 className="text-2xl font-black text-slate-900 dark:text-white group-hover:text-cyan-500 transition-colors uppercase tracking-tight italic">{opportunity.brief_title}</h3>
         </div>
         
         {opportunity.match_score && (
           <div className="flex flex-col items-end">
-            <div className={`text-2xl font-bold ${getMatchColor(opportunity.match_score)}`}>
+            <div className={`text-3xl font-black ${getMatchColor(opportunity.match_score)}`}>
               {opportunity.match_score}%
             </div>
-            <span className="text-xs text-slate-500">Match Score</span>
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Neural Match</span>
           </div>
         )}
       </div>
 
-      <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 line-clamp-2">
+      <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed font-medium line-clamp-3">
         {opportunity.description}
       </p>
 
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-8">
         {opportunity.mood_tags.map(tag => (
-          <span key={tag} className="text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-md">
+          <span key={tag} className="text-[10px] font-black bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-500 px-3 py-1 rounded-lg uppercase tracking-tight">
             #{tag}
           </span>
         ))}
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800 gap-6">
         <div className="flex flex-col">
-          <span className="text-xs text-slate-500 mb-0.5">Estimated Payout</span>
-          <span className="text-sm font-semibold text-slate-900 dark:text-slate-200">
-            ${opportunity.payout_min.toLocaleString()} - ${opportunity.payout_max.toLocaleString()}
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Indicative Budget</span>
+          <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
+            ${opportunity.payout_min.toLocaleString()} – ${opportunity.payout_max.toLocaleString()}
           </span>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 w-full md:w-auto">
             {submissionStatus === 'success' ? (
-                <button disabled className="bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 cursor-default">
+                <div className="bg-green-500/10 text-green-500 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-green-500/20 shadow-lg shadow-green-500/5">
                     <CheckCircle2 className="w-4 h-4" />
-                    Submitted
-                </button>
-            ) : opportunity.recommended_action === 'auto_submit' || opportunity.source_platform === 'songtradr' ? (
+                    {statusText}
+                </div>
+            ) : isSongtradr ? (
                  <button 
                     onClick={handleSubmit}
                     disabled={submissionStatus !== 'idle'}
-                    className={`bg-teal-100 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 hover:bg-teal-200 dark:hover:bg-teal-500/20 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed`}
+                    className={`flex-1 md:flex-none px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-xl shadow-pink-500/20 ${
+                        submissionStatus === 'idle' 
+                        ? 'bg-pink-600 text-white hover:bg-pink-500 hover:scale-105 active:scale-95' 
+                        : 'bg-slate-800 text-slate-400 cursor-wait border border-slate-700'
+                    }`}
                 >
-                    {submissionStatus === 'idle' && <><Send className="w-4 h-4" /> Direct Submit</>}
-                    {submissionStatus === 'connecting' && <><Loader2 className="w-4 h-4 animate-spin" /> Connecting...</>}
-                    {submissionStatus === 'submitting' && <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>}
+                    {submissionStatus === 'idle' && <><Globe className="w-4 h-4" /> Songtradr Direct Submit</>}
+                    {submissionStatus !== 'idle' && <><Loader2 className="w-4 h-4 animate-spin" /> {statusText}</>}
                 </button>
             ) : (
-                <button 
-                  onClick={handleGeneratePitch}
-                  disabled={loadingPitch}
-                  className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-                >
-                    {loadingPitch ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                    {loadingPitch ? 'Drafting...' : 'AI Pitch'}
-                </button>
+                <>
+                    <button 
+                        onClick={handleGeneratePitch}
+                        disabled={loadingPitch}
+                        className="flex-1 md:flex-none px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                        {loadingPitch ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                        {loadingPitch ? 'Analyzing...' : 'AI Pitch'}
+                    </button>
+                    <button 
+                        onClick={handleSubmit}
+                        className="flex-1 md:flex-none px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2"
+                    >
+                        <ShieldCheck className="w-4 h-4" /> Execute Request
+                    </button>
+                </>
             )}
-            
-            <button className="bg-cyan-500 text-white dark:text-slate-950 hover:bg-cyan-400 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-lg shadow-cyan-500/10">
-                View Brief
-                <ArrowRight className="w-4 h-4" />
-            </button>
         </div>
       </div>
       
       {pitch && (
-        <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 italic animate-in fade-in slide-in-from-top-2">
-            <div className="font-bold text-slate-500 mb-1 not-italic flex justify-between">
-                <span>AI Draft:</span>
-                <button className="text-cyan-500 hover:underline" onClick={() => {navigator.clipboard.writeText(pitch); alert("Copied!");}}>Copy</button>
+        <div className="mt-6 p-6 bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 italic animate-in fade-in slide-in-from-top-4 relative group/pitch">
+            <div className="font-black text-slate-400 mb-3 not-italic flex justify-between uppercase tracking-widest text-[9px]">
+                <span className="flex items-center gap-2"><Wand2 className="w-3 h-3 text-indigo-400" /> A&R Pitch Blueprint</span>
+                <button className="text-cyan-500 hover:text-cyan-400 transition-colors" onClick={() => {navigator.clipboard.writeText(pitch); alert("Copied to Hub.");}}>Copy to Hub</button>
             </div>
-            {pitch}
+            <p className="leading-relaxed">{pitch}</p>
         </div>
       )}
     </div>

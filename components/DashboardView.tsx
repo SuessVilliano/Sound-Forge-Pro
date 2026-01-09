@@ -1,8 +1,15 @@
 
 import React from 'react';
-// Added Music to the lucide-react imports to fix line 43 error
-import { DollarSign, Play, Activity, TrendingUp, Upload, CheckCircle, User, ArrowRight, Shield, Coins, Zap, Star, Layout, Crown, Music } from 'lucide-react';
+import { 
+  DollarSign, Play, Activity, TrendingUp, Upload, CheckCircle, User, 
+  ArrowRight, Shield, Coins, Zap, Star, Layout, Crown, Music, 
+  MessageSquare, Disc, Wand2, MapPin, Briefcase, BookOpen, Users, Sliders, BarChart2, Mail, Mic, Radio, Vote, Link, Landmark
+} from 'lucide-react';
 import { User as UserType, Stats, Opportunity } from '../types';
+
+const ICON_MAP: Record<string, any> = {
+  Shield, Coins, Zap, Upload, Music, Disc, Wand2, MapPin, Briefcase, BookOpen, Users, Sliders, BarChart2, User, Mail, Mic, Radio, Vote, Link, Activity, Layout, Landmark, MessageSquare
+};
 
 interface DashboardViewProps {
   user: UserType;
@@ -16,9 +23,8 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({ 
     user, stats, opportunities, onNavigate, onUpgrade, onUpload 
 }) => {
-  // Reputation Gauge Calculation
   const repPercent = Math.min(100, (stats.xp / 5000) * 100);
-  const strokeDash = 2 * Math.PI * 45; // Circumference
+  const strokeDash = 2 * Math.PI * 45;
   const offset = strokeDash - (repPercent / 100) * strokeDash;
 
   return (
@@ -36,9 +42,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Hero Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Main Financial Card */}
           <div className="lg:col-span-3 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden border border-white/5">
               <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
                   <Music className="w-96 h-96 -rotate-12" />
@@ -62,7 +66,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Reputation Gauge */}
                   <div className="w-48 h-48 flex flex-col items-center justify-center bg-white/5 rounded-3xl border border-white/5 backdrop-blur-md">
                       <div className="relative w-32 h-32">
                           <svg className="w-full h-full -rotate-90">
@@ -84,7 +87,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
           </div>
 
-          {/* Quick Stats Column */}
           <div className="space-y-6">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 shadow-sm flex-1 flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-4">
@@ -110,9 +112,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
       </div>
 
-      {/* Dashboard Sub-Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Main Actions */}
           <div className="lg:col-span-8 space-y-8">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm">
                   <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6 flex items-center gap-2">
@@ -120,26 +120,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {[
-                        { title: "Voice Market", desc: "License your voice avatar.", icon: Shield, col: "text-purple-500", bg: "bg-purple-500/10", view: "voice" },
-                        { title: "Smart Wallet", desc: "Manage your cash & tokens.", icon: Coins, col: "text-amber-500", bg: "bg-amber-500/10", view: "smart-wallet" },
-                        { title: "Sync Placements", desc: "Found 12 matches for you.", icon: Zap, col: "text-cyan-500", bg: "bg-cyan-500/10", view: "opportunities" },
-                        { title: "Distribution", desc: "Release to Spotify/TikTok.", icon: Upload, col: "text-green-500", bg: "bg-green-500/10", view: "distribution" }
-                      ].map((act, i) => (
-                          <button key={i} onClick={() => onNavigate(act.view)} className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/50 transition-all text-left group">
-                              <div className={`p-4 rounded-xl ${act.bg} ${act.col} group-hover:scale-110 transition-transform`}>
-                                  <act.icon className="w-6 h-6" />
-                              </div>
-                              <div>
-                                  <div className="font-black text-slate-900 dark:text-white text-sm uppercase tracking-tight">{act.title}</div>
-                                  <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{act.desc}</div>
-                              </div>
-                          </button>
-                      ))}
+                        { title: "Voice Market", desc: "License your voice avatar.", icon: "Shield", col: "text-purple-500", bg: "bg-purple-500/10", view: "voice" },
+                        { title: "Smart Wallet", desc: "Manage your cash & tokens.", icon: "Coins", col: "text-amber-500", bg: "bg-amber-500/10", view: "smart-wallet" },
+                        { title: "Sync Placements", desc: "Found 12 matches for you.", icon: "Zap", col: "text-cyan-500", bg: "bg-cyan-500/10", view: "opportunities" },
+                        { title: "Distribution", desc: "Release to Spotify/TikTok.", icon: "Upload", col: "text-green-500", bg: "bg-green-500/10", view: "distribution" }
+                      ].map((act, i) => {
+                          const IconComponent = ICON_MAP[act.icon];
+                          return (
+                            <button key={i} onClick={() => onNavigate(act.view)} className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/50 transition-all text-left group">
+                                <div className={`p-4 rounded-xl ${act.bg} ${act.col} group-hover:scale-110 transition-transform`}>
+                                    {IconComponent && <IconComponent className="w-6 h-6" />}
+                                </div>
+                                <div>
+                                    <div className="font-black text-slate-900 dark:text-white text-sm uppercase tracking-tight">{act.title}</div>
+                                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{act.desc}</div>
+                                </div>
+                            </button>
+                          );
+                      })}
                   </div>
               </div>
           </div>
 
-          {/* Right Col: Sync Ledger */}
           <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 flex flex-col shadow-sm">
               <div className="flex items-center justify-between mb-8">
                   <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Sync Opportunities</h3>

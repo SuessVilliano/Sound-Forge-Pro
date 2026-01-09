@@ -67,8 +67,19 @@ export const MerchStore: React.FC<MerchStoreProps> = ({ userDisplayName }) => {
           setPaymentStatus('minting');
           setStatusMessage('Authenticating Asset Rights...');
           
-          const result = await solanaService.mintMusicNFT(
-              { title: showCheckout.title },
+          // Fix: replaced non-existent mintMusicNFT with mintAsset and provided required metadata
+          const result = await solanaService.mintAsset(
+              'music',
+              { 
+                  title: showCheckout.title,
+                  artist: userDisplayName || 'Sound Merge Artist',
+                  description: showCheckout.description,
+                  image: showCheckout.image,
+                  attributes: [
+                      { trait_type: 'Collection', value: 'Merch Store' },
+                      { trait_type: 'Asset Type', value: showCheckout.type }
+                  ]
+              },
               (status) => setStatusMessage(status)
           );
 

@@ -13,18 +13,18 @@ Every artist profile is backed by a dedicated Institutional Node. This "synchron
 
 ### 2. Neural Creative Architecture
 Choose the right neural processing node for every project:
-- **Udio & Suno**: Full-track synthesis with radio-ready song structures.
-- **Mureka**: Specialized high-fidelity instrumental and cinematic engine.
-- **MusicGPT**: Rapid text-to-audio prototyping for fast iteration.
-- **AI Music**: Experimental genre-blending and aggressive texture generation.
+- **High-Fidelity Engine**: Full-track synthesis with radio-ready song structures.
+- **Cinematic Node**: Specialized high-fidelity instrumental and cinematic engine.
+- **Rapid Prototype Engine**: Rapid text-to-audio prototyping for fast iteration.
+- **Experimental Hybrid Node**: Experimental genre-blending and aggressive texture generation.
 
 ### 3. Real-Time Industry Intel
 We provide live data synchronization from global industry sources:
-- **Discovery Dashboard**: Fetches the live Billboard Hot 100 chart.
-- **Performance Analytics**: Pulls real-time Spotify Artist Stats and Track Stream counts.
+- **Discovery Dashboard**: Fetches the live global Hot 100 chart.
+- **Performance Analytics**: Pulls real-time Artist Stats and Track Stream counts from official industry ledgers.
 
 ### 4. Identity & Rights Protection
-- **VoiceShield™**: Biometric voice fingerprinting secured on the Solana blockchain.
+- **VoiceShield™**: Biometric voice fingerprinting secured on the Sound Merge Ledger.
 - **Merge Reputation**: Build your on-chain credit score to unlock future $MERGE utility tokens and capital funding.
 
 ---

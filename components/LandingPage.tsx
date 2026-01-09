@@ -166,10 +166,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onNavigate
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {[
               { icon: ShieldCheck, title: "VoiceShield™", desc: "Secure your vocal DNA on the blockchain. Detect unauthorized clones and keep your rights safe.", color: "text-green-400", bg: "bg-green-500/10" },
-              { icon: Zap, title: "Sync Placement", desc: "Our AI agents match your tracks with sync briefs from Netflix, HBO, and top brands automatically.", color: "text-yellow-400", bg: "bg-yellow-500/10" },
-              { icon: Wand2, title: "AI Creative Studio", desc: "Generate radio-ready tracks, lyrics, and professional masters in seconds via MusicGPT & Mureka.", color: "text-purple-400", bg: "bg-purple-500/10" },
+              { icon: Zap, title: "Sync Placement", desc: "Our AI agents match your tracks with sync briefs from global film studios and advertising partners automatically.", color: "text-yellow-400", bg: "bg-yellow-500/10" },
+              { icon: Wand2, title: "Neural Creative Studio", desc: "Generate radio-ready tracks, lyrics, and professional masters in seconds via our proprietary Sound Merge engines.", color: "text-purple-400", bg: "bg-purple-500/10" },
               { icon: Globe, title: "Global Network", desc: "Deploy to Spotify, Apple Music, and 150+ stores. Keep 100% of your royalties on our Pro plan.", color: "text-cyan-400", bg: "bg-cyan-500/10" },
-              { icon: BarChart2, title: "Deep Analytics", desc: "Real-time industry signals from Chartmetric & Billboard. Know your audience better than ever.", color: "text-blue-400", bg: "bg-blue-500/10" },
+              { icon: BarChart2, title: "Deep Analytics", desc: "Real-time industry signals from global ledgers. Know your audience better than ever with institutional data.", color: "text-blue-400", bg: "bg-blue-500/10" },
               { icon: DollarSign, title: "Revenue Recovery", desc: "Our AI scans global black-box databases to find and reclaim unclaimed royalties.", color: "text-emerald-400", bg: "bg-emerald-500/10" },
             ].map((feature, i) => (
               <div key={i} className={`p-10 rounded-[2.5rem] border border-white/5 bg-slate-950/50 hover:bg-slate-950 transition-all group hover:border-cyan-500/30`}>

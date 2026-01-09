@@ -6,8 +6,8 @@ import { Opportunity, Stats, AiStaffMember, User, StaffProposal, SyncBrief, Brie
  * Always use a fresh client for each request as per guidelines to ensure latest configuration/keys.
  */
 const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  return new GoogleGenAI({ apiKey });
+  // Use process.env.API_KEY directly in the constructor per guidelines
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 export interface ChatContext {
@@ -352,7 +352,8 @@ export const generateVideoFromImage = async (imgBase64: string, prompt: string, 
 export const searchVenues = async (query: string, location?: { latitude: number, longitude: number }): Promise<{ text: string, places: any[] }> => {
   const ai = getAiClient();
   const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite-latest",
+      // Corrected model name to 'gemini-2.5-flash' for maps grounding per guidelines
+      model: "gemini-2.5-flash",
       contents: query,
       config: {
           tools: [{ googleMaps: {} }],
@@ -364,6 +365,7 @@ export const searchVenues = async (query: string, location?: { latitude: number,
       }
   });
   
+  // Extract URLs from groundingChunks as required by Maps grounding guidelines
   const places = response.candidates?.[0]?.groundingMetadata?.groundingChunks
       ?.filter((c: any) => c.maps)
       ?.map((c: any) => ({
@@ -430,6 +432,7 @@ export class LiveSession {
     public onAudioData: () => void = () => {};
 
     constructor() {
+        // Correct initialization using process.env.API_KEY
         this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     }
 
@@ -455,6 +458,7 @@ export class LiveSession {
                             data: encode(new Uint8Array(int16.buffer)),
                             mimeType: 'audio/pcm;rate=16000',
                         };
+                        // Use sessionPromise.then to send data and avoid race conditions
                         this.sessionPromise?.then(session => session.sendRealtimeInput({ media: pcmBlob }));
                     };
                     source.connect(scriptProcessor);

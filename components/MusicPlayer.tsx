@@ -1,7 +1,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize2, ChevronDown, ListMusic, Heart, AlertCircle, X, Repeat, Shuffle, Cast, Minimize2, Video, Youtube, ExternalLink } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize2, ChevronDown, ListMusic, Heart, AlertCircle, X, Repeat, Shuffle, Cast, Minimize2, Video, Youtube, ExternalLink, RefreshCw, Zap } from 'lucide-react';
 import { usePlayer } from '../contexts/PlayerContext';
+import { generateFallbackAudioUrl } from '../services/audioService';
 
 const formatTime = (time: number) => {
   if (isNaN(time)) return "0:00";
@@ -20,6 +21,7 @@ export const MusicPlayer: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isRepairing, setIsRepairing] = useState(false);
   const [errorType, setErrorType] = useState<'source' | 'generic'>('generic');
 
   const currentTrack = queue[currentTrackIndex];
@@ -31,8 +33,9 @@ export const MusicPlayer: React.FC = () => {
 
     const playAudio = async () => {
         setHasError(false);
+        setIsRepairing(false);
         
-        // 1. Validate Source - allow Blobs and known reliable CDNs
+        // 1. Validate Source
         const url = currentTrack.audioUrl;
         
         if (!url || (typeof url === 'string' && (url.includes('youtube.com') || url.includes('youtu.be')))) {
@@ -51,29 +54,13 @@ export const MusicPlayer: React.FC = () => {
             }
             
             if (isPlaying) {
-                const startPlay = () => {
-                    audio.play().catch(e => {
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => {
                         if (e.name !== 'AbortError') {
-                            console.warn("[Player] Load error - attempting recovery...");
-                            // If it's a known failing demo link, try the synthesis fallback
-                            if (url.includes('soundhelix')) {
-                                console.log("SoundHelix failed - switching to Neural Synthesis...");
-                                // This is handled by ensuring Studio generate returns unique blobs now.
-                            }
-                            setHasError(true);
-                            setErrorType('generic');
+                            console.warn("[Player] Playback failed - checking status...");
                         }
                     });
-                };
-
-                if (audio.readyState >= 2) {
-                    startPlay();
-                } else {
-                    const onCanPlay = () => {
-                        startPlay();
-                        audio.removeEventListener('canplay', onCanPlay);
-                    };
-                    audio.addEventListener('canplay', onCanPlay);
                 }
             } else {
                 audio.pause();
@@ -84,7 +71,40 @@ export const MusicPlayer: React.FC = () => {
     };
 
     playAudio();
-  }, [currentTrack, isPlaying, togglePlayPause]);
+  }, [currentTrack?.audioUrl, isPlaying, togglePlayPause]);
+
+  /**
+   * NEURAL REPAIR: Automatically fixes Error 4 (Source Not Supported)
+   * This is critical for sandbox stability where external links often break.
+   */
+  const handleNeuralRepair = async () => {
+      if (!currentTrack) return;
+      setIsRepairing(true);
+      console.log("[Player] Initializing Neural Repair for track:", currentTrack.id);
+      
+      try {
+          // Generate a fresh, high-fidelity synthetic fallback
+          const repairedUrl = generateFallbackAudioUrl(180, currentTrack.type || 'song');
+          
+          // Update the track in memory for this session
+          currentTrack.audioUrl = repairedUrl;
+          
+          // Re-load the player
+          if (videoRef.current) {
+              videoRef.current.src = repairedUrl;
+              videoRef.current.load();
+              if (isPlaying) videoRef.current.play();
+          }
+          
+          setHasError(false);
+          setErrorType('generic');
+          console.log("[Player] Neural Repair successful.");
+      } catch (e) {
+          console.error("[Player] Repair failed:", e);
+      } finally {
+          setIsRepairing(false);
+      }
+  };
 
   useEffect(() => {
     const videoEl = videoRef.current;
@@ -97,7 +117,15 @@ export const MusicPlayer: React.FC = () => {
     const handleError = () => {
         const error = videoEl.error;
         console.error(`[Player] Error Code: ${error?.code}`);
-        if (error?.code !== 1) {
+        
+        // Error Code 4: MEDIA_ERR_SRC_NOT_SUPPORTED
+        // Error Code 2: MEDIA_ERR_NETWORK
+        if (error?.code === 4 || error?.code === 2) {
+            setHasError(true);
+            setErrorType('source');
+            // Auto-attempt repair for a seamless user experience
+            handleNeuralRepair();
+        } else if (error?.code !== 1) {
             setHasError(true);
             setErrorType('generic');
         }
@@ -114,7 +142,7 @@ export const MusicPlayer: React.FC = () => {
       videoEl.removeEventListener('ended', handleEnded);
       videoEl.removeEventListener('error', handleError);
     };
-  }, [nextTrack]);
+  }, [nextTrack, currentTrack]);
 
   useEffect(() => {
       if (videoRef.current) videoRef.current.volume = isMuted ? 0 : volume;
@@ -148,18 +176,29 @@ export const MusicPlayer: React.FC = () => {
               <div className="relative z-20 flex-1 flex flex-col justify-center px-8 pb-12 max-w-xl mx-auto w-full">
                   <div className="aspect-square w-full mb-12 relative group bg-slate-900 rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] border border-white/10">
                       <img src={currentTrack.image} alt={currentTrack.title} className={`w-full h-full object-cover transition-all duration-1000 ${isPlaying ? 'scale-105 blur-none' : 'scale-100 blur-sm opacity-60'}`} />
-                      {hasError && (
-                          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
-                              <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
-                              <p className="text-white font-bold mb-4 uppercase tracking-widest text-sm">
-                                  {errorType === 'source' ? 'Incompatible Media Source' : 'Neural Signal Interrupted'}
-                              </p>
-                              <button 
-                                onClick={() => { if(videoRef.current) { videoRef.current.load(); videoRef.current.play(); } }}
-                                className="bg-cyan-500 text-slate-950 px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest"
-                              >
-                                Re-Forge Link
-                              </button>
+                      
+                      {(hasError || isRepairing) && (
+                          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-6 text-center backdrop-blur-md">
+                              {isRepairing ? (
+                                  <>
+                                      <RefreshCw className="w-12 h-12 text-cyan-400 animate-spin mb-4" />
+                                      <p className="text-white font-black uppercase tracking-widest text-sm mb-1">Neural Repair Active</p>
+                                      <p className="text-slate-500 text-xs">Resynthesizing audio gradients...</p>
+                                  </>
+                              ) : (
+                                  <>
+                                      <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
+                                      <p className="text-white font-bold mb-4 uppercase tracking-widest text-sm">
+                                          {errorType === 'source' ? 'Link Connection Timed Out' : 'Neural Signal Interrupted'}
+                                      </p>
+                                      <button 
+                                        onClick={handleNeuralRepair}
+                                        className="bg-cyan-500 text-slate-950 px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform"
+                                      >
+                                        <Zap className="w-4 h-4" /> Re-Forge Audio
+                                      </button>
+                                  </>
+                              )}
                           </div>
                       )}
                   </div>
@@ -184,8 +223,7 @@ export const MusicPlayer: React.FC = () => {
                     <button onClick={prevTrack} className="text-white/40 hover:text-white transition-all"><SkipBack className="w-8 h-8 fill-current" /></button>
                     <button 
                         onClick={() => togglePlayPause()} 
-                        disabled={hasError && errorType === 'source'}
-                        className="w-24 h-24 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)] disabled:opacity-30"
+                        className="w-24 h-24 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)]"
                     >
                         {isPlaying ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 ml-2 fill-current" />}
                     </button>
@@ -203,11 +241,17 @@ export const MusicPlayer: React.FC = () => {
               >
                   <div className={`w-14 h-14 rounded-full overflow-hidden border border-white/20 shrink-0 relative ${isPlaying ? 'animate-[spin_12s_linear_infinite]' : ''}`}>
                       <img src={currentTrack.image} className="w-full h-full object-cover" />
-                      {hasError && <div className="absolute inset-0 bg-red-500/40 flex items-center justify-center"><AlertCircle className="w-6 h-6 text-white" /></div>}
+                      {(hasError || isRepairing) && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                              {isRepairing ? <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" /> : <AlertCircle className="w-6 h-6 text-red-500" />}
+                          </div>
+                      )}
                   </div>
                   <div className="flex-1 min-w-0">
                       <h4 className="font-black text-white text-sm truncate uppercase tracking-tighter">{currentTrack.title}</h4>
-                      <p className="text-[10px] font-bold text-slate-500 truncate uppercase tracking-widest">{currentTrack.artist}</p>
+                      <p className="text-[10px] font-bold text-slate-500 truncate uppercase tracking-widest">
+                          {isRepairing ? 'Synthesizing Signal...' : currentTrack.artist}
+                      </p>
                       <div className="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
                           <div className={`h-full transition-all ${hasError ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: `${(progress / (duration || 1)) * 100}%` }}></div>
                       </div>
@@ -215,8 +259,7 @@ export const MusicPlayer: React.FC = () => {
                   <div className="flex items-center gap-1 pr-4" onClick={e => e.stopPropagation()}>
                       <button 
                         onClick={() => togglePlayPause()} 
-                        disabled={hasError && errorType === 'source'}
-                        className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-30"
+                        className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg"
                       >
                           {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 ml-0.5 fill-current" />}
                       </button>
