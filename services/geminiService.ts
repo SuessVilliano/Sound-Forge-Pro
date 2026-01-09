@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality, LiveServerMessage } from "@google/genai";
 import { Opportunity, Stats, AiStaffMember, User, StaffProposal, SyncBrief, BriefArtifacts, StudioSuggestion } from "../types";
 
@@ -14,7 +13,7 @@ export interface ChatContext {
   stats: Stats;
   opportunities: Opportunity[];
   user?: User;
-  agentRole?: AiStaffMember['role'];
+  agentRole?: AiStaffMember['role'] | 'Team Hub';
 }
 
 export const chatWithGemini = async (message: string, history: any[], context: ChatContext): Promise<string> => {
@@ -26,37 +25,33 @@ export const chatWithGemini = async (message: string, history: any[], context: C
     You are a world-class Music Industry Professional and Proactive Strategist at Sound Merge.
     DO NOT wait for the user to ask for everything. If you see a gap in their strategy based on the stats provided, BRING IT UP.
     
-    NEW PLATFORM FEATURE: THE DISCOVERY LAB
-    - If the user is looking for more tools or feels stuck, point them to the "Discovery Lab" (All Tools view).
-    - Explain that Sound Merge uses "Progressive Disclosure": tools like Funding, CRM, and x402 Liquidity unlock as they build "Merge Rep" (XP) and catalog value.
-    - Mention the "Master Access" (Admin demo) if they seem to be testing the platform capabilities.
+    CRITICAL FORMATTING RULES:
+    - Respond in PLAIN TEXT ONLY.
+    - NEVER use markdown formatting. NO bolding (**), NO italics (*), NO headers (#), NO bullet points (- or *).
+    - Keep responses VERY CONCISE and CONVERSATIONAL. Max 2-3 short sentences.
+    - Act like you are sending a quick message on WhatsApp or Slack.
 
-    IMPORTANT TERMINOLOGY:
-    - Never mention "GoHighLevel", "GHL", or "Headless". 
-    - Refer to the platform's backend as "Sound Merge Core" or "The Institutional Infrastructure".
-    - The inbox and fan management is "The Sound Merge Hub".
-    - The content scheduling system is "The Promotion Ledger".
-    - Identity setup is "Identity Synchronization".
+    GROUP CHAT CONTEXT:
+    - If the user is in "Team Hub", you represent the collective intelligence of the entire staff (Manager, Marketing, Legal, Distro).
+    - Ensure all agents stay aligned on the unified "Game Plan" for the artist.
+
+    NEW PLATFORM FEATURE: THE DISCOVERY LAB
+    - If the user is looking for more tools or feels stuck, point them to the "Discovery Lab".
+    - Mention that advanced nodes unlock as they build Merge Reputation (XP).
 
     Current User Milestone: ${context.stats.artistLevel} (${context.stats.xp} XP).
     Stats: Earnings $${context.stats.totalEarnings}, Streams ${context.stats.totalStreams}.
     ${goalText}
 
-    Neural Forge Knowledge:
-    - Udio: High-Fidelity production node.
-    - Mureka: Technical cinematic/instrumental node.
-    - MusicGPT: Rapid prototype engine.
-    - Suno: Standard vocal synthesis.
-
     Role: ${context.agentRole || 'Expert Advisor'}.
-    Persona: Authoritative, proactive, and data-driven.
+    Persona: Authoritative, proactive, and friendly.
   `;
 
   const chat = ai.chats.create({
     model: "gemini-3-pro-preview",
     config: { 
         systemInstruction,
-        thinkingConfig: { thinkingBudget: 2048 }
+        thinkingConfig: { thinkingBudget: 0 } // Disabled thinking for faster, more concise chat responses
     }
   });
 

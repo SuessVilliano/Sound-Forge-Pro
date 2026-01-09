@@ -8,7 +8,7 @@ import { parseRawBrief } from './services/geminiService';
 import { authService } from './services/authService';
 import { dataService } from './services/dataService';
 import { webhookService } from './services/webhookService';
-import { Opportunity, User as UserType, Stats } from './types';
+import { Opportunity, User as UserType, Stats, StaffMessage } from './types';
 import { PlayerProvider, usePlayer } from './contexts/PlayerContext';
 import { WalletProvider } from './contexts/WalletContext';
 import { Loader2, X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
@@ -76,6 +76,14 @@ const AppContent = () => {
       earningsGrowth: 0, streamsGrowth: 0, opportunitiesNew: false,
       artistLevel: "New Artist", xp: 0, nextLevelXp: 1000
   });
+  
+  // Persistent Staff Chat Threads
+  const [chatThreads, setChatThreads] = useState<Record<string, StaffMessage[]>>({
+    'team-hub': [{ id: '0', agentId: 'team-hub', role: 'agent', text: "Team Hub initialized. We're all in the loop. What's the master game plan for today?", timestamp: '10:00 AM' }],
+    mgr: [{ id: '1', agentId: 'mgr', role: 'agent', text: "James here. I've analyzed your current growth. We're leaning too heavily on organic search. I'm drafting a proposal to shift your target to Sync Licensing for H2.", timestamp: '10:00 AM' }],
+    mkt: [{ id: '2', agentId: 'mkt', role: 'agent', text: "Elena from Marketing. Your latest track has a 4-second hook that is perfect for a transition trend.", timestamp: '9:45 AM' }],
+  });
+
   const [selectedArtistId, setSelectedArtistId] = useState<number | undefined>(undefined);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -121,7 +129,6 @@ const AppContent = () => {
             userUnsubscribe = dataService.subscribeToUserProfile(observedUser.uid, (updatedUser) => {
                 setUser(updatedUser);
                 dataService.getRealStats(observedUser.uid).then(stats => {
-                    // Inject demo stats if it's the demo account
                     if (updatedUser.uid === 'demo_master_account') {
                         setRealStats({
                             totalEarnings: 12500, totalStreams: 450000, activeOpportunities: 12, brandScore: 'A+',
@@ -244,7 +251,7 @@ const AppContent = () => {
             <ErrorBoundary>
               {currentView === VIEWS.DASHBOARD && <DashboardView user={user} stats={realStats} opportunities={opportunities} onNavigate={handleNavigate} onUpgrade={() => setShowPricingModal(true)} onUpload={() => setShowUploadModal(true)} />}
               {currentView === VIEWS.ALL_TOOLS && <AllToolsView stats={realStats} onNavigate={handleNavigate} onUpgrade={() => setShowPricingModal(true)} />}
-              {currentView === VIEWS.STAFF && <StaffMessagingHub />}
+              {currentView === VIEWS.STAFF && <StaffMessagingHub chatThreads={chatThreads} setChatThreads={setChatThreads} />}
               {currentView === VIEWS.SMART_WALLET && <SmartWalletDashboard />}
               {currentView === VIEWS.CATALOG && <MusicCatalog />}
               {currentView === VIEWS.BATTLES && <BattlesArena />}

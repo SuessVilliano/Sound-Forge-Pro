@@ -1,22 +1,23 @@
 
+
 export type BriefSource = "Songtradr" | "DittoSync" | "Horus" | "EmailFeed" | "UserSubmitted" | "PartnerAPI";
 export type MediaType = "TV" | "Film" | "Ad" | "Game" | "Trailer" | "Brand" | "Other";
+export type CommunicationChannel = 'sms' | 'whatsapp' | 'email' | 'instagram' | 'facebook' | 'gmb';
 
 export interface Contributor {
     id: string;
     name: string;
     role: 'Songwriter' | 'Producer' | 'Featured Artist' | 'Remixer' | 'Mixer' | 'Mastering Engineer' | 'Composer';
-    share?: number; // Optional royalty percentage
+    share?: number; 
 }
 
-// --- GHL HEADLESS TYPES ---
 export interface GHLIntegration {
     userId: string;
     ghlLocationId: string;
     ghlContactId?: string;
     status: 'provisioning' | 'active' | 'error' | 'disconnected';
     lastError?: string;
-    connectedChannels: ('sms' | 'whatsapp' | 'email' | 'voice')[];
+    connectedChannels: CommunicationChannel[];
     createdAt: string;
     updatedAt: string;
 }
@@ -24,11 +25,11 @@ export interface GHLIntegration {
 export interface MessageThread {
     id: string;
     userId: string;
-    channel: 'sms' | 'whatsapp' | 'email' | 'voice';
+    channel: CommunicationChannel;
     contactId: string;
     contactName: string;
     contactPhoto?: string;
-    externalThreadId: string; // GHL Conversation ID
+    externalThreadId: string; 
     lastMessageText: string;
     lastMessageAt: string;
     unreadCount: number;
@@ -56,19 +57,6 @@ export interface SocialAccount {
     isConnected: boolean;
 }
 
-export interface SocialPost {
-    id: string;
-    userId: string;
-    ghlPostId?: string;
-    networks: string[];
-    caption: string;
-    mediaUrls: string[];
-    scheduledAt: string;
-    status: 'draft' | 'scheduled' | 'published' | 'failed';
-    errorMessage?: string;
-    createdAt: string;
-}
-
 export interface User {
   uid: string;
   displayName: string;
@@ -86,10 +74,7 @@ export interface User {
   role?: 'artist' | 'producer' | 'manager' | 'label_exec' | 'listener';
   primaryGoal?: 'sync_deal' | 'growth' | 'distribution' | 'legal_protection';
   experienceLevel?: 'beginner' | 'intermediate' | 'pro';
-  primaryGoals?: string[];
   genrePreferences?: string[];
-  isFeatured?: boolean;
-  bio?: string;
   location?: string;
   notificationSettings?: {
     emailSyncMatches: boolean;
@@ -105,30 +90,32 @@ export interface User {
     tiktok?: string;
     linkedin?: string;
   };
-  referenceVideoLinks?: string[];
-  referenceWebsites?: string[];
-  tourDates?: TourDate[];
-  profileConfig?: any;
-  rates?: {
-    featureVerse?: number;
-  };
+  ghlIntegration?: GHLIntegration;
+  xp?: number;
+  artistLevel?: string;
+  // Added missing properties for User
+  isFeatured?: boolean;
+  bio?: string;
   chartmetricArtistId?: number;
   webhooks?: {
     url: string;
     enabled: boolean;
     events: string[];
   };
+  rates?: {
+    featureVerse?: number;
+  };
   hasSignedLegal?: boolean;
   legalSignedDate?: string;
-  ghlIntegration?: GHLIntegration;
-  xp?: number;
-  artistLevel?: string;
+  profileConfig?: any;
+  tourDates?: TourDate[];
+  referenceVideoLinks?: string[];
+  referenceWebsites?: string[];
 }
 
 export interface SyncBrief {
   id: string;
   source: BriefSource;
-  sourceUrl?: string;
   title: string;
   description: string;
   mediaType: MediaType;
@@ -138,13 +125,17 @@ export interface SyncBrief {
   moods?: string[];
   tempo?: string;
   vocal?: "Instrumental" | "Vocal" | "Either";
-  references?: string[];
-  deliverables?: string[];
-  territory?: string[];
-  usage?: string[];
-  rightsRequired?: { master: boolean, publishing: boolean };
   createdAt: string;
   readinessScore?: number; 
+  // Added missing properties for SyncBrief
+  references?: string[];
+  deliverables?: string[];
+  usage?: string[];
+  territory?: string[];
+  /**
+   * Added rightsRequired to handle sync brief metadata requirements.
+   */
+  rightsRequired?: { master: boolean; publishing: boolean };
 }
 
 export interface OpportunityRequest {
@@ -154,9 +145,8 @@ export interface OpportunityRequest {
   userName: string;
   briefId: string;
   briefTitle: string;
-  type: "I have a track to pitch" | "I want to generate a track from this brief" | "I need help clearing rights";
+  type: string;
   notes: string;
-  trackLinks?: string[];
   status: 'pending' | 'reviewed' | 'forwarded' | 'contacted';
   createdAt: string;
 }
@@ -172,30 +162,27 @@ export interface BriefArtifacts {
     arrangement: string;
     keywordsInclude: string[];
     keywordsAvoid: string[];
-    deliverables: string[];
   };
   pitchChecklist?: {
     technical: string[];
     legal: string[];
-    submission: string[];
   };
 }
 
 export interface Opportunity {
   id: string;
-  source_platform: 'songtradr' | 'google_search' | 'artlist' | 'internal';
+  source_platform: string;
   brief_title: string;
   description: string;
-  usage_type: 'Ad' | 'TV' | 'Film' | 'Game';
-  duration_required: number;
-  payout_min: number;
+  usage_type: string;
   payout_max: number;
   deadline_datetime: string;
-  submission_status: 'open' | 'matched' | 'submitted' | 'accepted';
   match_score?: number;
-  risk_score?: number;
-  recommended_action?: 'auto_submit' | 'manual_review' | 'create';
   mood_tags: string[];
+  // Added missing properties for Opportunity
+  duration_required?: number;
+  payout_min: number;
+  submission_status?: string;
 }
 
 export interface Track {
@@ -211,30 +198,21 @@ export interface Track {
   image: string;
   audioUrl?: string; 
   videoUrl?: string; 
-  licenseType?: 'exclusive' | 'non-exclusive' | 'sync-ready';
-  hasVocals?: boolean;
-  status?: 'generating' | 'completed' | 'failed' | 'processing';
+  licenseType?: string;
+  status?: string;
+  type?: string;
   createdAt?: string;
-  genre?: string; 
-  type?: 'song' | 'vocal' | 'beat';
-  stems?: StemResult;
-  resemble_voice_uuid?: string; 
-  
-  // Advanced Industry Metadata
+  genre?: string;
+  recordLabel?: string;
   isrc?: string;
   upc?: string;
-  recordLabel?: string;
-  releaseDate?: string;
-  language?: string;
   isExplicit?: boolean;
   isInstrumental?: boolean;
   contributors?: Contributor[];
-
   blockchainRegistration?: {
       cid: string; 
-      transactionHash?: string;
       timestamp: string;
-      network: 'Solana' | 'Polygon' | 'Filecoin';
+      network: 'Solana' | 'Filecoin';
       status: 'secured';
   };
 }
@@ -270,36 +248,29 @@ export interface StudioAgent {
 
 export interface FundingRequest {
     id: string;
-    createdAt: string;
     userId: string;
-    userEmail: string;
-    userName: string;
     artistName: string;
-    stageName?: string;
-    contactPhone: string;
-    country: string;
-    primaryDistributor: string;
     totalNetRoyaltiesLast6Months: number;
     ownsMastersPercent: number;
-    revenueStability: 'Stable' | 'Mixed' | 'Volatile';
-    hasPublishingSplits: boolean;
-    catalogNotes: string;
-    requestedAmount?: number;
-    consentToShareData: boolean;
-    avgMonthlyRoyalties: number;
+    revenueStability: string;
     calculatedOfferLow: number;
     calculatedOfferHigh: number;
-    status: 'new' | 'reviewing' | 'forwarded' | 'needs-info' | 'approved-partner' | 'declined';
-    adminNotes?: string;
-    forwardedAt?: string;
-    forwardedToPartner?: string;
-    webhookDelivery: {
-        attemptedAt?: string;
-        success: boolean;
-        responseCode?: number;
-        responseBody?: string;
-        errorMessage?: string;
-    };
+    status: string;
+    createdAt: string;
+    // Added missing properties for FundingRequest
+    userEmail?: string;
+    userName?: string;
+    contactPhone?: string;
+    country?: string;
+    primaryDistributor?: string;
+    hasPublishingSplits?: boolean;
+    catalogNotes?: string;
+    requestedAmount?: number;
+    consentToShareData?: boolean;
+    /**
+     * Added stageName to FundingRequest to support optional stage name tracking.
+     */
+    stageName?: string;
 }
 
 export interface TourDate {
@@ -313,14 +284,14 @@ export interface TourDate {
 
 export interface VoiceDetection {
     id: string;
-    source_url: string;
-    timestamp: string;
     similarity_score: number;
-    is_authorized: boolean;
-    status: 'takedown_sent' | 'pending_review' | 'resolved';
-    snippet_url: string;
-    platform: 'YouTube' | 'TikTok' | 'SoundCloud' | 'Spotify';
-    resemble_detection_score?: number; 
+    status: string;
+    platform: string;
+    // Added missing properties for VoiceDetection
+    source_url?: string;
+    timestamp?: string;
+    is_authorized?: boolean;
+    snippet_url?: string;
 }
 
 export interface VoiceAsset {
@@ -330,9 +301,7 @@ export interface VoiceAsset {
   mint_date: string;
   transaction_hash: string;
   status: 'active' | 'revoked';
-  network: 'Polygon' | 'Ethereum' | 'Solana';
-  image_url?: string;
-  resemble_voice_uuid?: string;
+  network: 'Solana';
 }
 
 export interface Stats {
@@ -356,7 +325,6 @@ export interface BattleParticipant {
   audioUrl: string;
   image: string;
   votes: number;
-  is_verified_clone?: boolean; 
 }
 
 export interface Battle {
@@ -397,16 +365,16 @@ export interface DistributionTrack {
   title: string;
   isInstrumental: boolean;
   isExplicit: boolean;
-  isRadioEdit: boolean;
-  writerType: string;
-  songwriters: string[];
-  producers: string;
-  performers: string;
-  originalArtist: string;
   audioFile?: File;
-  isrc?: string;
-  upc?: string;
   contributors?: Contributor[];
+  // Added missing properties for DistributionTrack
+  isRadioEdit?: boolean;
+  writerType?: string;
+  songwriters?: string[];
+  producers?: string;
+  performers?: string;
+  originalArtist?: string;
+  isrc?: string;
 }
 
 export interface DistributionRelease {
@@ -414,39 +382,32 @@ export interface DistributionRelease {
   title: string;
   artistName: string;
   releaseDate: string;
-  recordLabel: string;
-  copyrightYear: string;
-  copyrightOwner: string;
-  pLineYear: string;
-  pLineOwner: string;
-  language: string;
-  primaryGenre: string;
-  services: string[];
-  previouslyReleased: boolean;
   tracks: DistributionTrack[]; 
-  optSocialPack: boolean;
-  optDiscoveryPack: boolean;
-  optStoreMaximizer: boolean;
-  optLeaveLegacy: boolean;
-  optLoudnessNorm: boolean;
-  optBlockchainStorage: boolean;
-  albumCover?: File;
   coverUrl?: string;
-  status?: string;
-  upc?: string;
+  // Added missing properties used in MusicDistribution.tsx
+  albumCover?: File;
+  recordLabel?: string;
+  copyrightYear?: string;
+  copyrightOwner?: string;
+  pLineYear?: string;
+  pLineOwner?: string;
+  language?: string;
+  primaryGenre?: string;
+  services?: string[];
+  previouslyReleased?: boolean;
+  optSocialPack?: boolean;
+  optDiscoveryPack?: boolean;
+  optStoreMaximizer?: boolean;
+  optLeaveLegacy?: boolean;
+  optLoudnessNorm?: boolean;
+  optBlockchainStorage?: boolean;
 }
 
 export interface LegalRecord {
   id: string;
   userId: string;
-  userEmail: string;
-  userName: string;
-  documentType: string;
-  documentVersion: string;
   signature: string;
   timestamp: string;
-  ipAddress?: string;
-  status: 'signed' | 'pending';
 }
 
 export interface WebhookLog {
@@ -455,7 +416,8 @@ export interface WebhookLog {
   event: string;
   status: 'success' | 'failed' | 'pending';
   payload: any;
-  destination: string;
+  // Added missing properties for WebhookLog
+  destination?: string;
   responseCode?: number;
 }
 
@@ -463,7 +425,6 @@ export interface CRMContact {
     id: string;
     name: string;
     email: string;
-    phone?: string;
     tags: string[];
     source: string;
     lastActive: string;
@@ -473,21 +434,13 @@ export interface CRMContact {
 export interface CRMAutomaton {
     id: string;
     name: string;
-    trigger: string;
-    actions: string[];
     status: string;
-    enrolledCount: number;
 }
 
 export interface CRMCampaign {
     id: string;
     name: string;
-    type: string;
     status: string;
-    sentCount: number;
-    openRate: number;
-    clickRate: number;
-    date: string;
 }
 
 export interface KitsVoiceModel {
@@ -495,7 +448,6 @@ export interface KitsVoiceModel {
   label: string;
   tags: string[];
   image?: string;
-  isCustom: boolean;
 }
 
 export interface StemResult {
@@ -514,7 +466,8 @@ export interface VoiceLicense {
   price: number;
   expiry: string;
   status: string;
-  terms_hash: string;
+  // Added missing property for VoiceLicense
+  terms_hash?: string;
 }
 
 export interface Product {
@@ -558,4 +511,15 @@ export interface BattleRulesConfig {
     badge: string;
   };
   customRules: string[];
+}
+
+// Added missing SocialPost type
+export interface SocialPost {
+    id: string;
+    userId: string;
+    caption: string;
+    mediaUrls?: string[];
+    scheduledAt: string;
+    networks: string[];
+    status: 'pending' | 'posted' | 'failed';
 }

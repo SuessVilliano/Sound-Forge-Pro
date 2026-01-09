@@ -1,12 +1,22 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Search, MoreHorizontal, Bot, User, Phone, Video, Info, CheckCheck, Loader2, Sparkles, Briefcase, Zap, Shield, Globe, Mic, Users, BrainCircuit, ArrowRight, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Send, Search, MoreHorizontal, Bot, User, Phone, Video, Info, CheckCheck, Loader2, Sparkles, Briefcase, Zap, Shield, Globe, Mic, Users, BrainCircuit, ArrowRight, TrendingUp, AlertTriangle, Layers, MessageSquare } from 'lucide-react';
 import { AiStaffMember, StaffMessage, StaffProposal } from '../types';
 import { chatWithGemini, generateProactiveProposal } from '../services/geminiService';
 import { MOCK_STATS } from '../constants';
 import { authService } from '../services/authService';
 
+const TEAM_HUB_AGENT: AiStaffMember = { 
+    id: 'team-hub', 
+    name: 'Team Hub', 
+    role: 'Group Sync' as any, 
+    avatar: 'https://ui-avatars.com/api/?name=Team+HQ&background=0f172a&color=fff', 
+    online: true, 
+    description: 'Unified Strategic HQ', 
+    lastMessage: 'Let\'s align on the game plan.' 
+};
+
 const INITIAL_STAFF: AiStaffMember[] = [
+    TEAM_HUB_AGENT,
     { id: 'mgr', name: 'James', role: 'manager', avatar: 'https://ui-avatars.com/api/?name=James+Manager&background=020617&color=fff', online: true, description: 'Executive Strategy & Business Coordination', lastMessage: "Let's review your Q3 plan." },
     { id: 'mkt', name: 'Elena', role: 'marketing', avatar: 'https://ui-avatars.com/api/?name=Elena+Mkt&background=06b6d4&color=fff', online: true, description: 'Growth, Socials & Hype', lastMessage: "Your TikTok engagement is up 20%!" },
     { id: 'bkg', name: 'Rick', role: 'booking', avatar: 'https://ui-avatars.com/api/?name=Rick+Agent&background=8b5cf6&color=fff', online: false, description: 'Shows, Tours & Negotiations', lastMessage: "Found 3 clubs in Berlin for October." },
@@ -14,16 +24,18 @@ const INITIAL_STAFF: AiStaffMember[] = [
     { id: 'lgl', name: 'Marcus', role: 'legal', avatar: 'https://ui-avatars.com/api/?name=Marcus+Legal&background=f43f5e&color=fff', online: true, description: 'Voice IP & Rights Protection', lastMessage: "Secured your latest VoiceShield hash." },
 ];
 
-export const StaffMessagingHub: React.FC = () => {
+interface StaffMessagingHubProps {
+    chatThreads: Record<string, StaffMessage[]>;
+    setChatThreads: React.Dispatch<React.SetStateAction<Record<string, StaffMessage[]>>>;
+}
+
+export const StaffMessagingHub: React.FC<StaffMessagingHubProps> = ({ chatThreads, setChatThreads }) => {
     const user = authService.getCurrentUser();
     const [selectedAgent, setSelectedAgent] = useState<AiStaffMember>(INITIAL_STAFF[0]);
     const [proposals, setProposals] = useState<StaffProposal[]>([]);
     const [isThinking, setIsThinking] = useState(false);
+    const [activeTypingAgents, setActiveTypingAgents] = useState<string[]>([]);
     
-    const [chatThreads, setChatThreads] = useState<Record<string, StaffMessage[]>>({
-        mgr: [{ id: '1', agentId: 'mgr', role: 'agent', text: "James here. I've analyzed your current growth. We're leaning too heavily on organic search. I'm drafting a proposal to shift your target to Sync Licensing for H2.", timestamp: '10:00 AM' }],
-        mkt: [{ id: '2', agentId: 'mkt', role: 'agent', text: "Elena from Marketing. Your latest track 'Midnight' has a 4-second hook that is perfect for a transition trend. I'm suggesting a 3nd-party ad-spend test.", timestamp: '9:45 AM' }],
-    });
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,7 +43,7 @@ export const StaffMessagingHub: React.FC = () => {
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(() => { scrollToBottom(); }, [chatThreads, selectedAgent.id]);
 
-    // Proactive Intelligence: Trigger a proposal every few seconds or on mount
+    // Proactive Intelligence
     useEffect(() => {
         const interval = setInterval(async () => {
             if (isThinking) return;
@@ -41,11 +53,11 @@ export const StaffMessagingHub: React.FC = () => {
                 stats: MOCK_STATS,
                 opportunities: [],
                 user: user || undefined,
-                agentRole: selectedAgent.role
+                agentRole: selectedAgent.id === 'team-hub' ? 'Team Hub' : selectedAgent.role
             });
             if (prop) setProposals(prev => [prop, ...prev].slice(0, 5));
             setIsThinking(false);
-        }, 30000); // Check for strategy gap every 30s
+        }, 45000);
         return () => clearInterval(interval);
     }, [selectedAgent, user]);
 
@@ -66,6 +78,12 @@ export const StaffMessagingHub: React.FC = () => {
         setInput('');
         setIsTyping(true);
 
+        // Simulation logic for Team Hub: multiple agents "analyzing"
+        if (selectedAgent.id === 'team-hub') {
+            setActiveTypingAgents(['James (Manager)', 'Elena (Marketing)']);
+            setTimeout(() => setActiveTypingAgents(['Marcus (Legal)']), 1500);
+        }
+
         try {
             const history = currentThread.map(m => ({ role: m.role === 'user' ? 'user' : 'model', text: m.text }));
             const response = await chatWithGemini(input, history, {
@@ -73,7 +91,7 @@ export const StaffMessagingHub: React.FC = () => {
                 stats: MOCK_STATS,
                 opportunities: [],
                 user: user || undefined,
-                agentRole: selectedAgent.role
+                agentRole: selectedAgent.id === 'team-hub' ? 'Team Hub' : selectedAgent.role
             });
 
             const agentMsg: StaffMessage = {
@@ -84,7 +102,10 @@ export const StaffMessagingHub: React.FC = () => {
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
             setChatThreads(prev => ({ ...prev, [selectedAgent.id]: [...(prev[selectedAgent.id] || []), agentMsg] }));
-        } catch (e) { console.error(e); } finally { setIsTyping(false); }
+        } catch (e) { console.error(e); } finally { 
+            setIsTyping(false); 
+            setActiveTypingAgents([]);
+        }
     };
 
     const handleAcceptProposal = (prop: StaffProposal) => {
@@ -92,7 +113,7 @@ export const StaffMessagingHub: React.FC = () => {
             id: `accept_${Date.now()}`,
             agentId: selectedAgent.id,
             role: 'agent',
-            text: `PROPOSAL ACCEPTED: ${prop.title}. I'm executing the ${prop.actionLabel} workflow now. Check your Sync Ops tab in 5 minutes for the results.`,
+            text: `PROPOSAL ACCEPTED: ${prop.title}. I'm executing the ${prop.actionLabel} workflow now.`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setChatThreads(prev => ({ ...prev, [selectedAgent.id]: [...(prev[selectedAgent.id] || []), acceptanceMsg] }));
@@ -102,17 +123,17 @@ export const StaffMessagingHub: React.FC = () => {
     const currentMessages = chatThreads[selectedAgent.id] || [];
 
     return (
-        <div className="h-[calc(100vh-120px)] flex bg-white dark:bg-slate-950 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xl">
+        <div className="h-[calc(100vh-120px)] flex bg-white dark:bg-slate-950 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xl font-sans">
             
-            {/* LEFT: INBOX LIST */}
+            {/* LEFT: TEAM LIST */}
             <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-slate-50 dark:bg-slate-900/30">
                 <div className="p-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
                     <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3 uppercase tracking-tight">
-                        <Users className="w-6 h-6 text-indigo-500" /> Team
+                        <Users className="w-6 h-6 text-indigo-500" /> Team Hub
                     </h2>
                     {isThinking && (
                         <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-cyan-500 uppercase tracking-widest animate-pulse">
-                            <BrainCircuit className="w-3 h-3" /> Proactive Analysis Active
+                            <BrainCircuit className="w-3 h-3" /> Staff Context Sync
                         </div>
                     )}
                 </div>
@@ -125,8 +146,10 @@ export const StaffMessagingHub: React.FC = () => {
                             className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${selectedAgent.id === agent.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50'}`}
                         >
                             <div className="relative shrink-0">
-                                <img src={agent.avatar} className="w-12 h-12 rounded-full border-2 border-white/10" alt={agent.name} />
-                                {agent.online && (
+                                <div className={`w-12 h-12 rounded-full border-2 overflow-hidden ${selectedAgent.id === agent.id ? 'border-white/20' : 'border-slate-200 dark:border-slate-800'}`}>
+                                    <img src={agent.avatar} className="w-full h-full object-cover" alt={agent.name} />
+                                </div>
+                                {agent.online && agent.id !== 'team-hub' && (
                                     <span className="absolute bottom-0 right-0 flex h-3 w-3">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 border-2 border-slate-900"></span>
@@ -134,11 +157,8 @@ export const StaffMessagingHub: React.FC = () => {
                                 )}
                             </div>
                             <div className="text-left min-w-0 flex-1">
-                                <div className="flex justify-between items-start">
-                                    <span className={`font-black text-sm uppercase truncate ${selectedAgent.id === agent.id ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{agent.name}</span>
-                                </div>
-                                <p className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${selectedAgent.id === agent.id ? 'text-indigo-200' : 'text-indigo-500'}`}>{agent.role}</p>
-                                <p className={`text-xs truncate ${selectedAgent.id === agent.id ? 'text-white/70' : 'text-slate-500'}`}>{agent.lastMessage}</p>
+                                <span className={`font-black text-sm uppercase truncate block ${selectedAgent.id === agent.id ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{agent.name}</span>
+                                <p className={`text-[9px] font-black uppercase tracking-widest ${selectedAgent.id === agent.id ? 'text-indigo-200' : 'text-indigo-500'}`}>{agent.role}</p>
                             </div>
                         </button>
                     ))}
@@ -151,10 +171,7 @@ export const StaffMessagingHub: React.FC = () => {
                 {/* Chat Header */}
                 <div className="h-20 border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between bg-white dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-10">
                     <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <img src={selectedAgent.avatar} className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm" alt={selectedAgent.name} />
-                            {selectedAgent.online && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900"></span>}
-                        </div>
+                        <img src={selectedAgent.avatar} className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm" alt={selectedAgent.name} />
                         <div>
                             <h3 className="font-black text-slate-900 dark:text-white text-lg flex items-center gap-2 uppercase tracking-tight">
                                 {selectedAgent.name}
@@ -163,35 +180,49 @@ export const StaffMessagingHub: React.FC = () => {
                             <p className="text-xs text-slate-500 font-medium">{selectedAgent.description}</p>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors"><Phone className="w-5 h-5" /></button>
-                        <button className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors"><Video className="w-5 h-5" /></button>
-                        <button className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors"><Info className="w-5 h-5" /></button>
-                    </div>
+                    {selectedAgent.id === 'team-hub' && (
+                        <div className="flex items-center gap-2 bg-indigo-500/10 px-4 py-1.5 rounded-full border border-indigo-500/20">
+                            <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                            <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Collaborative Mode</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Messages Feed */}
                 <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/20 dark:bg-slate-950/50 custom-scrollbar">
                     {currentMessages.map(msg => (
                         <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                            <div className={`max-w-[70%] rounded-3xl p-5 text-sm shadow-xl relative ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-slate-800'}`}>
-                                <p className="leading-relaxed whitespace-pre-wrap font-medium">{msg.text}</p>
-                                <div className={`flex items-center gap-2 text-[10px] mt-3 font-bold uppercase tracking-widest opacity-40 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <span>{msg.timestamp}</span>
-                                    {msg.role === 'user' && <CheckCheck className="w-3 h-3" />}
+                            <div className={`max-w-[75%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                {selectedAgent.id === 'team-hub' && msg.role === 'agent' && (
+                                    <span className="text-[9px] font-black uppercase text-slate-500 mb-1 ml-1">Team Ledger Consensus</span>
+                                )}
+                                <div className={`px-5 py-3.5 rounded-[1.8rem] text-sm shadow-xl relative ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-slate-800'}`}>
+                                    <p className="leading-relaxed whitespace-pre-wrap font-medium">{msg.text}</p>
+                                    <div className={`flex items-center gap-2 text-[8px] mt-2 font-black uppercase tracking-widest opacity-30 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <span>{msg.timestamp}</span>
+                                        {msg.role === 'user' && <CheckCheck className="w-3 h-3" />}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     ))}
                     {isTyping && (
-                        <div className="flex justify-start">
-                            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl rounded-tl-none p-4 flex items-center gap-2 shadow-sm">
-                                <div className="flex gap-1">
-                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
-                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-75"></div>
-                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-150"></div>
+                        <div className="flex flex-col gap-2">
+                            {activeTypingAgents.length > 0 ? (
+                                activeTypingAgents.map(name => (
+                                    <div key={name} className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 italic">
+                                        <Loader2 className="w-3 h-3 animate-spin" /> {name} is reviewing...
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl rounded-tl-none p-4 flex items-center gap-2 shadow-sm w-fit">
+                                    <div className="flex gap-1">
+                                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
+                                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-75"></div>
+                                        <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-150"></div>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                     <div ref={messagesEndRef} />
@@ -205,7 +236,7 @@ export const StaffMessagingHub: React.FC = () => {
                             <input 
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
-                                placeholder={`Collaborate with ${selectedAgent.name}...`}
+                                placeholder={selectedAgent.id === 'team-hub' ? "Brief the entire staff..." : `Strategy session with ${selectedAgent.name}...`}
                                 className="w-full bg-slate-100 dark:bg-slate-900 border-none rounded-2xl py-4 pl-6 pr-14 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all shadow-inner"
                             />
                             <button 
@@ -224,16 +255,16 @@ export const StaffMessagingHub: React.FC = () => {
             <div className="w-80 border-l border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-slate-50 dark:bg-slate-900/30">
                 <div className="p-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
                     <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-yellow-500" /> Proposals
+                        <Zap className="w-4 h-4 text-yellow-500" /> Game Plan
                     </h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Goal: Sync Placement</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Status: Active Synthesis</p>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                     {proposals.length === 0 ? (
                         <div className="text-center py-12 px-6">
                             <BrainCircuit className="w-8 h-8 text-slate-700 mx-auto mb-3 opacity-20" />
-                            <p className="text-xs text-slate-500 font-medium">Your team is analyzing the landscape for proactive moves...</p>
+                            <p className="text-xs text-slate-500 font-medium leading-relaxed">Analyzing ledger signals for strategic pivots...</p>
                         </div>
                     ) : (
                         proposals.map(prop => (
@@ -259,26 +290,6 @@ export const StaffMessagingHub: React.FC = () => {
                             </div>
                         ))
                     )}
-
-                    {/* Proactive Signal Heatmap Placeholder */}
-                    <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 mt-8">
-                         <div className="flex items-center gap-2 mb-3">
-                            <TrendingUp className="w-4 h-4 text-cyan-400" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Market Alignment</span>
-                         </div>
-                         <div className="space-y-3">
-                            {[
-                                { label: 'Vibe Match', val: '92%' },
-                                { label: 'Release Lead', val: '14 Days' },
-                                { label: 'IP Safety', val: 'Critical' },
-                            ].map((s, i) => (
-                                <div key={i} className="flex items-center justify-between">
-                                    <span className="text-[10px] text-slate-600 font-bold">{s.label}</span>
-                                    <span className={`text-[10px] font-mono ${s.val === 'Critical' ? 'text-red-500 animate-pulse' : 'text-cyan-500'}`}>{s.val}</span>
-                                </div>
-                            ))}
-                         </div>
-                    </div>
                 </div>
             </div>
         </div>
