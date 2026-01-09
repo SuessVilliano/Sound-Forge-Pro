@@ -1,4 +1,3 @@
-
 import { Opportunity, Track, Stats, Battle, User, SyncBrief } from './types';
 
 export const APP_NAME = "Sound Merge";
@@ -53,7 +52,7 @@ export const NAVIGATION_ITEMS = [
   { id: VIEWS.MASTERING, label: 'AI Mastering', icon: 'Sliders' },
   { id: VIEWS.ANALYTICS, label: 'Insights', icon: 'BarChart2' },
   { id: VIEWS.PROFILE, label: 'My Artist Page', icon: 'User' },
-  { id: VIEWS.CRM, label: 'Fan CRM', icon: 'Mail' },
+  { id: VIEWS.CRM, label: 'CRM', icon: 'Mail' },
   { id: VIEWS.VOICE, label: 'Voice Market', icon: 'Mic', ai: true },
   { id: VIEWS.DISTRIBUTION, label: 'Distribution', icon: 'Radio' },
   { id: VIEWS.DAO, label: 'DAO', icon: 'Vote', new: true },
@@ -143,7 +142,6 @@ export const FEATURED_ARTISTS: Partial<User>[] = [
     }
 ];
 
-// Added missing PRO_PLATFORMS for RevenueRecovery.tsx
 export const PRO_PLATFORMS = [
   { name: 'ASCAP', type: 'PRO', url: 'https://www.ascap.com/' },
   { name: 'BMI', type: 'PRO', url: 'https://www.bmi.com/' },
@@ -153,7 +151,6 @@ export const PRO_PLATFORMS = [
   { name: 'PRS for Music', type: 'PRO', url: 'https://www.prsformusic.com/' },
 ];
 
-// Added missing DISTRIBUTION_PARTNERS for MusicDistribution.tsx
 export const DISTRIBUTION_PARTNERS = [
   { name: 'Spotify', icon: 'Music' },
   { name: 'Apple Music', icon: 'Music' },
@@ -163,7 +160,6 @@ export const DISTRIBUTION_PARTNERS = [
   { name: 'Deezer', icon: 'Music' },
 ];
 
-// Added missing MASTERING_STYLES for MasteringConsole.tsx
 export const MASTERING_STYLES = [
   { id: 'balanced', name: 'Balanced', description: 'Clean and transparent with natural dynamics.' },
   { id: 'warm', name: 'Warm', description: 'Vintage analog character with soft saturation.' },
@@ -172,7 +168,6 @@ export const MASTERING_STYLES = [
   { id: 'custom', name: 'Custom AI', description: 'Provide specific instructions to the neural engine.' },
 ];
 
-// Added missing MOCK_COURSES for AcademyView.tsx
 export const MOCK_COURSES = [
   { 
     id: 'c1', 
