@@ -1,5 +1,4 @@
 
-
 export type BriefSource = "Songtradr" | "DittoSync" | "Horus" | "EmailFeed" | "UserSubmitted" | "PartnerAPI";
 export type MediaType = "TV" | "Film" | "Ad" | "Game" | "Trailer" | "Brand" | "Other";
 
@@ -122,7 +121,6 @@ export interface User {
   hasSignedLegal?: boolean;
   legalSignedDate?: string;
   ghlIntegration?: GHLIntegration;
-  // Added xp and artistLevel to User interface to fix TypeScript errors in authService
   xp?: number;
   artistLevel?: string;
 }
@@ -250,6 +248,24 @@ export interface StaffProposal {
     impact: 'high' | 'medium' | 'low';
     actionLabel: string;
     timestamp: string;
+}
+
+export interface StudioSuggestion {
+  id: string;
+  agentId: 'beat' | 'melody' | 'engineer';
+  type: 'beat' | 'vocal' | 'fx';
+  title: string;
+  description: string;
+  promptAddon: string;
+  timestamp: string;
+}
+
+export interface StudioAgent {
+  id: string;
+  name: string;
+  role: 'beat' | 'melody' | 'engineer';
+  avatar: string;
+  status: 'analyzing' | 'idle' | 'suggesting';
 }
 
 export interface FundingRequest {

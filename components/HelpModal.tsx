@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { X, BookOpen, Wand2, Music, Shield, DollarSign, Zap, Globe, MessageSquare, PlayCircle, Cpu, ZapOff, Sparkles, Server, Inbox, Share2 } from 'lucide-react';
+import { X, BookOpen, Wand2, Music, Shield, DollarSign, Zap, Globe, MessageSquare, PlayCircle, Cpu, ZapOff, Sparkles, Server, Inbox, Share2, LayoutGrid } from 'lucide-react';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -12,11 +11,11 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestart
   if (!isOpen) return null;
 
   const features = [
+    { icon: LayoutGrid, title: "Discovery Lab", desc: "The central directory for all platform nodes. Explore everything from AI Studio to Capital Funding." },
     { icon: Inbox, title: "Identity Hub", desc: "Manage all communications with fans and industry partners in one synchronized center." },
     { icon: Share2, title: "Promotion Ledger", desc: "Schedule and automate your promotion campaigns across all connected social channels." },
     { icon: Zap, title: "Sync Agent", desc: "Auto-match your catalog to institutional opportunities from Netflix, HBO, and ad agencies." },
-    { icon: Globe, title: "Global Network", desc: "Release music directly to Spotify, Apple Music, and 150+ stores globally via the Sound Merge infrastructure." },
-    { icon: DollarSign, title: "Revenue Recovery", desc: "Find unclaimed royalties in global black box databases." },
+    { icon: Globe, title: "Global Network", desc: "Release music directly to Spotify, Apple Music, and 150+ stores globally via Sound Merge rails." },
     { icon: Shield, title: "VoiceShield™", desc: "Register your voice biometrics on the Sound Merge Ledger to prevent unauthorized cloning." },
   ];
 

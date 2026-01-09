@@ -2,16 +2,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     Play, Square, Mic, Settings, Plus, Trash2, Clock, Save, Wand2, Sparkles, 
-    Send, Loader2, Music, Download, ChevronRight, ChevronDown, Grid, Disc, 
+    Loader2, Music, Download, ChevronRight, ChevronDown, Grid, Disc, 
     FileAudio, Circle, X, BrainCircuit, Cpu, Database, Zap, CheckCircle2, 
     Sliders, Type, History, MessageSquare, RotateCcw, Heart, BookmarkPlus, 
     Share, Sparkle, RefreshCw, Shield, MoreVertical, Layers, Scissors, Upload,
-    Volume2, Waves, FileOutput
+    Volume2, Waves, FileOutput, Bot, Brain, AudioLines, Target, TrendingUp
 } from 'lucide-react';
 import { musicGenService, MusicEngine, ForgeOptions } from '../services/musicGenService';
 import { separateAudioWithKits } from '../services/audioService';
 import { dataService } from '../services/dataService';
-import { User, StemResult } from '../types';
+import { getStudioAgentSuggestions } from '../services/geminiService';
+import { User, StemResult, StudioSuggestion, StudioAgent } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 
 interface MusicCreationStudioProps {
@@ -27,6 +28,12 @@ const MODEL_VERSIONS = [
     { label: 'Rapid Prototype Engine', value: 'musicgpt' },
     { label: 'Standard Vocal Synthesis', value: 'suno' },
     { label: 'Experimental Hybrid Node', value: 'aimusic' }
+];
+
+const INITIAL_AGENTS: StudioAgent[] = [
+  { id: 'beat', name: 'Rhythm Architect', role: 'beat', avatar: 'https://ui-avatars.com/api/?name=Rhythm+Architect&background=06b6d4&color=fff', status: 'idle' },
+  { id: 'melody', name: 'Melody Scout', role: 'melody', avatar: 'https://ui-avatars.com/api/?name=Melody+Scout&background=8b5cf6&color=fff', status: 'idle' },
+  { id: 'engineer', name: 'Sound Designer', role: 'engineer', avatar: 'https://ui-avatars.com/api/?name=Sound+Designer&background=10b981&color=fff', status: 'idle' },
 ];
 
 export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, onUpgrade }) => {
@@ -47,6 +54,11 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
   const [lyrics, setLyrics] = useState('');
   const [isInstrumental, setIsInstrumental] = useState(false);
 
+  // Studio Agents State
+  const [agents, setAgents] = useState<StudioAgent[]>(INITIAL_AGENTS);
+  const [suggestions, setSuggestions] = useState<StudioSuggestion[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
+
   // Separator State
   const [sepFile, setSepFile] = useState<File | null>(null);
   const [sepStatus, setSepStatus] = useState('');
@@ -61,6 +73,41 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
     });
     return () => unsub();
   }, [user.uid]);
+
+  // Proactive Studio Agent Trigger
+  useEffect(() => {
+    if (activeTab !== 'forge') return;
+    
+    const timeout = setTimeout(async () => {
+      if (!styleInput && !lyrics) return;
+      setIsThinking(true);
+      setAgents(prev => prev.map(a => ({ ...a, status: 'analyzing' })));
+      
+      const newSuggestions = await getStudioAgentSuggestions(styleInput, lyrics);
+      if (newSuggestions.length > 0) {
+        setSuggestions(prev => [...newSuggestions, ...prev].slice(0, 5));
+        setAgents(prev => prev.map(a => ({ ...a, status: 'suggesting' })));
+        setTimeout(() => {
+          setAgents(prev => prev.map(a => ({ ...a, status: 'idle' })));
+        }, 3000);
+      }
+      setIsThinking(false);
+    }, 5000); // Analyze 5s after input stabilizes
+
+    return () => clearTimeout(timeout);
+  }, [styleInput, lyrics, activeTab]);
+
+  const applySuggestion = (suggestion: StudioSuggestion) => {
+    if (isCustomMode) {
+      setStyleInput(prev => `${prev}, ${suggestion.promptAddon}`.replace(/^, /, ''));
+    } else {
+      setSimplePrompt(prev => `${prev}. Also, ${suggestion.description}`);
+    }
+    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+    window.dispatchEvent(new CustomEvent('sf-notification', { 
+        detail: { title: 'Suggestion Applied', message: `${suggestion.title} added to project scope.`, type: 'info' } 
+    }));
+  };
 
   const handleForge = async () => {
       const promptToUse = isCustomMode ? styleInput : simplePrompt;
@@ -81,9 +128,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
       };
 
       try {
-          // Real API call via service
           const result = await musicGenService.generate(options);
-          
           setOperationalMessage("Metadata optimization in progress...");
           
           const trackData: any = {
@@ -95,9 +140,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
               isSaved: true
           };
 
-          // PERSISTENCE: This ensures the song "stays" in the library
           await dataService.saveTrack(user.uid, trackData);
-          
           playTrack(trackData);
           setSongTitle('');
           
@@ -127,22 +170,6 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
           setIsProcessing(false);
           setSepStatus('');
       }
-  };
-
-  const playStem = (url: string, label: string) => {
-      playTrack({
-          id: `stem_${Date.now()}`,
-          title: `${label}: ${sepFile?.name}`,
-          artist: "Stem Extractor",
-          audioUrl: url,
-          image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=500&auto=format",
-          duration: "Stem",
-          bpm: 0,
-          key: "-",
-          mood_tags: ["Isolated", label],
-          plays: 0,
-          earnings: 0
-      });
   };
 
   return (
@@ -244,98 +271,200 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
             </div>
         </div>
 
-        {/* RIGHT: OUTPUT AREA */}
-        <div className="flex-1 bg-slate-950 overflow-y-auto p-12 custom-scrollbar relative">
+        {/* RIGHT: AGENTS & FEED */}
+        <div className="flex-1 bg-slate-950 overflow-hidden flex flex-col relative">
             
-            {/* Marie's Operational Feed Overlay */}
-            {isProcessing && (
-                <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 w-96 bg-slate-900/95 backdrop-blur border border-indigo-500/30 rounded-3xl p-6 text-center animate-in slide-in-from-top-4 shadow-2xl">
-                    <div className="flex justify-center mb-4">
-                        <div className="relative">
-                            <div className="w-12 h-12 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Cpu className="w-5 h-5 text-indigo-400 animate-pulse" />
+            {/* AGENT STATUS BAR */}
+            <div className="h-20 bg-slate-950 border-b border-slate-900 px-8 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-6">
+                    {agents.map(agent => (
+                        <div key={agent.id} className="flex items-center gap-3 relative">
+                            <div className={`w-10 h-10 rounded-full border-2 transition-all duration-500 overflow-hidden ${agent.status === 'analyzing' ? 'border-cyan-500 animate-pulse' : agent.status === 'suggesting' ? 'border-green-500 scale-110' : 'border-slate-800'}`}>
+                                <img src={agent.avatar} className="w-full h-full object-cover" />
                             </div>
+                            <div className="hidden lg:block">
+                                <span className="text-[10px] font-black text-white uppercase tracking-tighter block">{agent.name}</span>
+                                <span className={`text-[8px] font-bold uppercase ${agent.status === 'analyzing' ? 'text-cyan-500' : agent.status === 'suggesting' ? 'text-green-500' : 'text-slate-600'}`}>{agent.status}</span>
+                            </div>
+                            {agent.status === 'suggesting' && (
+                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                </span>
+                            )}
                         </div>
-                    </div>
-                    <p className="text-xs font-black text-white uppercase tracking-widest mb-1">{operationalMessage}</p>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold">Sound Merge Enterprise Node</p>
+                    ))}
                 </div>
-            )}
-
-            <div className="max-w-4xl mx-auto space-y-12">
-                {activeTab === 'forge' ? (
-                    <div className="space-y-8">
-                        <div className="flex justify-between items-center border-b border-slate-800 pb-6">
-                            <h2 className="text-3xl font-black text-white uppercase tracking-widest flex items-center gap-4 italic">
-                                <History className="w-8 h-8 text-indigo-500" /> Neural History
-                            </h2>
-                            <span className="text-[10px] font-black text-slate-500 uppercase bg-slate-900 px-4 py-1.5 rounded-full border border-slate-800 tracking-[0.2em]">Total Rendered: {forgeHistory.length}</span>
+                <div className="flex items-center gap-4">
+                    {isThinking && (
+                        <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 px-4 py-1.5 rounded-full">
+                            <BrainCircuit className="w-3 h-3 text-cyan-500 animate-pulse" />
+                            <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Neural Analysis Active</span>
                         </div>
-                        
-                        {forgeHistory.length === 0 && !isProcessing ? (
-                            <div className="h-64 flex flex-col items-center justify-center text-slate-800 opacity-20 border-4 border-dashed border-slate-900 rounded-[3rem]">
-                                <Disc className="w-24 h-24 mb-4" />
-                                <p className="text-xl font-black uppercase tracking-widest italic">Ledger Empty</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {forgeHistory.map(track => (
-                                    <div key={track.id} className="bg-slate-900/40 border border-slate-800 rounded-[2.5rem] overflow-hidden flex h-40 group hover:border-indigo-500/50 transition-all shadow-xl relative">
-                                        <div className="w-40 relative overflow-hidden shrink-0 border-r border-slate-800">
-                                            <img src={track.image || track.imageUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&auto=format&fit=crop'} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" />
-                                            <div onClick={() => playTrack(track)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer backdrop-blur-sm">
-                                                <Play className="w-12 h-12 fill-white text-white" />
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 p-6 flex flex-col justify-between">
-                                            <div className="space-y-1">
-                                                <h3 className="text-xl font-black text-white uppercase truncate tracking-tight">{track.title}</h3>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {track.tags?.slice(0,3).map((t:any) => <span key={t} className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded uppercase tracking-tighter">#{t}</span>)}
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-center border-t border-slate-800/50 pt-4">
-                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                                    {track.duration} • <span className="text-slate-400">INSTITUTIONAL NODE</span>
-                                                </div>
-                                                <div className="flex gap-4">
-                                                    <button onClick={() => dataService.deleteTrack(track.id)} className="text-slate-700 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                                                    <button className="text-slate-700 hover:text-white transition-colors"><Download className="w-4 h-4" /></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="space-y-12">
-                        {extractedStems ? (
-                            <div className="animate-in zoom-in duration-500">
-                                <div className="text-center mb-12">
-                                    <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/20 shadow-[0_0_40px_rgba(34,197,94,0.1)]">
-                                        <CheckCircle2 className="w-10 h-10 text-green-500" />
-                                    </div>
-                                    <h2 className="text-4xl font-black text-white uppercase tracking-tighter italic">Stems Isolated.</h2>
-                                    <p className="text-slate-500 text-sm mt-2">Professional components ready for placement.</p>
+                    )}
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar relative">
+                {isProcessing && (
+                    <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 w-96 bg-slate-900/95 backdrop-blur border border-indigo-500/30 rounded-3xl p-6 text-center animate-in slide-in-from-top-4 shadow-2xl">
+                        <div className="flex justify-center mb-4">
+                            <div className="relative">
+                                <div className="w-12 h-12 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <Cpu className="w-5 h-5 text-indigo-400 animate-pulse" />
                                 </div>
-                                {/* Stem grid UI remains similar but ensures actual playback */}
                             </div>
-                        ) : isProcessing ? (
-                            <div className="flex flex-col items-center justify-center py-40">
-                                <Waves className="w-32 h-32 text-cyan-500 animate-pulse mb-8" />
-                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter animate-pulse">{sepStatus || "ISOLATING SIGNALS..."}</h3>
-                            </div>
-                        ) : (
-                            <div className="h-96 flex flex-col items-center justify-center text-slate-800 opacity-20 border-4 border-dashed border-slate-900 rounded-[4rem]">
-                                <Layers className="w-32 h-32 mb-4" />
-                                <p className="text-2xl font-black uppercase tracking-widest italic">Idle Status</p>
-                            </div>
-                        )}
+                        </div>
+                        <p className="text-xs font-black text-white uppercase tracking-widest mb-1">{operationalMessage}</p>
+                        <p className="text-[10px] text-slate-500 uppercase font-bold">Sound Merge Enterprise Node</p>
                     </div>
                 )}
+
+                <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
+                    {/* Main Content Area */}
+                    <div className="lg:col-span-8 space-y-12">
+                        {activeTab === 'forge' ? (
+                            <div className="space-y-8">
+                                <div className="flex justify-between items-center border-b border-slate-800 pb-6">
+                                    <h2 className="text-3xl font-black text-white uppercase tracking-widest flex items-center gap-4 italic">
+                                        <History className="w-8 h-8 text-indigo-500" /> Neural History
+                                    </h2>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase bg-slate-900 px-4 py-1.5 rounded-full border border-slate-800 tracking-[0.2em]">Total Rendered: {forgeHistory.length}</span>
+                                </div>
+                                
+                                {forgeHistory.length === 0 && !isProcessing ? (
+                                    <div className="h-64 flex flex-col items-center justify-center text-slate-800 opacity-20 border-4 border-dashed border-slate-900 rounded-[3rem]">
+                                        <Disc className="w-24 h-24 mb-4" />
+                                        <p className="text-xl font-black uppercase tracking-widest italic">Ledger Empty</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        {forgeHistory.map(track => (
+                                            <div key={track.id} className="bg-slate-900/40 border border-slate-800 rounded-[2.5rem] overflow-hidden flex h-40 group hover:border-indigo-500/50 transition-all shadow-xl relative">
+                                                <div className="w-40 relative overflow-hidden shrink-0 border-r border-slate-800">
+                                                    <img src={track.image || track.imageUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&auto=format&fit=crop'} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" />
+                                                    <div onClick={() => playTrack(track)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer backdrop-blur-sm">
+                                                        <Play className="w-12 h-12 fill-white text-white" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 p-6 flex flex-col justify-between">
+                                                    <div className="space-y-1">
+                                                        <h3 className="text-xl font-black text-white uppercase truncate tracking-tight">{track.title}</h3>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {track.tags?.slice(0,3).map((t:any) => <span key={t} className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded uppercase tracking-tighter">#{t}</span>)}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-between items-center border-t border-slate-800/50 pt-4">
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                            {track.duration} • <span className="text-slate-400">INSTITUTIONAL NODE</span>
+                                                        </div>
+                                                        <div className="flex gap-4">
+                                                            <button onClick={() => dataService.deleteTrack(track.id)} className="text-slate-700 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                                            <button className="text-slate-700 hover:text-white transition-colors"><Download className="w-4 h-4" /></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-12">
+                                {extractedStems ? (
+                                    <div className="animate-in zoom-in duration-500">
+                                        <div className="text-center mb-12">
+                                            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/20 shadow-[0_0_40px_rgba(34,197,94,0.1)]">
+                                                <CheckCircle2 className="w-10 h-10 text-green-500" />
+                                            </div>
+                                            <h2 className="text-4xl font-black text-white uppercase tracking-tighter italic">Stems Isolated.</h2>
+                                            <p className="text-slate-500 text-sm mt-2">Professional components ready for placement.</p>
+                                        </div>
+                                    </div>
+                                ) : isProcessing ? (
+                                    <div className="flex flex-col items-center justify-center py-40">
+                                        <Waves className="w-32 h-32 text-cyan-500 animate-pulse mb-8" />
+                                        <h3 className="text-3xl font-black text-white uppercase tracking-tighter animate-pulse">{sepStatus || "ISOLATING SIGNALS..."}</h3>
+                                    </div>
+                                ) : (
+                                    <div className="h-96 flex flex-col items-center justify-center text-slate-800 opacity-20 border-4 border-dashed border-slate-900 rounded-[4rem]">
+                                        <Layers className="w-32 h-32 mb-4" />
+                                        <p className="text-2xl font-black uppercase tracking-widest italic">Idle Status</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RIGHT: AGENT SUGGESTIONS PANE */}
+                    <div className="lg:col-span-4 space-y-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-cyan-400" /> AI Insights
+                            </h3>
+                            <button onClick={() => setSuggestions([])} className="text-[10px] text-slate-500 hover:text-white uppercase tracking-widest font-bold transition-colors">Clear</button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            {suggestions.length === 0 ? (
+                                <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 text-center">
+                                    <Brain className="w-8 h-8 text-slate-800 mx-auto mb-3" />
+                                    <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest leading-relaxed">
+                                        Describe your vibe to trigger proactive team assistance.
+                                    </p>
+                                </div>
+                            ) : (
+                                suggestions.map(suggestion => (
+                                    <div key={suggestion.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 hover:border-cyan-500/50 transition-all group animate-in slide-in-from-right-4 duration-300">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-xl ${
+                                                    suggestion.agentId === 'beat' ? 'bg-cyan-500/10 text-cyan-400' :
+                                                    suggestion.agentId === 'melody' ? 'bg-purple-500/10 text-purple-400' :
+                                                    'bg-green-500/10 text-green-400'
+                                                }`}>
+                                                    {suggestion.type === 'beat' ? <AudioLines className="w-4 h-4" /> : suggestion.type === 'vocal' ? <Mic className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+                                                </div>
+                                                <div>
+                                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{suggestion.agentId} node</span>
+                                                    <h4 className="text-sm font-bold text-white uppercase tracking-tight line-clamp-1">{suggestion.title}</h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-slate-400 leading-relaxed mb-6 italic">"{suggestion.description}"</p>
+                                        <button 
+                                            onClick={() => applySuggestion(suggestion)}
+                                            className="w-full py-2.5 bg-slate-800 hover:bg-cyan-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02]"
+                                        >
+                                            <CheckCircle2 className="w-3.5 h-3.5" /> Integrate Insight
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* INDUSTRY TRENDS TICKER */}
+                        <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-3xl p-6 mt-8">
+                             <div className="flex items-center gap-2 mb-4">
+                                <TrendingUp className="w-4 h-4 text-indigo-400" />
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Signal Watch</span>
+                             </div>
+                             <div className="space-y-4">
+                                {[
+                                    { label: 'Hyper-Pop Transitions', impact: '+24%' },
+                                    { label: 'Analog Drum Texture', impact: 'Rising' },
+                                    { label: 'Ethereal Pad Stacks', impact: 'Trending' }
+                                ].map((trend, i) => (
+                                    <div key={i} className="flex justify-between items-center text-[10px] font-bold">
+                                        <span className="text-slate-500 uppercase">{trend.label}</span>
+                                        <span className="text-cyan-400 font-mono">{trend.impact}</span>
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

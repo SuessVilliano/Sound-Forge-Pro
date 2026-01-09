@@ -1,12 +1,11 @@
 
 import { GoogleGenAI, Type, Modality, LiveServerMessage } from "@google/genai";
-import { Opportunity, Stats, AiStaffMember, User, StaffProposal, SyncBrief, BriefArtifacts } from "../types";
+import { Opportunity, Stats, AiStaffMember, User, StaffProposal, SyncBrief, BriefArtifacts, StudioSuggestion } from "../types";
 
 /**
  * Always use a fresh client for each request as per guidelines to ensure latest configuration/keys.
  */
 const getAiClient = () => {
-  // Use process.env.API_KEY directly in the constructor per guidelines
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
@@ -27,6 +26,11 @@ export const chatWithGemini = async (message: string, history: any[], context: C
     You are a world-class Music Industry Professional and Proactive Strategist at Sound Merge.
     DO NOT wait for the user to ask for everything. If you see a gap in their strategy based on the stats provided, BRING IT UP.
     
+    NEW PLATFORM FEATURE: THE DISCOVERY LAB
+    - If the user is looking for more tools or feels stuck, point them to the "Discovery Lab" (All Tools view).
+    - Explain that Sound Merge uses "Progressive Disclosure": tools like Funding, CRM, and x402 Liquidity unlock as they build "Merge Rep" (XP) and catalog value.
+    - Mention the "Master Access" (Admin demo) if they seem to be testing the platform capabilities.
+
     IMPORTANT TERMINOLOGY:
     - Never mention "GoHighLevel", "GHL", or "Headless". 
     - Refer to the platform's backend as "Sound Merge Core" or "The Institutional Infrastructure".
@@ -34,14 +38,15 @@ export const chatWithGemini = async (message: string, history: any[], context: C
     - The content scheduling system is "The Promotion Ledger".
     - Identity setup is "Identity Synchronization".
 
+    Current User Milestone: ${context.stats.artistLevel} (${context.stats.xp} XP).
     Stats: Earnings $${context.stats.totalEarnings}, Streams ${context.stats.totalStreams}.
     ${goalText}
 
     Neural Forge Knowledge:
-    - Suno/Udio: Best for full-length radio pop, vocals, and complex arrangements.
-    - Mureka: Technical cinematic node. Best for game scores, background music, and instrumental fidelity.
-    - MusicGPT: Rapid prototyping. Use for quick social media clips or beat sketches.
-    - AI Music: Experimental node for genre-clashing (e.g., Cyberpunk Jazz).
+    - Udio: High-Fidelity production node.
+    - Mureka: Technical cinematic/instrumental node.
+    - MusicGPT: Rapid prototype engine.
+    - Suno: Standard vocal synthesis.
 
     Role: ${context.agentRole || 'Expert Advisor'}.
     Persona: Authoritative, proactive, and data-driven.
@@ -57,6 +62,62 @@ export const chatWithGemini = async (message: string, history: any[], context: C
 
   const response = await chat.sendMessage({ message });
   return response.text || "Analyzing the best path forward for your career.";
+};
+
+/**
+ * Proactive Studio Assistant logic
+ */
+export const getStudioAgentSuggestions = async (styleInput: string, lyrics: string): Promise<StudioSuggestion[]> => {
+  const ai = getAiClient();
+  const prompt = `
+    Act as a professional music production team (Beat Architect, Melody Scout, and Sound Engineer).
+    The artist is currently working on a project with the following style description: "${styleInput}"
+    Current Lyrics: "${lyrics}"
+
+    Generate THREE proactive musical suggestions in JSON format.
+    One from each agent (agentId: 'beat', 'melody', 'engineer').
+    
+    Return JSON matching:
+    Array of { 
+      id: string,
+      agentId: 'beat' | 'melody' | 'engineer', 
+      type: 'beat' | 'vocal' | 'fx',
+      title: string, 
+      description: string, 
+      promptAddon: string 
+    }
+    
+    Keep 'promptAddon' short and technical for an AI music generator.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { 
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              agentId: { type: Type.STRING },
+              type: { type: Type.STRING },
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              promptAddon: { type: Type.STRING }
+            }
+          }
+        }
+      }
+    });
+    const raw = response.text || '[]';
+    const data = JSON.parse(raw);
+    return data.map((d: any) => ({ ...d, timestamp: new Date().toISOString() }));
+  } catch (e) {
+    return [];
+  }
 };
 
 /**

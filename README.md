@@ -1,38 +1,39 @@
+# Sound Merge Professional Ecosystem v2.5
 
-# Sound Merge Professional Ecosystem
+The institutional operating system for modern music legends. Sound Merge provides artists and labels with decentralized infrastructure for creative production, global distribution, and biometric rights protection.
 
-The complete music industry platform for professional artists. Institutional creative engines, distribution, and identity protection.
+## 🚀 Key Architectural Updates
 
-## 🚀 The Sound Merge Architecture (v2.5)
+### 1. The Discovery Lab (All Tools Hub)
+The central directory for the Sound Merge suite. Users can now explore the entire ecosystem in one view.
+- **Progressive Disclosure**: Advanced nodes (Funding, CRM, x402 Liquidity) unlock as your **Merge Reputation (XP)** increases.
+- **Institutional Gating**: Enterprise-grade features are dynamically locked/unlocked based on membership tier (Free, Pro, Label).
 
-### 1. Sound Merge Core
-Every artist profile is backed by a dedicated Institutional Node. This "synchronization" process creates a secure, private digital office that manages:
-- **The Hub**: A unified messaging center for fans and partners.
-- **The Promotion Ledger**: A drag-and-drop campaign scheduler for all promotion channels.
-- **Workflow Automation**: Institutional-grade logic to handle royalties and distribution.
+### 2. Neural Forge Studio
+Multi-node synthesis for radio-ready production:
+- **High-Fidelity Node**: Full-track synthesis with complex song structures.
+- **Cinematic Node**: Instrumental and score optimization.
+- **Rapid Prototype Engine**: Fast iteration for social media content.
+- **Neural Separator**: Institutional-grade stem isolation powered by Sound Merge Nodes.
 
-### 2. Neural Creative Architecture
-Choose the right neural processing node for every project:
-- **High-Fidelity Engine**: Full-track synthesis with radio-ready song structures.
-- **Cinematic Node**: Specialized high-fidelity instrumental and cinematic engine.
-- **Rapid Prototype Engine**: Rapid text-to-audio prototyping for fast iteration.
-- **Experimental Hybrid Node**: Experimental genre-blending and aggressive texture generation.
+### 3. VoiceShield™ & Identity Sync
+- **Biometric Fingerprinting**: Secure your vocal DNA on the Solana Ledger.
+- **Deepfake Radar**: Scan external audio files for synthetic AI artifacts using Resemble.ai integration.
+- **Vocal NFT Minting**: Anchor your identity to an immutable token for automated licensing.
 
-### 3. Real-Time Industry Intel
-We provide live data synchronization from global industry sources:
-- **Discovery Dashboard**: Fetches the live global Hot 100 chart.
-- **Performance Analytics**: Pulls real-time Artist Stats and Track Stream counts from official industry ledgers.
-
-### 4. Identity & Rights Protection
-- **VoiceShield™**: Biometric voice fingerprinting secured on the Sound Merge Ledger.
-- **Merge Reputation**: Build your on-chain credit score to unlock future $MERGE utility tokens and capital funding.
+### 4. Institutional Hub (CRM & Promotion)
+- **Fan Registry**: Automated unified messaging across SMS, WhatsApp, and Email.
+- **Promotion Ledger**: Drag-and-drop campaign scheduling for a coordinated global release.
 
 ---
 
-## 🛠️ Security & Privacy
+## 🛠️ Master Demo Access
+For institutional testing and auditing, use the Master Pro Node:
+- **Username**: `admin`
+- **Password**: `password1`
+*This account provides instant "Legendary" status, 5,000 XP, and all Discovery Lab nodes fully unlocked.*
 
-Sound Merge uses an internal "Privacy Gateway" to ensure your industry tokens and personal data never touch the client-side code. All operations are performed server-side on secured institutional rails.
+## 📄 Compliance & Security
+Built on institutional rails with end-to-end encryption. All assets are hashed and anchored to the ledger to ensure 100% creator ownership and non-repudiation.
 
-## 📄 License
-
-Sound Merge is proprietary software. Built for the next era of music ownership.
+© 2025 Sound Merge Inc. Built for the next era of music ownership.
