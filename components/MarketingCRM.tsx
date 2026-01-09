@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     Users, Send, TrendingUp, UserPlus, Search, Plus, Sparkles, 
     FileText, Settings, ArrowRight, CheckCircle2, Clock, Zap, 
     MessageSquare, BarChart, Filter, MoreHorizontal, Mail, Link, 
-    AlertCircle, X, Smartphone, PlayCircle, StopCircle, RefreshCw, 
+    // Added AlertTriangle to the lucide-react imports to fix the error on line 319
+    AlertCircle, AlertTriangle, X, Smartphone, PlayCircle, StopCircle, RefreshCw, 
     Calendar, Inbox, Activity, ShieldCheck, Database, Layout, 
     Globe, Phone, MessageCircle, Cloud, Share2, Bot, Loader2, Server, Building2, MapPin, ChevronRight, ZapOff
 } from 'lucide-react';
 import { crmService } from '../services/crmService';
 import { authService } from '../services/authService';
+import { searchAddresses } from '../services/geminiService';
 import { CRMContact, CRMAutomaton, CRMCampaign, MessageThread, ChatMessage, SocialPost, User } from '../types';
 
 export const MarketingCRM: React.FC = () => {
@@ -40,7 +43,7 @@ export const MarketingCRM: React.FC = () => {
           if (activeTab === 'automations') setAutomations(await crmService.getAutomations());
           if (activeTab === 'campaigns') setCampaigns(await crmService.getCampaigns());
       } catch (e) {
-          console.error("Hub Sync Error", e);
+          console.error("CRM Sync Error", e);
       } finally {
           setLoading(false);
       }
@@ -63,7 +66,7 @@ export const MarketingCRM: React.FC = () => {
                   <div>
                       <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">CRM Status</div>
                       <div className={`text-xs font-bold ${isCoreActive ? 'text-green-400' : 'text-yellow-500'}`}>
-                          {isCoreActive ? `CRM Node: ${user?.ghlIntegration?.ghlLocationId.slice(0,8)}...` : 'Node Deployment Required'}
+                          {isCoreActive ? `CRM Account Active` : 'Setup Required'}
                       </div>
                   </div>
               </div>
@@ -85,7 +88,7 @@ export const MarketingCRM: React.FC = () => {
                 onClick={() => setShowProvisioning(true)}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-cyan-600/20 flex items-center gap-2"
               >
-                  <Plus className="w-4 h-4" /> Deploy CRM Node
+                  <Plus className="w-4 h-4" /> Initialize CRM
               </button>
           )}
       </div>
@@ -101,7 +104,7 @@ export const MarketingCRM: React.FC = () => {
               <div className="max-w-md">
                   <h2 className="text-3xl font-black text-white uppercase tracking-tight">CRM Offline</h2>
                   <p className="text-slate-500 mt-4 leading-relaxed font-medium">
-                      Initialize your personal CRM Node to activate automated fan management, unified messaging, and cross-channel promotion ledgers.
+                      Activate your personal CRM to automate fan management, unified messaging, and campaign planning.
                   </p>
               </div>
               <button 
@@ -117,11 +120,11 @@ export const MarketingCRM: React.FC = () => {
             <div className="flex border-b border-slate-800 overflow-x-auto scrollbar-hide">
                {[
                    { id: 'inbox', label: 'Inbox', icon: Inbox },
-                   { id: 'calendar', label: 'Promotion Ledger', icon: Calendar },
-                   { id: 'campaigns', label: 'Campaign Builder', icon: Send },
+                   { id: 'calendar', label: 'Campaign Planner', icon: Calendar },
+                   { id: 'campaigns', label: 'Mass Outreach', icon: Send },
                    { id: 'automations', label: 'Workflows', icon: Zap },
-                   { id: 'contacts', label: 'Registry', icon: Users },
-                   { id: 'analytics', label: 'Signal Data', icon: BarChart },
+                   { id: 'contacts', label: 'Fan Registry', icon: Users },
+                   { id: 'analytics', label: 'Insights', icon: BarChart },
                ].map((tab) => (
                    <button 
                       key={tab.id} 
@@ -154,7 +157,7 @@ export const MarketingCRM: React.FC = () => {
           </>
       )}
 
-      {/* PROVISIONING MODAL */}
+      {/* SETUP MODAL */}
       {showProvisioning && (
           <ProvisioningTerminal 
               user={user} 
@@ -176,6 +179,9 @@ interface ProvisioningTerminalProps {
 
 const ProvisioningTerminal: React.FC<ProvisioningTerminalProps> = ({ user, onClose, onSuccess }) => {
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
+    const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+    const [isAddressVerified, setIsAddressVerified] = useState(false);
     const [formData, setFormData] = useState({
         businessName: user?.displayName || '',
         email: user?.email || '',
@@ -184,6 +190,38 @@ const ProvisioningTerminal: React.FC<ProvisioningTerminalProps> = ({ user, onClo
         city: '',
         country: 'US'
     });
+    const addressTimeoutRef = useRef<number | null>(null);
+
+    const handleAddressChange = (val: string) => {
+        setFormData({ ...formData, address: val });
+        setIsAddressVerified(false);
+        
+        if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+        
+        if (val.length > 4) {
+            setIsVerifyingAddress(true);
+            addressTimeoutRef.current = window.setTimeout(async () => {
+                const suggestions = await searchAddresses(val);
+                setAddressSuggestions(suggestions);
+                setIsVerifyingAddress(false);
+            }, 800);
+        } else {
+            setAddressSuggestions([]);
+        }
+    };
+
+    const selectAddress = (suggestion: any) => {
+        // Extract basic data from suggestion title (usually "Address, City, Country")
+        const parts = suggestion.title.split(',');
+        setFormData({
+            ...formData,
+            address: parts[0]?.trim() || suggestion.title,
+            city: parts[1]?.trim() || '',
+            country: parts[parts.length - 1]?.trim() || 'US'
+        });
+        setAddressSuggestions([]);
+        setIsAddressVerified(true);
+    };
 
     const handleDeploy = async () => {
         if (!user) return;
@@ -194,11 +232,11 @@ const ProvisioningTerminal: React.FC<ProvisioningTerminalProps> = ({ user, onClo
                 await new Promise(r => setTimeout(r, 2000));
                 onSuccess();
             } else {
-                alert("Deployment error: " + (res.error || "Gateway timeout"));
+                alert("Setup error: " + (res.error || "Gateway timeout"));
                 setIsSyncing(false);
             }
         } catch (e) {
-            alert("CRM Deployment failed. Check network connectivity.");
+            alert("CRM Setup failed. Check network connectivity.");
             setIsSyncing(false);
         }
     };
@@ -213,8 +251,8 @@ const ProvisioningTerminal: React.FC<ProvisioningTerminalProps> = ({ user, onClo
                             <Server className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">CRM Deployment Terminal</h2>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">LIV8 CRM Rails v2.5</p>
+                            <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">CRM Terminal</h2>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Verified Identity Synchronization</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-500 hover:text-white transition-colors">
@@ -232,14 +270,14 @@ const ProvisioningTerminal: React.FC<ProvisioningTerminalProps> = ({ user, onClo
                                 </div>
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black text-white uppercase tracking-widest animate-pulse">Initializing CRM...</h3>
-                                <p className="text-slate-500 text-sm mt-2">Provisioning dedicated CRM Instance and Applying Snapshots.</p>
+                                <h3 className="text-2xl font-black text-white uppercase tracking-widest animate-pulse">Synchronizing Ledger...</h3>
+                                <p className="text-slate-500 text-sm mt-2">Provisioning dedicated CRM Instance with Verified Identity.</p>
                             </div>
                             <div className="w-full bg-slate-950 rounded-xl p-4 font-mono text-[10px] text-green-500 text-left h-24 overflow-y-auto">
-                                [SYSTEM] Connecting to api.soundmerge.co...<br/>
-                                [SYSTEM] Creating location container...<br/>
-                                [SYSTEM] Applying "Artist" snapshot...<br/>
-                                [SYSTEM] Wiring messaging compliance...
+                                [SYSTEM] Connecting to gateway...<br/>
+                                [SYSTEM] Injecting verified address hash...<br/>
+                                [SYSTEM] Creating secure instance...<br/>
+                                [SYSTEM] Verifying A2P carrier compliance...
                             </div>
                         </div>
                     ) : (
@@ -256,7 +294,7 @@ const ProvisioningTerminal: React.FC<ProvisioningTerminalProps> = ({ user, onClo
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Control Email</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Identity Email</label>
                                     <div className="relative">
                                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input 
@@ -265,32 +303,58 @@ const ProvisioningTerminal: React.FC<ProvisioningTerminalProps> = ({ user, onClo
                                         />
                                     </div>
                                 </div>
-                                <div className="col-span-2 space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Billing Address (Compliance)</label>
+                                <div className="col-span-2 space-y-2 relative">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex justify-between">
+                                        <span>Billing Address (A2P Compliance)</span>
+                                        {isAddressVerified && <span className="text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Ledger Verified</span>}
+                                    </label>
                                     <div className="relative">
-                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <MapPin className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isAddressVerified ? 'text-green-500' : 'text-slate-500'}`} />
                                         <input 
-                                            placeholder="123 Music Row, Suite 100..."
-                                            value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-cyan-500 outline-none" 
+                                            placeholder="Start typing your address..."
+                                            value={formData.address} onChange={e => handleAddressChange(e.target.value)}
+                                            className={`w-full bg-slate-950 border rounded-xl py-4 pl-12 pr-12 text-white outline-none transition-all ${isAddressVerified ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : 'border-slate-800 focus:border-cyan-500'}`} 
                                         />
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
+                                            {isVerifyingAddress && <Loader2 className="w-4 h-4 text-cyan-500 animate-spin" />}
+                                            {!isVerifyingAddress && !isAddressVerified && formData.address.length > 4 && <AlertTriangle className="w-4 h-4 text-yellow-500" title="Select a verified match" />}
+                                        </div>
                                     </div>
+
+                                    {/* ADDRESS SUGGESTIONS DROPDOWN */}
+                                    {addressSuggestions.length > 0 && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-xl">
+                                            <div className="p-3 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-950/50 border-b border-slate-800">
+                                                Verified Maps Ledger Matches
+                                            </div>
+                                            {addressSuggestions.map((s, i) => (
+                                                <button 
+                                                    key={i}
+                                                    onClick={() => selectAddress(s)}
+                                                    className="w-full text-left p-4 hover:bg-cyan-500/10 text-xs font-bold text-slate-300 hover:text-white border-b border-slate-800/50 last:border-0 transition-colors flex items-center gap-3 group"
+                                                >
+                                                    <MapPin className="w-4 h-4 text-slate-600 group-hover:text-cyan-400" />
+                                                    {s.title}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
                             <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-2xl p-6 flex gap-4">
                                 <ShieldCheck className="w-6 h-6 text-indigo-400 shrink-0" />
                                 <p className="text-xs text-indigo-300 leading-relaxed font-medium">
-                                    By deploying this CRM, you are initializing a secure, managed instance. This instance is controlled via Sound Merge's API. You maintain full ownership of all fan data and communications.
+                                    A verified billing address is required for automated A2P messaging compliance. Your personal identity hash will be synchronized across global communication carrier nodes.
                                 </p>
                             </div>
 
                             <button 
                                 onClick={handleDeploy}
-                                disabled={!formData.address || !formData.businessName}
+                                disabled={!isAddressVerified || !formData.businessName}
                                 className="w-full py-5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-cyan-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed"
                             >
-                                <Zap className="w-4 h-4 fill-white" /> Authorize & Deploy CRM
+                                <Zap className="w-4 h-4 fill-white" /> Authorize & Synchronize Node
                             </button>
                         </div>
                     )}
@@ -327,6 +391,7 @@ const InboxModule: React.FC<{ threads: MessageThread[] }> = ({ threads }) => {
 
     return (
         <div className="flex h-[600px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl animate-in slide-in-from-bottom-4 duration-500">
+            {/* Thread List */}
             <div className="w-80 border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 flex flex-col">
                 <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
                     <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-lg">Active Chats</h3>
@@ -352,6 +417,7 @@ const InboxModule: React.FC<{ threads: MessageThread[] }> = ({ threads }) => {
                 </div>
             </div>
 
+            {/* Chat Pane */}
             <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 relative">
                 {selectedThread ? (
                     <>
@@ -407,7 +473,7 @@ const CalendarModule: React.FC<{ posts: SocialPost[] }> = ({ posts }) => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Promotion Ledger</h3>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Campaign Planner</h3>
                 <button 
                     onClick={() => setShowCompose(true)}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-600/20"
@@ -438,7 +504,7 @@ const CalendarModule: React.FC<{ posts: SocialPost[] }> = ({ posts }) => {
                 )) : (
                     <div className="col-span-full py-24 bg-slate-50/50 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] text-center text-slate-400">
                          <Share2 className="w-16 h-16 mx-auto mb-6 opacity-10" />
-                         <p className="font-black uppercase tracking-widest text-xs">No pending campaigns on the ledger</p>
+                         <p className="font-black uppercase tracking-widest text-xs">No pending campaigns scheduled</p>
                     </div>
                 )}
             </div>
@@ -450,7 +516,7 @@ const ContactsModule: React.FC<{ contacts: CRMContact[] }> = ({ contacts }) => {
     return (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl">
              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Registry</h3>
+                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Fan Registry</h3>
                  <div className="relative">
                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                      <input placeholder="Search Registry..." className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-full text-xs outline-none focus:border-cyan-500" />

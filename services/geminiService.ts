@@ -43,11 +43,6 @@ export const chatWithGemini = async (message: string, history: any[], context: C
     - MusicGPT: Rapid prototyping. Use for quick social media clips or beat sketches.
     - AI Music: Experimental node for genre-clashing (e.g., Cyberpunk Jazz).
 
-    Industry Rails:
-    - Sync Licensing: Focus on metadata and "vibe" consistency.
-    - Distribution: Suggest Friday releases and 4-week lead times.
-    - Voice IP: Push for VoiceShield protection for any track with >1k streams.
-
     Role: ${context.agentRole || 'Expert Advisor'}.
     Persona: Authoritative, proactive, and data-driven.
   `;
@@ -103,14 +98,35 @@ export const parseBriefToSchema = async (rawText: string): Promise<Partial<SyncB
     }
 };
 
-/**
- * Fix: Exported parseRawBrief for App.tsx
- */
 export const parseRawBrief = parseBriefToSchema;
 
 /**
- * Generates an institutional production prompt pack from a brief
+ * Generates verified address suggestions using Google Maps grounding.
  */
+export const searchAddresses = async (query: string): Promise<any[]> => {
+  if (!query || query.length < 4) return [];
+  const ai = getAiClient();
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `Find the full verified business addresses matching: "${query}". Return only valid locations suitable for A2P compliance.`,
+      config: {
+          tools: [{ googleMaps: {} }]
+      }
+    });
+    
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    return chunks
+      .filter((c: any) => c.maps)
+      .map((c: any) => ({
+          title: c.maps.title,
+          uri: c.maps.uri
+      }));
+  } catch (e) {
+    return [];
+  }
+};
+
 export const generateBriefArtifacts = async (brief: SyncBrief): Promise<BriefArtifacts> => {
     const ai = getAiClient();
 
@@ -145,9 +161,6 @@ export const generateBriefArtifacts = async (brief: SyncBrief): Promise<BriefArt
     };
 };
 
-/**
- * Fix: Implemented generatePitchEmail for OpportunityCard.tsx
- */
 export const generatePitchEmail = async (opportunity: Opportunity, trackTitle: string): Promise<string> => {
   const ai = getAiClient();
   const prompt = `Write a professional, concise pitch email for the following sync opportunity: "${opportunity.brief_title}". 
@@ -161,9 +174,6 @@ export const generatePitchEmail = async (opportunity: Opportunity, trackTitle: s
   return response.text || "Pitch draft unavailable.";
 };
 
-/**
- * Fix: Implemented generateBattleCommentary for BattlesArena.tsx
- */
 export const generateBattleCommentary = async (genre: string, p1: string, p2: string, status: string): Promise<string> => {
   const ai = getAiClient();
   const prompt = `Act as a high-energy music battle commentator. 
@@ -211,9 +221,6 @@ export const generateProactiveProposal = async (context: ChatContext): Promise<S
     }
 };
 
-/**
- * Fix: Implemented image/video generation and analysis for BrandBuilder.tsx
- */
 export const generateBrandImage = async (prompt: string, size: string, aspectRatio: string): Promise<string | null> => {
     const ai = getAiClient();
     const isHighQuality = size === '2K' || size === '4K';
@@ -346,13 +353,9 @@ export const generateVideoFromImage = async (imgBase64: string, prompt: string, 
     return null;
 };
 
-/**
- * Fix: Implemented searchVenues with Google Maps grounding for GigFinder.tsx
- */
 export const searchVenues = async (query: string, location?: { latitude: number, longitude: number }): Promise<{ text: string, places: any[] }> => {
   const ai = getAiClient();
   const response = await ai.models.generateContent({
-      // Corrected model name to 'gemini-2.5-flash' for maps grounding per guidelines
       model: "gemini-2.5-flash",
       contents: query,
       config: {
@@ -365,7 +368,6 @@ export const searchVenues = async (query: string, location?: { latitude: number,
       }
   });
   
-  // Extract URLs from groundingChunks as required by Maps grounding guidelines
   const places = response.candidates?.[0]?.groundingMetadata?.groundingChunks
       ?.filter((c: any) => c.maps)
       ?.map((c: any) => ({
@@ -379,9 +381,6 @@ export const searchVenues = async (query: string, location?: { latitude: number,
   };
 };
 
-/**
- * Audio helper functions for Live API implementation
- */
 function encode(bytes: Uint8Array) {
   let binary = '';
   const len = bytes.byteLength;
@@ -420,9 +419,6 @@ async function decodeAudioData(
   return buffer;
 }
 
-/**
- * Fix: Implemented LiveSession class for LiveAgent.tsx following guidelines
- */
 export class LiveSession {
     private ai: GoogleGenAI;
     private sessionPromise: Promise<any> | null = null;
@@ -432,7 +428,6 @@ export class LiveSession {
     public onAudioData: () => void = () => {};
 
     constructor() {
-        // Correct initialization using process.env.API_KEY
         this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     }
 
@@ -458,7 +453,6 @@ export class LiveSession {
                             data: encode(new Uint8Array(int16.buffer)),
                             mimeType: 'audio/pcm;rate=16000',
                         };
-                        // Use sessionPromise.then to send data and avoid race conditions
                         this.sessionPromise?.then(session => session.sendRealtimeInput({ media: pcmBlob }));
                     };
                     source.connect(scriptProcessor);
