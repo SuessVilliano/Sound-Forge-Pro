@@ -112,7 +112,6 @@ export interface User {
   ghlIntegration?: GHLIntegration;
 }
 
-// ... existing types remain
 export interface SyncBrief {
   id: string;
   source: BriefSource;
@@ -205,7 +204,7 @@ export interface Track {
   createdAt?: string;
   genre?: string; 
   type?: 'song' | 'vocal' | 'beat';
-  stems?: { [key: string]: string };
+  stems?: StemResult;
   resemble_voice_uuid?: string; 
   blockchainRegistration?: {
       cid: string; 
@@ -456,9 +455,11 @@ export interface KitsVoiceModel {
 }
 
 export interface StemResult {
-  vocalsUrl: string;
-  instrumentalUrl: string;
-  bassUrl: string;
+  vocalsUrl?: string;
+  instrumentalUrl?: string;
+  bassUrl?: string;
+  drumsUrl?: string;
+  otherUrl?: string;
 }
 
 export interface VoiceLicense {

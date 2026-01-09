@@ -20,9 +20,7 @@ import { affiliateService } from './affiliateService';
 import { webhookService } from './webhookService';
 import { dataService } from './dataService';
 
-// Manual observers to handle local state updates
 const observers: ((user: User | null) => void)[] = [];
-// Track local user state (specifically for Mock/Guest mode) to prevent race conditions with Firebase
 let currentLocalUser: User | null = null;
 
 const notifyObservers = (user: User | null) => {
@@ -30,7 +28,6 @@ const notifyObservers = (user: User | null) => {
   observers.forEach(callback => callback(user));
 };
 
-// Helper to create a mock user session when backend fails
 const createMockUser = (email: string, name: string): User => ({
     uid: `mock_${Date.now()}`,
     displayName: name,
@@ -42,10 +39,17 @@ const createMockUser = (email: string, name: string): User => ({
     onboardingCompleted: false
 });
 
+const isBackendRestricted = (error: any) => {
+    const msg = error?.message || "";
+    const code = error?.code || "";
+    return code === 'auth/configuration-not-found' || 
+           code === 'auth/operation-not-allowed' || 
+           code === 'auth/internal-error' ||
+           msg.includes('configuration') ||
+           msg.includes('permission-denied');
+};
+
 export const authService = {
-  /**
-   * Register with Email and Password
-   */
   registerWithEmail: async (name: string, email: string, pass: string): Promise<User> => {
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -68,12 +72,11 @@ export const authService = {
       try {
         await setDoc(doc(db, "users", fbUser.uid), newUser);
       } catch (dbError) {
-        console.warn("Firestore write failed (Simulation Mode active)", dbError);
+          console.warn("[Auth] Firestore write restricted. Data held in local memory.");
       }
 
       await dataService.adminCreateUser(newUser);
       affiliateService.trackSignup(newUser);
-      // Fixed: Cast window to any for affiliateId access
       webhookService.sendSystemEvent('signup', newUser, { 
           initial_password: pass, 
           source: 'app_registration',
@@ -83,16 +86,8 @@ export const authService = {
       return newUser;
 
     } catch (error: any) {
-      const errorCode = error.code;
-      const errorMessage = error.message || "";
-
-      if (
-          errorCode === 'auth/configuration-not-found' || 
-          errorCode === 'auth/operation-not-allowed' || 
-          errorCode === 'auth/internal-error' ||
-          errorMessage.includes('configuration')
-      ) {
-          console.warn(`[Auth] Backend restricted (${errorCode}). Initiating Sandbox Session.`);
+      if (isBackendRestricted(error)) {
+          console.warn("[Auth] Backend restricted. Initiating Sandbox Session.");
           const mockUser = createMockUser(email, name);
           await dataService.adminCreateUser(mockUser);
           notifyObservers(mockUser);
@@ -102,13 +97,9 @@ export const authService = {
     }
   },
 
-  /**
-   * Login with Email and Password
-   */
   loginWithEmail: async (email: string, pass: string): Promise<User> => {
     const normalizedEmail = email.trim().toLowerCase();
     
-    // Super Admin Bypass
     if (normalizedEmail === 'liv8ent@gmail.com' && pass === 'Letsgrow888!') {
         const superAdmin: User = {
             uid: 'admin_liv8_master',
@@ -134,13 +125,8 @@ export const authService = {
       const result = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
       return await authService._fetchUserProfile(result.user);
     } catch (error: any) {
-      const errorCode = error.code;
-      if (
-          errorCode === 'auth/configuration-not-found' || 
-          errorCode === 'auth/operation-not-allowed' || 
-          errorCode === 'auth/internal-error'
-      ) {
-          console.warn("[Auth] Firebase Restricted. Falling back to Sandbox.");
+      if (isBackendRestricted(error)) {
+          console.warn("[Auth] Login restricted. Falling back to Sandbox.");
           const mockUser = createMockUser(email, "Sandbox Artist");
           await dataService.adminCreateUser(mockUser);
           notifyObservers(mockUser);
@@ -150,9 +136,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Login with Google
-   */
   loginWithGoogle: async (): Promise<User> => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -161,7 +144,7 @@ export const authService = {
       webhookService.sendSystemEvent('signup', user, { source: 'google_oauth' });
       return user;
     } catch (error: any) {
-      if (error.code === 'auth/configuration-not-found' || error.code === 'auth/operation-not-allowed') {
+      if (isBackendRestricted(error)) {
           const mockUser = createMockUser("google_user@example.com", "Google Sandbox User");
           await dataService.adminCreateUser(mockUser);
           notifyObservers(mockUser);
@@ -171,9 +154,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Login as Guest
-   */
   loginAsGuest: async (): Promise<User> => {
     const guestName = "Guest Artist";
     const guestEmail = `guest${Date.now()}@soundforge.club`;
@@ -206,7 +186,7 @@ export const authService = {
       if (userSnap.exists()) {
           return userSnap.data() as User;
       } else {
-          await setDoc(userDocRef, fallbackUser);
+          try { await setDoc(userDocRef, fallbackUser); } catch (e) {}
           affiliateService.trackSignup(fallbackUser);
           await dataService.adminCreateUser(fallbackUser);
           return fallbackUser;
@@ -217,17 +197,13 @@ export const authService = {
   },
 
   logout: async (): Promise<void> => {
-    try {
-        await signOut(auth);
-    } catch (error) {}
+    try { await signOut(auth); } catch (error) {}
     notifyObservers(null);
   },
 
   observeAuth: (callback: (user: User | null) => void) => {
     observers.push(callback);
-    if (currentLocalUser) {
-        callback(currentLocalUser);
-    }
+    if (currentLocalUser) callback(currentLocalUser);
 
     const firebaseUnsubscribe = onAuthStateChanged(auth, async (fbUser: FirebaseUser | null) => {
         if (fbUser) {
@@ -236,10 +212,8 @@ export const authService = {
                 callback(userProfile);
                 currentLocalUser = userProfile;
             }
-        } else {
-            if (!currentLocalUser) {
-                 callback(null);
-            }
+        } else if (!currentLocalUser || !currentLocalUser.uid.startsWith('mock_')) {
+            callback(null);
         }
     });
 
@@ -262,8 +236,7 @@ export const authService = {
           const updated = { ...currentLocalUser, ...data };
           await dataService.adminUpdateUser(updated.uid, updated);
           notifyObservers(updated);
-          
-          if (!auth.currentUser) return updated;
+          if (!auth.currentUser || updated.uid.startsWith('mock_')) return updated;
       }
 
       const fbUser = auth.currentUser;

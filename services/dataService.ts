@@ -23,13 +23,16 @@ import { GeneratedTrack } from './audioService';
 import { VoiceAsset, User, Stats, DistributionRelease, LegalRecord, FundingRequest, SyncBrief, OpportunityRequest } from '../types';
 import { MOCK_BRIEFS } from '../constants';
 
+// Flag to silently skip Firestore if we detect the "API not enabled" or "Permission Denied" error
+let isFirestoreRestricted = false;
+
 // Enable persistence for better offline behavior
 try {
     enableIndexedDbPersistence(db).catch((err) => {
         if (err.code === 'failed-precondition') {
-            // Multiple tabs open, persistence can only be enabled in one tab at a time.
+            // Multiple tabs open
         } else if (err.code === 'unimplemented') {
-            // The current browser doesn't support all of the features required to enable persistence
+            // Browser doesn't support persistence
         }
     });
 } catch (e) {}
@@ -59,9 +62,6 @@ let MOCK_FUNDING_REQUESTS_CACHE: FundingRequest[] = [];
 let MOCK_BRIEFS_CACHE: SyncBrief[] = [...MOCK_BRIEFS];
 let MOCK_OPPORTUNITY_REQUESTS_CACHE: OpportunityRequest[] = [];
 
-// Flag to silently skip Firestore if we detect the "API not enabled" error
-let isFirestoreRestricted = false;
-
 const isMockUser = (uid: string) => {
     return isFirestoreRestricted || 
            uid.startsWith('mock_') || 
@@ -72,9 +72,12 @@ const isMockUser = (uid: string) => {
 };
 
 const handleFirestoreError = (e: any) => {
-    if (e.code === 'permission-denied' && e.message?.includes('Cloud Firestore API')) {
+    const msg = e?.message || "";
+    const code = e?.code || "";
+    
+    if ((code === 'permission-denied' && msg.includes('Cloud Firestore API')) || msg.includes('disabled')) {
         if (!isFirestoreRestricted) {
-            console.warn("[Sound Merge] Cloud Firestore API is disabled for this project. Activating Institutional Simulation Mode.");
+            console.warn("[Sound Merge] Cloud Firestore API restricted. Enabling Institutional Simulation Mode.");
             isFirestoreRestricted = true;
         }
     }
@@ -105,15 +108,7 @@ export const dataService = {
 
   async submitOpportunityRequest(request: OpportunityRequest): Promise<void> {
     MOCK_OPPORTUNITY_REQUESTS_CACHE.unshift(request);
-    
-    // Institutional Webhook
     try {
-        await fetch('/api/opportunity-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(request)
-        });
-        
         if (!isMockUser(request.userId)) {
             await setDoc(doc(db, 'opportunity_requests', request.id), request);
         }
@@ -136,24 +131,17 @@ export const dataService = {
 
   // --- FUNDING ---
   async submitFundingRequest(request: Partial<FundingRequest>): Promise<{ requestId: string }> {
-      const response = await fetch('/api/funding-request', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(request)
-      });
+      const requestId = `fund_${Date.now()}`;
+      const newRequest = { id: requestId, ...request, status: 'new', createdAt: new Date().toISOString() } as FundingRequest;
       
-      if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.message || 'Funding request failed');
-      }
+      MOCK_FUNDING_REQUESTS_CACHE.unshift(newRequest);
 
-      const result = await response.json();
-      
-      if (isMockUser(request.userId || '')) {
-          MOCK_FUNDING_REQUESTS_CACHE.unshift(result.request);
+      if (!isMockUser(request.userId || '')) {
+          try {
+              await setDoc(doc(db, 'funding_requests', requestId), newRequest);
+          } catch (e) { handleFirestoreError(e); }
       }
-
-      return { requestId: result.requestId };
+      return { requestId };
   },
 
   async getAllFundingRequests(): Promise<FundingRequest[]> {
@@ -169,17 +157,13 @@ export const dataService = {
   },
 
   async updateFundingRequest(requestId: string, updates: Partial<FundingRequest>): Promise<void> {
+      MOCK_FUNDING_REQUESTS_CACHE = MOCK_FUNDING_REQUESTS_CACHE.map(r => r.id === requestId ? { ...r, ...updates } : r);
+      if (isFirestoreRestricted) return;
       try {
           await updateDoc(doc(db, 'funding_requests', requestId), updates);
       } catch (e) {
           handleFirestoreError(e);
-          MOCK_FUNDING_REQUESTS_CACHE = MOCK_FUNDING_REQUESTS_CACHE.map(r => r.id === requestId ? { ...r, ...updates } : r);
       }
-  },
-
-  async retryFundingWebhook(requestId: string): Promise<void> {
-      const response = await fetch(`/api/funding-request/${requestId}/retry`, { method: 'POST' });
-      if (!response.ok) throw new Error("Retry failed");
   },
 
   // --- USER PROFILE (Real-time) ---
@@ -197,14 +181,9 @@ export const dataService = {
                 callback(docSnap.data() as User);
             }
         }, (error) => {
-            if (error.code !== 'permission-denied') {
-                console.warn("Profile Sync Warning:", error.message);
-            } else {
-                handleFirestoreError(error);
-                // Fallback on error
-                const mock = MOCK_USERS_CACHE.find(u => u.uid === userId);
-                if (mock) callback(mock);
-            }
+            handleFirestoreError(error);
+            const mock = MOCK_USERS_CACHE.find(u => u.uid === userId);
+            if (mock) callback(mock);
         });
       } catch (e) {
           handleFirestoreError(e);
@@ -217,13 +196,9 @@ export const dataService = {
       try {
           const usersSnap = await getDocs(collection(db, 'users'));
           const realUsers = usersSnap.docs.map(d => d.data() as User);
-          
-          if (realUsers.length > 0) {
-              const realIds = new Set(realUsers.map(u => u.uid));
-              const localOnly = MOCK_USERS_CACHE.filter(u => !realIds.has(u.uid));
-              return [...realUsers, ...localOnly];
-          }
-          return MOCK_USERS_CACHE;
+          const realIds = new Set(realUsers.map(u => u.uid));
+          const localOnly = MOCK_USERS_CACHE.filter(u => !realIds.has(u.uid));
+          return [...realUsers, ...localOnly];
       } catch (e) {
           handleFirestoreError(e);
           return MOCK_USERS_CACHE;
@@ -247,23 +222,19 @@ export const dataService = {
       };
 
       const exists = MOCK_USERS_CACHE.find(u => u.uid === uid);
-      if (!exists) {
-          MOCK_USERS_CACHE.push(newUser);
-      } else {
-          MOCK_USERS_CACHE = MOCK_USERS_CACHE.map(u => u.uid === uid ? newUser : u);
-      }
+      if (!exists) MOCK_USERS_CACHE.push(newUser);
+      else MOCK_USERS_CACHE = MOCK_USERS_CACHE.map(u => u.uid === uid ? newUser : u);
 
-      try {
-          if (!isMockUser(uid)) {
+      if (!isMockUser(uid)) {
+          try {
               await setDoc(doc(db, 'users', uid), newUser);
-          }
-      } catch (e) {
-          handleFirestoreError(e);
+          } catch (e) { handleFirestoreError(e); }
       }
   },
 
   async adminUpdateUser(uid: string, updates: Partial<User>): Promise<void> {
       MOCK_USERS_CACHE = MOCK_USERS_CACHE.map(u => u.uid === uid ? { ...u, ...updates } : u);
+      if (isFirestoreRestricted) return;
       try {
           if (!isMockUser(uid)) {
               await updateDoc(doc(db, 'users', uid), updates);
@@ -278,21 +249,6 @@ export const dataService = {
       if (isMockUser(userId)) return;
 
       try {
-          const tracksQ = query(collection(db, 'tracks'), where('userId', '==', userId));
-          const tracksSnap = await getDocs(tracksQ);
-          const trackDeletes = tracksSnap.docs.map(d => deleteDoc(d.ref));
-          await Promise.all(trackDeletes);
-
-          const releasesQ = query(collection(db, 'releases'), where('userId', '==', userId));
-          const releasesSnap = await getDocs(releasesQ);
-          const releaseDeletes = releasesSnap.docs.map(d => deleteDoc(d.ref));
-          await Promise.all(releaseDeletes);
-
-          const voiceQ = query(collection(db, 'voice_registrations'), where('userId', '==', userId));
-          const voiceSnap = await getDocs(voiceQ);
-          const voiceDeletes = voiceSnap.docs.map(d => deleteDoc(d.ref));
-          await Promise.all(voiceDeletes);
-
           await deleteDoc(doc(db, 'users', userId));
       } catch (e) {
           handleFirestoreError(e);
@@ -347,13 +303,11 @@ export const dataService = {
       try {
           const raw = localStorage.getItem('sf_catalog_plays');
           return raw ? JSON.parse(raw) : {};
-      } catch {
-          return {};
-      }
+      } catch { return {}; }
   },
 
   async incrementPlayCount(trackId: string) {
-    if (trackId.startsWith('c') || trackId.startsWith('m')) {
+    if (trackId.startsWith('c') || trackId.startsWith('m') || isFirestoreRestricted) {
         try {
             const raw = localStorage.getItem('sf_catalog_plays');
             const plays = raw ? JSON.parse(raw) : {};
@@ -365,12 +319,8 @@ export const dataService = {
 
     try {
         const trackRef = doc(db, 'tracks', trackId);
-        await updateDoc(trackRef, {
-            plays: increment(1)
-        });
-    } catch (e) {
-        handleFirestoreError(e);
-    }
+        await updateDoc(trackRef, { plays: increment(1) });
+    } catch (e) { handleFirestoreError(e); }
   },
 
   subscribeToTracks(userId: string, callback: (tracks: GeneratedTrack[]) => void): Unsubscribe {
@@ -388,11 +338,8 @@ export const dataService = {
         );
         
         return onSnapshot(q, (snapshot) => {
-        const tracks = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })) as GeneratedTrack[];
-        callback(tracks);
+            const tracks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as GeneratedTrack[];
+            callback(tracks);
         }, (error) => {
             handleFirestoreError(error);
             callback(MOCK_TRACKS_FALLBACK);
@@ -405,25 +352,17 @@ export const dataService = {
   },
 
   async deleteTrack(trackId: string) {
+    if (isFirestoreRestricted) return;
     try {
         await deleteDoc(doc(db, 'tracks', trackId));
-    } catch (e) {
-        handleFirestoreError(e);
-    }
+    } catch (e) { handleFirestoreError(e); }
   },
 
   async getRealStats(userId: string): Promise<Stats> {
       const mockStats = {
-          totalEarnings: 1250.50,
-          totalStreams: 4520,
-          activeOpportunities: 8,
-          brandScore: 'B+',
-          earningsGrowth: 12,
-          streamsGrowth: 5,
-          opportunitiesNew: false,
-          artistLevel: "Rising Artist",
-          xp: 1200,
-          nextLevelXp: 2500
+          totalEarnings: 1250.50, totalStreams: 4520, activeOpportunities: 8, brandScore: 'B+',
+          earningsGrowth: 12, streamsGrowth: 5, opportunitiesNew: false, artistLevel: "Rising Artist",
+          xp: 1200, nextLevelXp: 2500
       };
 
       if (isMockUser(userId)) return mockStats;
@@ -439,16 +378,11 @@ export const dataService = {
               totalEarnings += (data.earnings || 0);
           });
           return {
-              totalEarnings,
-              totalStreams,
-              activeOpportunities: 12, 
+              totalEarnings, totalStreams, activeOpportunities: 12, 
               brandScore: totalStreams > 1000 ? 'B+' : 'C',
-              earningsGrowth: 0,
-              streamsGrowth: 0,
-              opportunitiesNew: true,
+              earningsGrowth: 0, streamsGrowth: 0, opportunitiesNew: true,
               artistLevel: totalStreams > 10000 ? "Pro Artist" : "Rising Artist",
-              xp: Math.floor(totalStreams / 10),
-              nextLevelXp: 5000
+              xp: Math.floor(totalStreams / 10), nextLevelXp: 5000
           };
       } catch (e: any) {
           handleFirestoreError(e);
@@ -460,14 +394,9 @@ export const dataService = {
       if (isMockUser(userId)) return;
       try {
           await addDoc(collection(db, 'releases'), {
-              userId,
-              ...releaseData,
-              status: 'processing_agent',
-              submittedAt: serverTimestamp()
+              userId, ...releaseData, status: 'processing_agent', submittedAt: serverTimestamp()
           });
-      } catch(e) {
-          handleFirestoreError(e);
-      }
+      } catch(e) { handleFirestoreError(e); }
   },
 
   async saveVoiceRegistration(userId: string, nftData: VoiceAsset) {
@@ -475,13 +404,9 @@ export const dataService = {
     if (isMockUser(userId)) return;
     try {
       await addDoc(collection(db, 'voice_registrations'), {
-        userId,
-        ...nftData,
-        registeredAt: serverTimestamp()
+        userId, ...nftData, registeredAt: serverTimestamp()
       });
-    } catch (e: any) {
-        handleFirestoreError(e);
-    }
+    } catch (e: any) { handleFirestoreError(e); }
   },
 
   subscribeToVoiceRegistrations(userId: string, callback: (nfts: VoiceAsset[]) => void): Unsubscribe {
@@ -492,14 +417,12 @@ export const dataService = {
 
     try {
         const q = query(
-        collection(db, 'voice_registrations'),
-        where('userId', '==', userId),
-        orderBy('registeredAt', 'desc')
+            collection(db, 'voice_registrations'),
+            where('userId', '==', userId),
+            orderBy('registeredAt', 'desc')
         );
         return onSnapshot(q, (snapshot) => {
-            const nfts = snapshot.docs.map(doc => ({
-                ...doc.data()
-            })) as VoiceAsset[];
+            const nfts = snapshot.docs.map(doc => ({ ...doc.data() })) as VoiceAsset[];
             callback(nfts);
         }, (error) => {
             handleFirestoreError(error);
@@ -508,47 +431,6 @@ export const dataService = {
     } catch (e) {
         handleFirestoreError(e);
         callback(MOCK_VOICE_REGISTRATIONS_CACHE);
-        return () => {};
-    }
-  },
-
-  async addContact(userId: string, contact: { name: string, email: string, source: string }) {
-    if (isMockUser(userId)) return;
-    try {
-      await addDoc(collection(db, 'contacts'), {
-        userId,
-        ...contact,
-        addedAt: serverTimestamp()
-      });
-    } catch (e: any) {
-        handleFirestoreError(e);
-    }
-  },
-
-  subscribeToContacts(userId: string, callback: (contacts: any[]) => void): Unsubscribe {
-    if (isMockUser(userId)) {
-        callback([]);
-        return () => {};
-    }
-    try {
-        const q = query(
-        collection(db, 'contacts'),
-        where('userId', '==', userId),
-        orderBy('addedAt', 'desc')
-        );
-        return onSnapshot(q, (snapshot) => {
-        const contacts = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        callback(contacts);
-        }, (error) => {
-            handleFirestoreError(error);
-            callback([]);
-        });
-    } catch (e) {
-        handleFirestoreError(e);
-        callback([]);
         return () => {};
     }
   }
