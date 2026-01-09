@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -15,6 +14,7 @@ import { WalletProvider } from './contexts/WalletContext';
 import { Loader2, X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 
 import { DashboardView } from './components/DashboardView';
+import { AllToolsView } from './components/AllToolsView';
 import { OpportunitiesView } from './components/OpportunitiesView';
 import { AcademyView } from './components/AcademyView';
 import { RevenueRecovery } from './components/RevenueRecovery';
@@ -71,7 +71,6 @@ const AppContent = () => {
   const [currentView, setCurrentView] = useState(VIEWS.DASHBOARD);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
-  const [isScanning, setIsScanning] = useState(false);
   const [realStats, setRealStats] = useState<Stats>({
       totalEarnings: 0, totalStreams: 0, activeOpportunities: 0, brandScore: '-',
       earningsGrowth: 0, streamsGrowth: 0, opportunitiesNew: false,
@@ -92,7 +91,6 @@ const AppContent = () => {
 
   const { queue } = usePlayer();
 
-  // Sync theme with document class for clean Light Mode support
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -122,7 +120,18 @@ const AppContent = () => {
             setUser(observedUser); 
             userUnsubscribe = dataService.subscribeToUserProfile(observedUser.uid, (updatedUser) => {
                 setUser(updatedUser);
-                dataService.getRealStats(observedUser.uid).then(stats => setRealStats(stats));
+                dataService.getRealStats(observedUser.uid).then(stats => {
+                    // Inject demo stats if it's the demo account
+                    if (updatedUser.uid === 'demo_master_account') {
+                        setRealStats({
+                            totalEarnings: 12500, totalStreams: 450000, activeOpportunities: 12, brandScore: 'A+',
+                            earningsGrowth: 15, streamsGrowth: 10, opportunitiesNew: true,
+                            artistLevel: "Legendary", xp: 5000, nextLevelXp: 10000
+                        });
+                    } else {
+                        setRealStats(stats);
+                    }
+                });
                 const isLocallyDismissed = localStorage.getItem('sf_onboarding_skip') === 'true';
                 if (updatedUser.uid !== 'demo_master_account' && !updatedUser.onboardingCompleted && !onboardingDismissed && !isLocallyDismissed) {
                     setShowOnboarding(true);
@@ -155,7 +164,6 @@ const AppContent = () => {
       setUser(finalUser);
       try {
           await authService.updateUserProfile({ ...updatedData, onboardingCompleted: true });
-          // Trigger tutorial mission immediately after save
           setShowGuidedTour(true);
       } catch (e) { console.error(e); }
       localStorage.setItem('sf_favorites', JSON.stringify(favorites));
@@ -197,11 +205,11 @@ const AppContent = () => {
 
       <div className="fixed top-20 left-0 right-0 z-[100] px-4 pointer-events-none flex flex-col items-center gap-3">
           {notifications.map(n => (
-              <div key={n.id} className="w-full max-w-sm bg-white dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto animate-in slide-in-from-top-4 duration-500">
+              <div key={n.id} className="w-full max-w-sm bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto animate-in slide-in-from-top-4 duration-500">
                   {n.image ? (
                       <img src={n.image} className="w-12 h-12 rounded-lg object-cover shadow-lg" alt="track" />
                   ) : (
-                      <div className={`p-3 rounded-lg ${n.type === 'success' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'}`}>
+                      <div className={`p-3 rounded-lg ${n.type === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'}`}>
                           {n.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <Info className="w-6 h-6" />}
                       </div>
                   )}
@@ -209,7 +217,7 @@ const AppContent = () => {
                       <h4 className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-white">{n.title}</h4>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">{n.message}</p>
                   </div>
-                  <button onClick={() => setNotifications(prev => prev.filter(notif => notif.id !== n.id))} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  <button onClick={() => setNotifications(prev => prev.filter(notif => notif.id !== n.id))} className="text-slate-400 hover:text-slate-950 dark:hover:text-white transition-colors">
                       <X className="w-4 h-4" />
                   </button>
               </div>
@@ -221,6 +229,7 @@ const AppContent = () => {
         setIsMobileOpen={setIsMobileMenuOpen} isCollapsed={isSidebarCollapsed}
         toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} onLogout={handleLogout}
         onOpenHelp={() => setShowHelpModal(true)}
+        stats={realStats}
       />
       <div className={`flex-1 flex flex-col relative transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
         <Header 
@@ -234,6 +243,7 @@ const AppContent = () => {
           <div className="max-w-7xl mx-auto animate-in fade-in duration-500 h-full">
             <ErrorBoundary>
               {currentView === VIEWS.DASHBOARD && <DashboardView user={user} stats={realStats} opportunities={opportunities} onNavigate={handleNavigate} onUpgrade={() => setShowPricingModal(true)} onUpload={() => setShowUploadModal(true)} />}
+              {currentView === VIEWS.ALL_TOOLS && <AllToolsView stats={realStats} onNavigate={handleNavigate} onUpgrade={() => setShowPricingModal(true)} />}
               {currentView === VIEWS.STAFF && <StaffMessagingHub />}
               {currentView === VIEWS.SMART_WALLET && <SmartWalletDashboard />}
               {currentView === VIEWS.CATALOG && <MusicCatalog />}

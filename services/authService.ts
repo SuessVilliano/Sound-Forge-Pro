@@ -1,4 +1,3 @@
-
 import { 
   signInWithPopup, 
   signOut, 
@@ -18,7 +17,7 @@ import { auth, db, googleProvider } from './firebase';
 import { User } from '../types';
 import { affiliateService } from './affiliateService';
 import { webhookService } from './webhookService';
-import { dataService } from './dataService';
+import { dataService, handleFirestoreError } from './dataService';
 
 const observers: ((user: User | null) => void)[] = [];
 let currentLocalUser: User | null = null;
@@ -72,6 +71,7 @@ export const authService = {
       try {
         await setDoc(doc(db, "users", fbUser.uid), newUser);
       } catch (dbError) {
+          handleFirestoreError(dbError);
           console.warn("[Auth] Firestore write restricted. Data held in local memory.");
       }
 
@@ -100,25 +100,28 @@ export const authService = {
   loginWithEmail: async (email: string, pass: string): Promise<User> => {
     const normalizedEmail = email.trim().toLowerCase();
     
+    // Super Admin
     if (normalizedEmail === 'liv8ent@gmail.com' && pass === 'Letsgrow888!') {
         const superAdmin: User = {
             uid: 'admin_liv8_master',
             displayName: 'LIV8 Admin',
             email: 'liv8ent@gmail.com',
-            photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+            photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&get=80',
             plan: 'label',
             voiceShieldEnabled: true,
             walletBalance: 1000000,
             onboardingCompleted: true, 
             isAdmin: true,
-            role: 'label_exec',
-            experienceLevel: 'pro',
-            primaryGoals: ['manage_roster', 'find_talent', 'grow_brand'],
-            location: 'Global HQ'
+            role: 'label_exec'
         };
         await dataService.adminCreateUser(superAdmin);
         notifyObservers(superAdmin);
         return superAdmin;
+    }
+
+    // Master Demo Pro Account (Requested Credentials)
+    if ((normalizedEmail === 'demo@soundmerge.club' || normalizedEmail === 'admin') && (pass === 'SoundMerge2025!' || pass === 'password1')) {
+        return await authService.loginAsDemo();
     }
 
     try {
@@ -134,6 +137,28 @@ export const authService = {
       }
       throw error;
     }
+  },
+
+  loginAsDemo: async (): Promise<User> => {
+      const demoUser: User = {
+          uid: 'demo_master_account',
+          displayName: 'Legendary Artist',
+          email: 'demo@soundmerge.club',
+          photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&get=80',
+          plan: 'pro',
+          voiceShieldEnabled: true,
+          walletBalance: 12500.50,
+          onboardingCompleted: true,
+          tourCompleted: true,
+          role: 'artist',
+          xp: 5000,
+          artistLevel: 'Legendary',
+          bio: 'Demo account with all nodes fully synchronized. Exploring the boundaries of human-AI collaboration.',
+          location: 'Global Hub'
+      };
+      await dataService.adminCreateUser(demoUser);
+      notifyObservers(demoUser);
+      return demoUser;
   },
 
   loginWithGoogle: async (): Promise<User> => {
@@ -186,12 +211,13 @@ export const authService = {
       if (userSnap.exists()) {
           return userSnap.data() as User;
       } else {
-          try { await setDoc(userDocRef, fallbackUser); } catch (e) {}
+          try { await setDoc(userDocRef, fallbackUser); } catch (e) { handleFirestoreError(e); }
           affiliateService.trackSignup(fallbackUser);
           await dataService.adminCreateUser(fallbackUser);
           return fallbackUser;
       }
     } catch (error: any) {
+      handleFirestoreError(error);
       return fallbackUser;
     }
   },
@@ -251,6 +277,7 @@ export const authService = {
         notifyObservers(freshProfile);
         return freshProfile;
       } catch (e: any) {
+          handleFirestoreError(e);
           const simulatedUpdate = { ...currentLocalUser, ...data } as User;
           await dataService.adminUpdateUser(simulatedUpdate.uid, simulatedUpdate);
           notifyObservers(simulatedUpdate);

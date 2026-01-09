@@ -4,6 +4,7 @@ export const APP_NAME = "Sound Merge";
 
 export const VIEWS = {
   DASHBOARD: 'dashboard',
+  ALL_TOOLS: 'all-tools',
   STAFF: 'staff',
   BATTLES: 'battles',
   CATALOG: 'catalog',
@@ -33,31 +34,43 @@ export const VIEWS = {
   BOOKING: 'booking'
 };
 
+/**
+ * NAVIGATION WITH PROGRESSIVE DISCLOSURE
+ * milestone: 'core' | 'first_asset' | 'reputation_500' | 'reputation_1000' | 'reputation_2000' | 'pro_only' | 'always'
+ */
 export const NAVIGATION_ITEMS = [
-  { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: 'LayoutDashboard' },
-  { id: VIEWS.STAFF, label: 'AI Staff', icon: 'MessageSquare', ai: true, badge: 3 },
-  { id: VIEWS.OPPORTUNITIES, label: 'Opportunities', icon: 'Zap', badge: 12, new: true },
-  { id: VIEWS.SMART_WALLET, label: 'Smart Wallet', icon: 'Wallet', new: true },
-  { id: VIEWS.FUNDING, label: 'Funding', icon: 'Landmark', new: true },
-  { id: VIEWS.BATTLES, label: 'Music Battles', icon: 'Swords', new: true, ai: true },
-  { id: VIEWS.CATALOG, label: 'Music Catalog', icon: 'Disc' },
-  { id: VIEWS.STUDIO, label: 'AI Studio', icon: 'Wand2', ai: true },
-  { id: VIEWS.AR_DASHBOARD, label: 'A&R Dashboard', icon: 'Star', badge: 3 },
-  { id: VIEWS.MY_MUSIC, label: 'My Library', icon: 'Music' },
-  { id: VIEWS.TOURING, label: 'Gig Finder', icon: 'MapPin', ai: true },
-  { id: VIEWS.REVENUE, label: 'Revenue Recovery', icon: 'DollarSign' },
-  { id: VIEWS.BRAND, label: 'Brand Builder', icon: 'Briefcase' },
-  { id: VIEWS.ACADEMY, label: 'Academy', icon: 'BookOpen' },
-  { id: VIEWS.COMMUNITY, label: 'Community', icon: 'Users' },
-  { id: VIEWS.MASTERING, label: 'AI Mastering', icon: 'Sliders' },
-  { id: VIEWS.ANALYTICS, label: 'Insights', icon: 'BarChart2' },
-  { id: VIEWS.PROFILE, label: 'My Artist Page', icon: 'User' },
-  { id: VIEWS.CRM, label: 'CRM', icon: 'Mail' },
-  { id: VIEWS.VOICE, label: 'Voice Market', icon: 'Mic', ai: true },
-  { id: VIEWS.DISTRIBUTION, label: 'Distribution', icon: 'Radio' },
-  { id: VIEWS.DAO, label: 'DAO', icon: 'Vote', new: true },
-  { id: VIEWS.AFFILIATES, label: 'Affiliates', icon: 'Link', new: true },
-  { id: VIEWS.MONITORING, label: 'System Monitor', icon: 'Activity', ai: true, adminOnly: true },
+  { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: 'LayoutDashboard', milestone: 'core' },
+  { id: VIEWS.ALL_TOOLS, label: 'All Tools', icon: 'Grid', milestone: 'always' },
+  { id: VIEWS.STAFF, label: 'AI Staff', icon: 'MessageSquare', ai: true, milestone: 'core' },
+  { id: VIEWS.STUDIO, label: 'AI Studio', icon: 'Wand2', ai: true, milestone: 'core' },
+  { id: VIEWS.VOICE, label: 'Voice Market', icon: 'Mic', ai: true, milestone: 'core' },
+  
+  // UNLOCKS AFTER FIRST ASSET (XP > 0)
+  { id: VIEWS.MY_MUSIC, label: 'My Library', icon: 'Music', milestone: 'first_asset' },
+  { id: VIEWS.CATALOG, label: 'Music Catalog', icon: 'Disc', milestone: 'first_asset' },
+  
+  // UNLOCKS AT LEVEL 2 (XP > 500)
+  { id: VIEWS.OPPORTUNITIES, label: 'Opportunities', icon: 'Zap', milestone: 'reputation_500' },
+  { id: VIEWS.BRAND, label: 'Brand Builder', icon: 'Briefcase', milestone: 'reputation_500' },
+  { id: VIEWS.BATTLES, label: 'Music Battles', icon: 'Swords', milestone: 'reputation_500' },
+
+  // UNLOCKS AT LEVEL 3 (XP > 1000)
+  { id: VIEWS.DISTRIBUTION, label: 'Distribution', icon: 'Radio', milestone: 'reputation_1000' },
+  { id: VIEWS.REVENUE, label: 'Revenue Recovery', icon: 'DollarSign', milestone: 'reputation_1000' },
+  { id: VIEWS.TOURING, label: 'Gig Finder', icon: 'MapPin', milestone: 'reputation_1000' },
+
+  // BUSINESS & INSTITUTIONAL (XP > 2000 or Pro)
+  { id: VIEWS.CRM, label: 'CRM', icon: 'Mail', milestone: 'reputation_2000' },
+  { id: VIEWS.FUNDING, label: 'Funding', icon: 'Landmark', milestone: 'reputation_2000' },
+  { id: VIEWS.SMART_WALLET, label: 'Smart Wallet', icon: 'Wallet', milestone: 'reputation_2000' },
+  
+  // ENTERPRISE & SOCIAL
+  { id: VIEWS.ANALYTICS, label: 'Insights', icon: 'BarChart2', milestone: 'pro_only' },
+  { id: VIEWS.AR_DASHBOARD, label: 'A&R Dashboard', icon: 'Star', milestone: 'pro_only' },
+  { id: VIEWS.DAO, label: 'DAO', icon: 'Vote', milestone: 'reputation_2000' },
+  
+  // ADMIN & SYSTEM
+  { id: VIEWS.MONITORING, label: 'System Monitor', icon: 'Activity', ai: true, adminOnly: true, milestone: 'core' },
 ];
 
 export const MOCK_STATS: Stats = {

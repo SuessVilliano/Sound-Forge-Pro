@@ -1,4 +1,5 @@
 
+
 export type BriefSource = "Songtradr" | "DittoSync" | "Horus" | "EmailFeed" | "UserSubmitted" | "PartnerAPI";
 export type MediaType = "TV" | "Film" | "Ad" | "Game" | "Trailer" | "Brand" | "Other";
 
@@ -121,6 +122,9 @@ export interface User {
   hasSignedLegal?: boolean;
   legalSignedDate?: string;
   ghlIntegration?: GHLIntegration;
+  // Added xp and artistLevel to User interface to fix TypeScript errors in authService
+  xp?: number;
+  artistLevel?: string;
 }
 
 export interface SyncBrief {

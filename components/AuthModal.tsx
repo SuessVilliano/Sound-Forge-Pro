@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, ArrowRight, AlertCircle, Loader2, Sparkles, Shield } from 'lucide-react';
+import { X, Mail, Lock, User, ArrowRight, AlertCircle, Loader2, Sparkles, Shield, Rocket } from 'lucide-react';
 import { authService } from '../services/authService';
 
 interface AuthModalProps {
@@ -29,6 +28,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       } catch (e) {
           setError("Unable to start sandbox session.");
           setIsSimulation(false);
+      }
+  };
+
+  const handleDemoLogin = async () => {
+      setLoading(true);
+      try {
+          await authService.loginAsDemo();
+          onClose();
+      } catch (e) {
+          setError("Demo node activation failed.");
+      } finally {
+          setLoading(false);
       }
   };
 
@@ -128,12 +139,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 ml-1 uppercase">Email Address</label>
+                  <label className="text-xs font-bold text-slate-400 ml-1 uppercase">Email or Username</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                     <input 
-                      type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@example.com"
+                      type="text" value={email} onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com or 'admin'"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-cyan-500"
                     />
                   </div>
@@ -161,22 +172,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
               <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-800"></div></div>
-                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest"><span className="bg-slate-900 px-3 text-slate-500">Quick Access</span></div>
+                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest"><span className="bg-slate-900 px-3 text-slate-500">Master Access</span></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <button 
-                  onClick={() => authService.loginWithGoogle().then(() => onClose())}
-                  className="flex items-center justify-center gap-2 bg-white text-slate-900 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors"
+                  onClick={handleDemoLogin}
+                  className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px] hover:scale-[1.02] transition-all shadow-xl shadow-indigo-600/20"
                 >
-                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" className="w-4 h-4" /> Google
+                  <Rocket className="w-4 h-4" /> Launch Legendary Pro Demo
                 </button>
-                <button 
-                  onClick={handleGuestFallback}
-                  className="flex items-center justify-center gap-2 bg-slate-800 text-slate-300 border border-slate-700 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-700 hover:text-white transition-colors"
-                >
-                  <Shield className="w-4 h-4" /> Sandbox
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                    <button 
+                    onClick={() => authService.loginWithGoogle().then(() => onClose())}
+                    className="flex items-center justify-center gap-2 bg-white text-slate-900 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors"
+                    >
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" className="w-4 h-4" /> Google
+                    </button>
+                    <button 
+                    onClick={handleGuestFallback}
+                    className="flex items-center justify-center gap-2 bg-slate-800 text-slate-300 border border-slate-700 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-700 hover:text-white transition-colors"
+                    >
+                    <Shield className="w-4 h-4" /> Sandbox
+                    </button>
+                </div>
               </div>
 
               <div className="mt-8 text-center text-sm text-slate-500">

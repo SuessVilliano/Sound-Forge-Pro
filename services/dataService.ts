@@ -22,19 +22,22 @@ import { GeneratedTrack } from './audioService';
 import { VoiceAsset, User, Stats, DistributionRelease, LegalRecord, FundingRequest, SyncBrief, OpportunityRequest } from '../types';
 import { MOCK_BRIEFS } from '../constants';
 
-// Flag to silently skip Firestore if we detect the "API not enabled" or "Permission Denied" error
-let isFirestoreRestricted = false;
+/**
+ * GLOBAL RESTRICTION FLAG
+ * If this is true, we skip all Firestore SDK calls to prevent log bloat and hang.
+ */
+let isFirestoreRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
 
-// Enable persistence for better offline behavior
-try {
-    enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-            // Multiple tabs open
-        } else if (err.code === 'unimplemented') {
-            // Browser doesn't support persistence
-        }
-    });
-} catch (e) {}
+// Enable persistence for better offline behavior, only if not restricted
+if (!isFirestoreRestricted) {
+    try {
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code === 'permission-denied') {
+                handleFirestoreError(err);
+            }
+        });
+    } catch (e) {}
+}
 
 const MOCK_TRACKS_FALLBACK: GeneratedTrack[] = [
     { id: 'm1', title: 'Summer Vibes (Demo)', duration: '2:45', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', imageUrl: 'https://picsum.photos/300/300?random=1', tags: ['Pop', 'Upbeat'], type: 'song' },
@@ -71,18 +74,18 @@ const isMockUser = (uid: string) => {
 };
 
 /**
- * Robust error detector for Firestore availability.
- * If the API is disabled or permissions are denied, it switches the app to Simulation Mode.
+ * ROBUST ERROR DETECTOR
+ * Flips the switch to simulation mode if the Firebase API is disabled or permissions are missing.
  */
-const handleFirestoreError = (e: any) => {
+export const handleFirestoreError = (e: any) => {
     const msg = e?.message || "";
     const code = e?.code || "";
     
-    // Check for "permission-denied" specifically relating to the API being disabled
     if (code === 'permission-denied' || msg.includes('disabled') || msg.includes('Firestore API')) {
         if (!isFirestoreRestricted) {
             console.warn("[Sound Merge] Cloud Firestore API restricted or disabled. Initiating stable Simulation Mode.");
             isFirestoreRestricted = true;
+            localStorage.setItem('sf_firestore_restricted', 'true');
         }
     }
     return null;
@@ -141,7 +144,7 @@ export const dataService = {
       
       MOCK_FUNDING_REQUESTS_CACHE.unshift(newRequest);
 
-      if (!isMockUser(request.userId || '')) {
+      if (!isFirestoreRestricted && !isMockUser(request.userId || '')) {
           try {
               await setDoc(doc(db, 'funding_requests', requestId), newRequest);
           } catch (e: any) { handleFirestoreError(e); }
@@ -173,7 +176,7 @@ export const dataService = {
 
   // --- USER PROFILE (Real-time) ---
   subscribeToUserProfile(userId: string, callback: (user: User) => void): Unsubscribe {
-      if (isMockUser(userId)) {
+      if (isFirestoreRestricted || isMockUser(userId)) {
           const mock = MOCK_USERS_CACHE.find(u => u.uid === userId);
           if (mock) callback(mock);
           return () => {};
@@ -230,7 +233,7 @@ export const dataService = {
       if (!exists) MOCK_USERS_CACHE.push(newUser);
       else MOCK_USERS_CACHE = MOCK_USERS_CACHE.map(u => u.uid === uid ? newUser : u);
 
-      if (!isMockUser(uid)) {
+      if (!isFirestoreRestricted && !isMockUser(uid)) {
           try {
               await setDoc(doc(db, 'users', uid), newUser);
           } catch (e: any) { handleFirestoreError(e); }
@@ -293,7 +296,7 @@ export const dataService = {
   },
 
   async saveTrack(userId: string, track: GeneratedTrack) {
-    if (isMockUser(userId)) return;
+    if (isFirestoreRestricted || isMockUser(userId)) return;
     try {
       await addDoc(collection(db, 'tracks'), {
         userId,
@@ -313,7 +316,7 @@ export const dataService = {
   },
 
   async incrementPlayCount(trackId: string) {
-    if (trackId.startsWith('c') || trackId.startsWith('m') || isFirestoreRestricted) {
+    if (isFirestoreRestricted || trackId.startsWith('c') || trackId.startsWith('m')) {
         try {
             const raw = localStorage.getItem('sf_catalog_plays');
             const plays = raw ? JSON.parse(raw) : {};
@@ -330,7 +333,7 @@ export const dataService = {
   },
 
   subscribeToTracks(userId: string, callback: (tracks: GeneratedTrack[]) => void): Unsubscribe {
-    if (isMockUser(userId)) {
+    if (isFirestoreRestricted || isMockUser(userId)) {
         callback(MOCK_TRACKS_FALLBACK);
         return () => {};
     }
@@ -371,7 +374,7 @@ export const dataService = {
           xp: 1200, nextLevelXp: 2500
       };
 
-      if (isMockUser(userId)) return mockStats;
+      if (isFirestoreRestricted || isMockUser(userId)) return mockStats;
 
       try {
           const tracksQ = query(collection(db, 'tracks'), where('userId', '==', userId));
@@ -397,7 +400,7 @@ export const dataService = {
   },
 
   async submitRelease(userId: string, releaseData: any) {
-      if (isMockUser(userId)) return;
+      if (isFirestoreRestricted || isMockUser(userId)) return;
       try {
           await addDoc(collection(db, 'releases'), {
               userId, ...releaseData, status: 'processing_agent', submittedAt: serverTimestamp()
@@ -407,7 +410,7 @@ export const dataService = {
 
   async saveVoiceRegistration(userId: string, nftData: VoiceAsset) {
     MOCK_VOICE_REGISTRATIONS_CACHE.unshift(nftData);
-    if (isMockUser(userId)) return;
+    if (isFirestoreRestricted || isMockUser(userId)) return;
     try {
       await addDoc(collection(db, 'voice_registrations'), {
         userId, ...nftData, registeredAt: serverTimestamp()
@@ -416,7 +419,7 @@ export const dataService = {
   },
 
   subscribeToVoiceRegistrations(userId: string, callback: (nfts: VoiceAsset[]) => void): Unsubscribe {
-    if (isMockUser(userId)) {
+    if (isFirestoreRestricted || isMockUser(userId)) {
         callback(MOCK_VOICE_REGISTRATIONS_CACHE);
         return () => {};
     }
