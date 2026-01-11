@@ -161,7 +161,7 @@ const AppContent = () => {
         setLoadingAuth(false);
     });
     return () => { authUnsubscribe(); if (userUnsubscribe) userUnsubscribe(); };
-  }, [onboardingDismissed, currentView]); // Refresh context on view change
+  }, [onboardingDismissed]); // REMOVED currentView from dependencies to fix navigation flicker
 
   const handleLogout = async () => {
       await authService.logout();
