@@ -1,5 +1,4 @@
 
-
 export type BriefSource = "Songtradr" | "DittoSync" | "Horus" | "EmailFeed" | "UserSubmitted" | "PartnerAPI";
 export type MediaType = "TV" | "Film" | "Ad" | "Game" | "Trailer" | "Brand" | "Other";
 export type CommunicationChannel = 'sms' | 'whatsapp' | 'email' | 'instagram' | 'facebook' | 'gmb';
@@ -93,7 +92,6 @@ export interface User {
   ghlIntegration?: GHLIntegration;
   xp?: number;
   artistLevel?: string;
-  // Added missing properties for User
   isFeatured?: boolean;
   bio?: string;
   chartmetricArtistId?: number;
@@ -127,14 +125,10 @@ export interface SyncBrief {
   vocal?: "Instrumental" | "Vocal" | "Either";
   createdAt: string;
   readinessScore?: number; 
-  // Added missing properties for SyncBrief
   references?: string[];
   deliverables?: string[];
   usage?: string[];
   territory?: string[];
-  /**
-   * Added rightsRequired to handle sync brief metadata requirements.
-   */
   rightsRequired?: { master: boolean; publishing: boolean };
 }
 
@@ -179,7 +173,6 @@ export interface Opportunity {
   deadline_datetime: string;
   match_score?: number;
   mood_tags: string[];
-  // Added missing properties for Opportunity
   duration_required?: number;
   payout_min: number;
   submission_status?: string;
@@ -215,6 +208,25 @@ export interface Track {
       network: 'Solana' | 'Filecoin';
       status: 'secured';
   };
+}
+
+export interface DistributionSubmission {
+    id: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    title: string;
+    artistName: string;
+    releaseDate: string;
+    recordLabel: string;
+    primaryGenre: string;
+    status: 'draft' | 'submitted' | 'processing' | 'delivered' | 'live' | 'rejected';
+    tracks: DistributionTrack[];
+    coverUrl?: string;
+    createdAt: string;
+    isrcCodes?: string[];
+    upcCode?: string;
+    metadata: any;
 }
 
 export interface StaffProposal {
@@ -257,7 +269,6 @@ export interface FundingRequest {
     calculatedOfferHigh: number;
     status: string;
     createdAt: string;
-    // Added missing properties for FundingRequest
     userEmail?: string;
     userName?: string;
     contactPhone?: string;
@@ -267,9 +278,6 @@ export interface FundingRequest {
     catalogNotes?: string;
     requestedAmount?: number;
     consentToShareData?: boolean;
-    /**
-     * Added stageName to FundingRequest to support optional stage name tracking.
-     */
     stageName?: string;
 }
 
@@ -287,7 +295,6 @@ export interface VoiceDetection {
     similarity_score: number;
     status: string;
     platform: string;
-    // Added missing properties for VoiceDetection
     source_url?: string;
     timestamp?: string;
     is_authorized?: boolean;
@@ -367,7 +374,6 @@ export interface DistributionTrack {
   isExplicit: boolean;
   audioFile?: File;
   contributors?: Contributor[];
-  // Added missing properties for DistributionTrack
   isRadioEdit?: boolean;
   writerType?: string;
   songwriters?: string[];
@@ -384,7 +390,6 @@ export interface DistributionRelease {
   releaseDate: string;
   tracks: DistributionTrack[]; 
   coverUrl?: string;
-  // Added missing properties used in MusicDistribution.tsx
   albumCover?: File;
   recordLabel?: string;
   copyrightYear?: string;
@@ -416,7 +421,6 @@ export interface WebhookLog {
   event: string;
   status: 'success' | 'failed' | 'pending';
   payload: any;
-  // Added missing properties for WebhookLog
   destination?: string;
   responseCode?: number;
 }
@@ -466,7 +470,6 @@ export interface VoiceLicense {
   price: number;
   expiry: string;
   status: string;
-  // Added missing property for VoiceLicense
   terms_hash?: string;
 }
 
@@ -513,7 +516,6 @@ export interface BattleRulesConfig {
   customRules: string[];
 }
 
-// Added missing SocialPost type
 export interface SocialPost {
     id: string;
     userId: string;

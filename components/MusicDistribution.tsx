@@ -1,9 +1,13 @@
 
-import React, { useState, useRef } from 'react';
-/* Added Users to the lucide-react imports to fix the error on line 422 */
-import { CheckCircle2, Bot, ArrowLeft, Upload, Server, ShieldCheck, Globe, Zap, Music2, Plus, Trash2, Image as ImageIcon, AlertCircle, Database, Lock, Disc, Layers, Copy, Check, Calendar, HardDrive, FileAudio, X, Sliders, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+    CheckCircle2, Bot, ArrowLeft, Upload, Server, ShieldCheck, Globe, Zap, 
+    Music2, Plus, Trash2, Image as ImageIcon, AlertCircle, Database, Lock, 
+    Disc, Layers, Copy, Check, Calendar, HardDrive, FileAudio, X, Sliders, 
+    ChevronDown, ChevronUp, Users, Clock, Loader2, Send, History 
+} from 'lucide-react';
 import { DISTRIBUTION_PARTNERS } from '../constants';
-import { DistributionRelease, DistributionTrack, Contributor } from '../types';
+import { DistributionRelease, DistributionTrack, Contributor, DistributionSubmission } from '../types';
 import { dataService } from '../services/dataService';
 import { authService } from '../services/authService';
 
@@ -17,13 +21,15 @@ const GENRES = ["Pop", "Hip Hop", "R&B", "Rock", "Electronic", "Latin", "Country
 const ROLES = ['Songwriter', 'Producer', 'Featured Artist', 'Remixer', 'Mixer', 'Mastering Engineer', 'Composer'] as const;
 
 export const MusicDistribution: React.FC = () => {
-  const [view, setView] = useState<'dashboard' | 'setup' | 'new-release' | 'agent-processing'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'setup' | 'new-release' | 'agent-processing' | 'history'>('dashboard');
   const user = authService.getCurrentUser();
   const [agentLogs, setAgentLogs] = useState<string[]>([]);
   const [agentProgress, setAgentProgress] = useState(0);
   const [releaseType, setReleaseType] = useState<'Single' | 'Album'>('Single');
   const [trackCount, setTrackCount] = useState(1);
   const [expandedTrackId, setExpandedTrackId] = useState<string | null>(null);
+  const [mySubmissions, setMySubmissions] = useState<DistributionSubmission[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const [release, setRelease] = useState<DistributionRelease>({
       id: `rel_${Date.now()}`,
@@ -50,6 +56,20 @@ export const MusicDistribution: React.FC = () => {
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const trackFileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (view === 'dashboard' && user) {
+        loadHistory();
+    }
+  }, [view, user]);
+
+  const loadHistory = async () => {
+      if (!user) return;
+      setLoadingHistory(true);
+      const history = await dataService.getMyDistributionSubmissions(user.uid);
+      setMySubmissions(history);
+      setLoadingHistory(false);
+  };
 
   const startRelease = () => {
       const initialTracks: DistributionTrack[] = Array.from({ length: trackCount }).map((_, i) => ({
@@ -143,11 +163,11 @@ export const MusicDistribution: React.FC = () => {
           { msg: "Agent Initialized: Analyzing Metadata...", time: 1000 },
           { msg: "Connecting to Global Distribution Partners...", time: 1000 },
           { msg: "Validating Artwork Specs (Institutional Grade)...", time: 1000 },
-          { msg: "Logging in as Sound Merge Label Admin...", time: 800 },
-          { msg: `Uploading "${release.title}" Assets to CDN...`, time: 2000 },
-          { msg: "Assigning UPC/EAN Rights Codes...", time: 1000 },
+          { msg: "Securing Metadata in Distribution Ledger...", time: 800 },
+          { msg: `Submitting "${release.title}" to Sound Merge Admin Portal...`, time: 2000 },
+          { msg: "UPC/ISRC Request Queued for Label Fulfillment...", time: 1000 },
           { msg: "Securing Copyright Record on Ledger...", time: 1200 },
-          { msg: "Final Delivery Queued.", time: 500 }
+          { msg: "Label Submission Confirmed.", time: 500 }
       ];
 
       for (let i = 0; i < steps.length; i++) {
@@ -156,10 +176,29 @@ export const MusicDistribution: React.FC = () => {
           setAgentProgress(((i + 1) / steps.length) * 100);
       }
 
-      await dataService.submitRelease(user?.uid || 'guest', release);
+      // SUBMIT TO THE VAULT
+      if (user) {
+          const submission: Partial<DistributionSubmission> = {
+              userId: user.uid,
+              userName: user.displayName,
+              userEmail: user.email,
+              title: release.title,
+              artistName: release.artistName,
+              releaseDate: release.releaseDate,
+              recordLabel: release.recordLabel || 'Sound Merge Records',
+              primaryGenre: release.primaryGenre || 'Pop',
+              tracks: release.tracks,
+              coverUrl: release.coverUrl,
+              metadata: { ...release, albumCover: undefined } // Remove File object for DB
+          };
+          await dataService.submitDistributionSubmission(submission);
+      }
+
       setTimeout(() => {
-          alert("Submission complete! Assets are processing.");
           setView('dashboard');
+          window.dispatchEvent(new CustomEvent('sf-notification', { 
+              detail: { title: 'Submission Secured', message: 'Your release is now in the Distribution Vault for fulfillment.', type: 'success' } 
+          }));
       }, 1000);
   };
 
@@ -170,8 +209,8 @@ export const MusicDistribution: React.FC = () => {
                   <Bot className="w-16 h-16 text-cyan-400 animate-pulse" />
               </div>
               <div className="text-center">
-                  <h2 className="text-2xl font-bold text-white mb-2">Sound Merge AI Agent Active</h2>
-                  <p className="text-slate-400">Deploying your assets to the global network.</p>
+                  <h2 className="text-2xl font-bold text-white mb-2">Distribution Agent Sarah Active</h2>
+                  <p className="text-slate-400">Securing your release metadata in the institutional vault.</p>
               </div>
               <div className="w-full bg-slate-950 rounded-xl border border-slate-800 p-6 font-mono text-xs shadow-2xl">
                   <div className="h-64 overflow-y-auto space-y-2 custom-scrollbar">
@@ -275,7 +314,7 @@ export const MusicDistribution: React.FC = () => {
                                 value={release.title}
                                 onChange={e => setRelease({...release, title: e.target.value})}
                                 placeholder="e.g. Genesis Protocol"
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-cyan-500 outline-none transition-all" 
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-white focus:border-cyan-500 outline-none transition-all font-bold" 
                               />
                           </div>
                           <div>
@@ -292,7 +331,7 @@ export const MusicDistribution: React.FC = () => {
                                   <select 
                                     value={release.primaryGenre}
                                     onChange={e => setRelease({...release, primaryGenre: e.target.value})}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-cyan-500 outline-none"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-cyan-500 outline-none font-bold"
                                   >
                                       {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
                                   </select>
@@ -303,7 +342,7 @@ export const MusicDistribution: React.FC = () => {
                                     type="date"
                                     value={release.releaseDate}
                                     onChange={e => setRelease({...release, releaseDate: e.target.value})}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-cyan-500 outline-none" 
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-cyan-500 outline-none font-bold" 
                                   />
                               </div>
                           </div>
@@ -397,7 +436,7 @@ export const MusicDistribution: React.FC = () => {
                                                         <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5 ml-1">Track Title</label>
                                                         <input 
                                                             value={track.title} onChange={e => updateTrack(track.id, 'title', e.target.value)}
-                                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-cyan-500 outline-none transition-all" 
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-cyan-500 outline-none transition-all font-bold" 
                                                         />
                                                     </div>
                                                     
@@ -499,14 +538,14 @@ export const MusicDistribution: React.FC = () => {
                       <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-10 flex flex-col md:flex-row justify-between items-center gap-8 shadow-2xl relative overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-transparent pointer-events-none"></div>
                           <div className="text-left relative z-10">
-                              <h4 className="text-white font-black text-2xl uppercase tracking-tighter italic mb-1">Global Distribution Ready</h4>
-                              <p className="text-slate-500 text-sm max-w-sm font-medium">Your assets will be deployed to the Sound Merge Ledger and delivered to 150+ stores simultaneously.</p>
+                              <h4 className="text-white font-black text-2xl uppercase tracking-tighter italic mb-1">Vault Submission Ready</h4>
+                              <p className="text-slate-500 text-sm max-w-sm font-medium">Your assets will be secured in the Sound Merge Vault for manual label fulfillment and global delivery.</p>
                           </div>
                           <button 
                             onClick={handleSubmit}
                             className="w-full md:w-auto px-12 py-5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-2xl shadow-cyan-600/30 flex items-center justify-center gap-3 hover:scale-105 active:scale-95"
                           >
-                              <ShieldCheck className="w-5 h-5" /> Authorize Deployment
+                              <ShieldCheck className="w-5 h-5" /> Submit to Label
                           </button>
                       </div>
                   </div>
@@ -521,50 +560,96 @@ export const MusicDistribution: React.FC = () => {
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
           <div className="relative z-10 text-center lg:text-left lg:max-w-2xl">
               <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-8 animate-pulse">
-                  <Zap className="w-3 h-3 text-yellow-400" /> AI-Powered Asset Deployment Active
+                  <Zap className="w-3 h-3 text-yellow-400" /> AI Distribution Management Active
               </div>
-              <h2 className="text-6xl font-black text-white mb-6 tracking-tighter italic leading-[0.9]">Institutional Music Distribution.</h2>
+              <h2 className="text-6xl font-black text-white mb-6 tracking-tighter italic leading-[0.9]">Label Distribution Terminal.</h2>
               <p className="text-slate-500 text-xl mb-12 leading-relaxed font-medium">
-                  Automate your metadata optimization and secure your identity on the Sound Merge Ledger. We handle the complexity of global delivery while you keep 100% ownership.
+                  Complete your release metadata for Sarah to process. We coordinate your global store delivery while you maintain total creative sovereign control.
               </p>
-              <button 
-                onClick={() => setView('setup')} 
-                className="bg-white text-slate-950 px-12 py-4 rounded-full font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 hover:scale-105 transition-all mx-auto lg:mx-0 text-xs"
-              >
-                  <Upload className="w-4 h-4" /> Initialize Release
-              </button>
+              <div className="flex gap-4 justify-center lg:justify-start">
+                  <button 
+                    onClick={() => setView('setup')} 
+                    className="bg-white text-slate-950 px-12 py-4 rounded-full font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 hover:scale-105 transition-all text-xs"
+                  >
+                      <Plus className="w-4 h-4" /> Start New Release
+                  </button>
+                  <button 
+                    onClick={() => setView('history')}
+                    className="bg-slate-900 border border-slate-800 text-white px-10 py-4 rounded-full font-black uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 hover:bg-slate-800 transition-all text-xs"
+                  >
+                      <History className="w-4 h-4" /> View Submissions
+                  </button>
+              </div>
           </div>
           <div className="mt-12 lg:mt-0 relative">
              <Globe className="w-96 h-96 text-cyan-500/10 animate-pulse-slow shrink-0" />
              <div className="absolute inset-0 flex items-center justify-center">
-                 <ShieldCheck className="w-24 h-24 text-cyan-400 opacity-40 shadow-[0_0_80px_rgba(6,182,212,0.2)]" />
+                 <Bot className="w-24 h-24 text-cyan-400 opacity-40 shadow-[0_0_80px_rgba(6,182,212,0.2)]" />
              </div>
           </div>
       </div>
 
-      {/* Release History Section */}
-      <div className="space-y-6">
-          <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Recent Operational Deployments</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                  { title: "Neon Sunset", date: "2 days ago", status: "Delivered", color: "text-green-400", type: "Single" },
-                  { title: "Dream State EP", date: "1 week ago", status: "In Review", color: "text-yellow-400", type: "Album" },
-                  { title: "Midnight City", date: "1 month ago", status: "Delivered", color: "text-green-400", type: "Single" },
-                  { title: "Lost in Code", date: "2 months ago", status: "Live", color: "text-cyan-400", type: "Single" }
-              ].map((item, i) => (
-                  <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] hover:border-cyan-500/50 transition-all cursor-pointer group shadow-sm hover:shadow-xl">
-                      <div className="flex justify-between items-start mb-6">
-                          <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl group-hover:bg-cyan-500/10 transition-colors border border-slate-100 dark:border-slate-800">
-                              {item.type === 'Single' ? <Disc className="w-6 h-6 text-slate-400 group-hover:text-cyan-400" /> : <Layers className="w-6 h-6 text-slate-400 group-hover:text-purple-400" />}
+      {view === 'history' && (
+          <div className="animate-in slide-in-from-bottom-4 duration-500">
+              <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tight italic">Submission Vault History</h3>
+                  <button onClick={() => setView('dashboard')} className="text-xs text-slate-500 font-bold uppercase hover:text-white">Close History</button>
+              </div>
+
+              {loadingHistory ? (
+                  <div className="h-40 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-cyan-500" /></div>
+              ) : mySubmissions.length === 0 ? (
+                  <div className="p-20 text-center border-2 border-dashed border-slate-800 rounded-[2.5rem] text-slate-600 font-bold italic">No pending releases found in the vault.</div>
+              ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {mySubmissions.map(sub => (
+                          <div key={sub.id} className="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] hover:border-cyan-500/50 transition-all group">
+                              <div className="flex justify-between items-start mb-6">
+                                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-800 shadow-xl border border-white/5">
+                                      <img src={sub.coverUrl || 'https://picsum.photos/200/200?random=1'} className="w-full h-full object-cover" />
+                                  </div>
+                                  <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border ${
+                                      sub.status === 'live' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                      sub.status === 'delivered' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                                      'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                  }`}>{sub.status}</span>
+                              </div>
+                              <h4 className="text-xl font-black text-white uppercase tracking-tight mb-1">{sub.title}</h4>
+                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{sub.primaryGenre} • {sub.tracks.length} Track{sub.tracks.length > 1 ? 's' : ''}</p>
+                              <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-4">
+                                  <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">{new Date(sub.createdAt).toLocaleDateString()}</span>
+                                  <button className="text-cyan-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest">View Details</button>
+                              </div>
                           </div>
-                          <span className={`text-[9px] font-black uppercase tracking-widest ${item.color} border border-current px-2 py-0.5 rounded`}>{item.status}</span>
-                      </div>
-                      <h4 className="font-black text-slate-900 dark:text-white text-lg mb-1 group-hover:text-cyan-400 transition-colors uppercase tracking-tight">{item.title}</h4>
-                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{item.date} • {item.type}</p>
+                      ))}
                   </div>
-              ))}
+              )}
           </div>
-      </div>
+      )}
+
+      {view === 'dashboard' && (
+        <div className="space-y-6">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Global Node Status</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { title: "Active Vaults", val: "152", color: "text-green-400", icon: Database },
+                    { title: "Pending Stores", val: "12", color: "text-yellow-400", icon: Globe },
+                    { title: "Secured IDs", val: "1,240", color: "text-cyan-400", icon: ShieldCheck },
+                    { title: "Neural Audits", val: "Ready", color: "text-purple-400", icon: Bot }
+                ].map((item, i) => (
+                    <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm">
+                        <div className="flex justify-between items-start mb-6">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                <item.icon className={`w-6 h-6 ${item.color}`} />
+                            </div>
+                        </div>
+                        <h4 className="font-black text-slate-500 text-[10px] mb-1 uppercase tracking-widest">{item.title}</h4>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white uppercase">{item.val}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+      )}
     </div>
   );
 };

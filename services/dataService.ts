@@ -1,3 +1,4 @@
+
 import { 
   collection, 
   addDoc, 
@@ -19,13 +20,12 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { GeneratedTrack } from './audioService';
-import { VoiceAsset, User, Stats, DistributionRelease, LegalRecord, FundingRequest, SyncBrief, OpportunityRequest } from '../types';
+import { VoiceAsset, User, Stats, DistributionRelease, LegalRecord, FundingRequest, SyncBrief, OpportunityRequest, DistributionSubmission } from '../types';
 import { MOCK_BRIEFS } from '../constants';
 
 /**
  * PII PROTECTION UTILITIES (Zero Trust)
  * Simple XOR-based encryption for sensitive fields like phone numbers and legal names.
- * In a production environment, this would use SubtleCrypto with a server-managed key.
  */
 const PII_KEY = "SOUND_MERGE_SECURE_RAILS_2025";
 const encryptPii = (text: string | undefined): string => {
@@ -67,6 +67,7 @@ let MOCK_VOICE_REGISTRATIONS_CACHE: VoiceAsset[] = [];
 let MOCK_FUNDING_REQUESTS_CACHE: FundingRequest[] = [];
 let MOCK_BRIEFS_CACHE: SyncBrief[] = [...MOCK_BRIEFS];
 let MOCK_OPPORTUNITY_REQUESTS_CACHE: OpportunityRequest[] = [];
+let MOCK_DISTRIBUTION_SUBMISSIONS: DistributionSubmission[] = [];
 
 const isMockUser = (uid: string) => {
     return isFirestoreRestricted || 
@@ -114,8 +115,6 @@ export const dataService = {
   // --- FUNDING & PII PROTECTION ---
   async submitFundingRequest(request: Partial<FundingRequest>): Promise<{ requestId: string }> {
       const requestId = `fund_${Date.now()}`;
-      
-      // Protect PII before it leaves the local environment
       const protectedRequest = {
           ...request,
           id: requestId,
@@ -157,6 +156,54 @@ export const dataService = {
         handleFirestoreError(e);
         return MOCK_FUNDING_REQUESTS_CACHE;
     }
+  },
+
+  // --- DISTRIBUTION VAULT ---
+  async submitDistributionSubmission(submission: Partial<DistributionSubmission>): Promise<void> {
+      if (!submission.userId) return;
+      const id = submission.id || `dist_${Date.now()}`;
+      const finalSubmission: DistributionSubmission = {
+          ...submission,
+          id,
+          status: 'submitted',
+          createdAt: new Date().toISOString()
+      } as DistributionSubmission;
+
+      MOCK_DISTRIBUTION_SUBMISSIONS.unshift(finalSubmission);
+      if (!isFirestoreRestricted && !isMockUser(submission.userId)) {
+          try {
+              await setDoc(doc(db, 'distribution_ledger', id), finalSubmission);
+          } catch (e: any) { handleFirestoreError(e); }
+      }
+  },
+
+  async getAllDistributionSubmissions(): Promise<DistributionSubmission[]> {
+      if (isFirestoreRestricted) return MOCK_DISTRIBUTION_SUBMISSIONS;
+      try {
+          const snap = await getDocs(query(collection(db, 'distribution_ledger'), orderBy('createdAt', 'desc')));
+          return snap.docs.map(d => d.data() as DistributionSubmission);
+      } catch (e: any) { handleFirestoreError(e); return MOCK_DISTRIBUTION_SUBMISSIONS; }
+  },
+
+  async updateDistributionStatus(id: string, status: DistributionSubmission['status']): Promise<void> {
+      const idx = MOCK_DISTRIBUTION_SUBMISSIONS.findIndex(s => s.id === id);
+      if (idx > -1) MOCK_DISTRIBUTION_SUBMISSIONS[idx].status = status;
+      if (!isFirestoreRestricted) {
+          try {
+              await updateDoc(doc(db, 'distribution_ledger', id), { status });
+          } catch (e: any) { handleFirestoreError(e); }
+      }
+  },
+
+  async getMyDistributionSubmissions(userId: string): Promise<DistributionSubmission[]> {
+      if (isFirestoreRestricted || isMockUser(userId)) {
+          return MOCK_DISTRIBUTION_SUBMISSIONS.filter(s => s.userId === userId);
+      }
+      try {
+          const qry = query(collection(db, 'distribution_ledger'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
+          const snap = await getDocs(qry);
+          return snap.docs.map(d => d.data() as DistributionSubmission);
+      } catch (e: any) { handleFirestoreError(e); return MOCK_DISTRIBUTION_SUBMISSIONS.filter(s => s.userId === userId); }
   },
 
   // --- USER PROFILE ---
@@ -203,7 +250,6 @@ export const dataService = {
 
       if (!isFirestoreRestricted && !isMockUser(uid)) {
           try {
-              // Secure PII fields
               const encryptedUser = {
                   ...newUser,
                   phoneNumber: encryptPii(userData.phoneNumber)
@@ -211,7 +257,6 @@ export const dataService = {
               await setDoc(doc(db, 'users', uid), encryptedUser);
           } catch (e: any) { handleFirestoreError(e); }
       } else {
-          // Cache in memory for sandbox/mock users
           const existingIdx = MOCK_USERS_CACHE.findIndex(u => u.uid === uid);
           if (existingIdx === -1) {
               MOCK_USERS_CACHE.push(newUser);
@@ -219,7 +264,6 @@ export const dataService = {
       }
   },
 
-  // Added missing adminUpdateUser method to support profile updates
   async adminUpdateUser(uid: string, data: Partial<User>): Promise<void> {
     if (isFirestoreRestricted || isMockUser(uid)) {
         const idx = MOCK_USERS_CACHE.findIndex(u => u.uid === uid);
@@ -231,7 +275,6 @@ export const dataService = {
     } catch (e: any) { handleFirestoreError(e); }
   },
 
-  // Added missing getAllUsers method for AdminDashboard
   async getAllUsers(): Promise<User[]> {
       if (isFirestoreRestricted) return MOCK_USERS_CACHE;
       try {
@@ -288,7 +331,6 @@ export const dataService = {
     } catch (e: any) { handleFirestoreError(e); }
   },
 
-  // Added missing submitRelease method for MusicDistribution
   async submitRelease(userId: string, release: DistributionRelease): Promise<void> {
     if (isFirestoreRestricted || isMockUser(userId)) return;
     try {
@@ -300,7 +342,6 @@ export const dataService = {
     } catch (e: any) { handleFirestoreError(e); }
   },
 
-  // Added missing getAllReleases method for AdminDashboard
   async getAllReleases(): Promise<DistributionRelease[]> {
       if (isFirestoreRestricted) return [];
       try {
@@ -309,7 +350,6 @@ export const dataService = {
       } catch (e: any) { handleFirestoreError(e); return []; }
   },
 
-  // Added missing getAllLegalRecords method for AdminDashboard
   async getAllLegalRecords(): Promise<LegalRecord[]> {
       if (isFirestoreRestricted) return [];
       try {
@@ -318,7 +358,6 @@ export const dataService = {
       } catch (e: any) { handleFirestoreError(e); return []; }
   },
 
-  // Added missing saveVoiceRegistration method for VoiceShield
   async saveVoiceRegistration(userId: string, asset: VoiceAsset): Promise<void> {
     if (isFirestoreRestricted || isMockUser(userId)) {
         MOCK_VOICE_REGISTRATIONS_CACHE.push(asset);
@@ -333,7 +372,6 @@ export const dataService = {
     } catch (e: any) { handleFirestoreError(e); }
   },
 
-  // Added missing subscribeToVoiceRegistrations method for VoiceNFTManager and VoiceAssetManager
   subscribeToVoiceRegistrations(userId: string, callback: (assets: VoiceAsset[]) => void): Unsubscribe {
       if (isFirestoreRestricted || isMockUser(userId)) {
           callback(MOCK_VOICE_REGISTRATIONS_CACHE);
@@ -354,7 +392,6 @@ export const dataService = {
       }
   },
 
-  // Added missing getCatalogPlays method for MusicCatalog simulation
   getCatalogPlays(): Record<string, number> {
       try {
           const saved = localStorage.getItem('sf_catalog_plays');
@@ -362,14 +399,12 @@ export const dataService = {
       } catch (e) { return {}; }
   },
 
-  // Added missing incrementPlayCount method for MusicCatalog simulation
   incrementPlayCount(trackId: string): void {
       const plays = this.getCatalogPlays();
       plays[trackId] = (plays[trackId] || 0) + 1;
       localStorage.setItem('sf_catalog_plays', JSON.stringify(plays));
   },
 
-  // Added missing deleteUserAccount method for UserProfile
   async deleteUserAccount(userId: string): Promise<void> {
       if (isFirestoreRestricted || isMockUser(userId)) return;
       try {
@@ -377,7 +412,6 @@ export const dataService = {
       } catch (e: any) { handleFirestoreError(e); }
   },
 
-  // Added missing submitOpportunityRequest method for OpportunitiesView
   async submitOpportunityRequest(request: OpportunityRequest): Promise<void> {
       MOCK_OPPORTUNITY_REQUESTS_CACHE.unshift(request);
       if (isFirestoreRestricted || isMockUser(request.userId)) return;
@@ -386,7 +420,6 @@ export const dataService = {
       } catch (e: any) { handleFirestoreError(e); }
   },
 
-  // Added missing getAllOpportunityRequests method for AdminDashboard
   async getAllOpportunityRequests(): Promise<OpportunityRequest[]> {
       if (isFirestoreRestricted) return MOCK_OPPORTUNITY_REQUESTS_CACHE;
       try {

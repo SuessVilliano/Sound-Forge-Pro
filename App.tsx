@@ -9,7 +9,7 @@ import { parseRawBrief } from './services/geminiService';
 import { authService } from '../services/authService';
 import { dataService } from './services/dataService';
 import { webhookService } from './services/webhookService';
-import { Opportunity, User as UserType, Stats, StaffMessage } from './types';
+import { Opportunity, User as UserType, Stats, StaffMessage, DistributionSubmission } from './types';
 import { PlayerProvider, usePlayer } from './contexts/PlayerContext';
 import { WalletProvider } from './contexts/WalletContext';
 import { Loader2, X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
@@ -19,7 +19,7 @@ import { AllToolsView } from './components/AllToolsView';
 import { OpportunitiesView } from './components/OpportunitiesView';
 import { AcademyView } from './components/AcademyView';
 import { RevenueRecovery } from './components/RevenueRecovery';
-import { Advances } from './components/Advances'; // Renamed from Funding
+import { Advances } from './components/Advances'; 
 import { MusicDistribution } from './components/MusicDistribution';
 import { MarketingCRM } from './components/MarketingCRM';
 import { VoiceMarketplace } from './components/VoiceMarketplace';
@@ -72,13 +72,13 @@ const AppContent = () => {
   const [currentView, setCurrentView] = useState(VIEWS.DASHBOARD);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
+  const [pendingDistributions, setPendingDistributions] = useState<DistributionSubmission[]>([]);
   const [realStats, setRealStats] = useState<Stats>({
       totalEarnings: 0, totalStreams: 0, activeOpportunities: 0, brandScore: '-',
       earningsGrowth: 0, streamsGrowth: 0, opportunitiesNew: false,
       artistLevel: "New Artist", xp: 0, nextLevelXp: 1000
   });
   
-  // Persistent Staff Chat Threads
   const [chatThreads, setChatThreads] = useState<Record<string, StaffMessage[]>>({
     'team-hub': [{ id: '0', agentId: 'team-hub', role: 'agent', text: "Team Hub initialized. We're all in the loop. What's the master game plan for today?", timestamp: '10:00 AM' }],
     mgr: [{ id: '1', agentId: 'mgr', role: 'agent', text: "James here. I've analyzed your current growth. We're leaning too heavily on organic search. I'm drafting a proposal to shift your target to Sync Licensing for H2.", timestamp: '10:00 AM' }],
@@ -140,6 +140,12 @@ const AppContent = () => {
                         setRealStats(stats);
                     }
                 });
+
+                // Load distribution submissions for AI awareness
+                dataService.getMyDistributionSubmissions(observedUser.uid).then(subs => {
+                    setPendingDistributions(subs.filter(s => s.status !== 'live' && s.status !== 'rejected'));
+                });
+
                 const isLocallyDismissed = localStorage.getItem('sf_onboarding_skip') === 'true';
                 if (updatedUser.uid !== 'demo_master_account' && !updatedUser.onboardingCompleted && !onboardingDismissed && !isLocallyDismissed) {
                     setShowOnboarding(true);
@@ -155,7 +161,7 @@ const AppContent = () => {
         setLoadingAuth(false);
     });
     return () => { authUnsubscribe(); if (userUnsubscribe) userUnsubscribe(); };
-  }, [onboardingDismissed]); 
+  }, [onboardingDismissed, currentView]); // Refresh context on view change
 
   const handleLogout = async () => {
       await authService.logout();
@@ -286,7 +292,7 @@ const AppContent = () => {
         <PricingModal isOpen={showPricingModal} onClose={() => setShowPricingModal(false)} user={user} onUpgrade={() => {}} />
         <UploadModal isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} user={user} />
         <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} onRestartOnboarding={() => setShowOnboarding(true)} />
-        <ChatBot currentView={currentView} stats={realStats} opportunities={opportunities} />
+        <ChatBot currentView={currentView} stats={realStats} opportunities={opportunities} pendingDistributions={pendingDistributions} />
       </div>
     </div>
   );

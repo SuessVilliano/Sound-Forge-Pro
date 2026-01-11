@@ -1,8 +1,9 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Loader2, Minimize2, Sparkles, Bot, Mic, MicOff, Volume2, VolumeX, StopCircle, Move, ChevronDown, CheckCheck, Users } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { chatWithGemini, ChatContext } from '../services/geminiService';
-import { Stats, Opportunity, AiStaffMember } from '../types';
+import { Stats, Opportunity, AiStaffMember, DistributionSubmission } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { authService } from '../services/authService';
 
@@ -17,18 +18,19 @@ interface ChatBotProps {
     currentView: string;
     stats: Stats;
     opportunities: Opportunity[];
+    pendingDistributions?: DistributionSubmission[];
 }
 
-export const ChatBot: React.FC<ChatBotProps> = ({ currentView, stats, opportunities }) => {
+export const ChatBot: React.FC<ChatBotProps> = ({ currentView, stats, opportunities, pendingDistributions }) => {
   const user = authService.getCurrentUser();
   const [isOpen, setIsOpen] = useState(false);
   const [showStaffPicker, setShowStaffPicker] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AiStaffMember>(STAFF[0]);
   
-  // History is keyed by agent ID to persist context
   const [threads, setThreads] = useState<Record<string, {role: 'user' | 'model', text: string}[]>>({
     mgr: [{ role: 'model', text: "Hello! I'm James, your Manager. Let's build your professional infrastructure today." }],
-    mkt: [{ role: 'model', text: "Elena here! Ready to boost your social signals?" }]
+    mkt: [{ role: 'model', text: "Elena here! Ready to boost your social signals?" }],
+    dst: [{ role: 'model', text: "I'm Sarah. I manage your distribution vault and metadata." }]
   });
 
   const [input, setInput] = useState('');
@@ -43,7 +45,6 @@ export const ChatBot: React.FC<ChatBotProps> = ({ currentView, stats, opportunit
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Position & Drag State
   const { queue } = usePlayer();
   const [position, setPosition] = useState<{right: number, bottom: number} | null>(null);
   const [hasMoved, setHasMoved] = useState(false);
@@ -161,7 +162,8 @@ export const ChatBot: React.FC<ChatBotProps> = ({ currentView, stats, opportunit
           stats, 
           opportunities,
           user: user || undefined,
-          agentRole: selectedAgent.role
+          agentRole: selectedAgent.role,
+          pendingDistributions: pendingDistributions
       });
       
       setThreads(prev => ({ 
@@ -183,7 +185,6 @@ export const ChatBot: React.FC<ChatBotProps> = ({ currentView, stats, opportunit
   const switchAgent = (agent: AiStaffMember) => {
       setSelectedAgent(agent);
       setShowStaffPicker(false);
-      // Ensure thread exists
       if (!threads[agent.id]) {
           setThreads(prev => ({
               ...prev,
