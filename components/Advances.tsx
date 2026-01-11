@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { Landmark, Calculator, Info, ShieldCheck, DollarSign, ArrowRight, Loader2, CheckCircle2, ChevronRight, AlertCircle, Phone, Globe, Signal, Activity } from 'lucide-react';
 import { User, FundingRequest } from '../types';
@@ -68,6 +70,7 @@ export const Advances: React.FC<AdvancesProps> = ({ user }) => {
               consentToShareData: consent
           };
 
+          // submitFundingRequest now implemented in dataService.ts
           await dataService.submitFundingRequest(payload);
           setStep('success');
       } catch (e) {

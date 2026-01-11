@@ -1,10 +1,12 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { 
     Users, Trash2, Edit2, Shield, Search, CheckCircle2, AlertTriangle, X, Globe, 
     Music, Save, Plus, Activity, RefreshCw, Eye, Terminal, Zap, FileText, Landmark, 
     Phone, ArrowRight, ExternalLink, MessageSquare, Copy, Check, HardDrive, Download, Bot 
 } from 'lucide-react';
+/* Updated imports for missing types */
 import { User, WebhookLog, DistributionRelease, LegalRecord, FundingRequest, SyncBrief, OpportunityRequest, DistributionSubmission } from '../types';
 import { dataService } from '../services/dataService';
 import { webhookService } from '../services/webhookService';
@@ -32,6 +34,7 @@ export const AdminDashboard: React.FC = () => {
 
   const loadAllData = async () => {
     setLoading(true);
+    // All methods now implemented in dataService.ts
     const [userData, releaseData, distData, legalData, fundingData, briefData, opReqData] = await Promise.all([
         dataService.getAllUsers(),
         dataService.getAllReleases(),
@@ -231,7 +234,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Existing tabs... */}
+            {/* User Registry tab implemented with getAllUsers */}
             {activeTab === 'users' && (
                 <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">

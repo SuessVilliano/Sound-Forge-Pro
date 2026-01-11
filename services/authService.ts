@@ -1,3 +1,5 @@
+
+
 import { 
   signInWithPopup, 
   signOut, 
@@ -260,6 +262,7 @@ export const authService = {
   updateUserProfile: async (data: Partial<User>): Promise<User> => {
       if (currentLocalUser) {
           const updated = { ...currentLocalUser, ...data };
+          // adminUpdateUser implemented in dataService.ts
           await dataService.adminUpdateUser(updated.uid, updated);
           notifyObservers(updated);
           if (!auth.currentUser || updated.uid.startsWith('mock_')) return updated;
@@ -273,12 +276,14 @@ export const authService = {
         await updateDoc(userDocRef, data);
         const freshProfile = await authService._fetchUserProfile(fbUser);
         webhookService.sendSystemEvent('profile_update', freshProfile);
+        // adminUpdateUser implemented in dataService.ts
         await dataService.adminUpdateUser(freshProfile.uid, freshProfile);
         notifyObservers(freshProfile);
         return freshProfile;
       } catch (e: any) {
           handleFirestoreError(e);
           const simulatedUpdate = { ...currentLocalUser, ...data } as User;
+          // adminUpdateUser implemented in dataService.ts
           await dataService.adminUpdateUser(simulatedUpdate.uid, simulatedUpdate);
           notifyObservers(simulatedUpdate);
           return simulatedUpdate;

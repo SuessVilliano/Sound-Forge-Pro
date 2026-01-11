@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Shield, Globe, FileText, Clock, AlertTriangle, ExternalLink, Copy, Activity, Trash2, CheckCircle2, XCircle, Fingerprint, Download, Check, Plus, Database, Music, FileJson, RefreshCw } from 'lucide-react';
 /* Updated VoiceNFT to VoiceAsset to match rebranded type in types.ts */
@@ -24,15 +25,17 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
   const { walletAddress } = useWallet();
 
   // Fallback Mock for Demo Mode (Solana Default)
-  /* Updated MOCK_NFT to use VoiceAsset */
+  /* Updated MOCK_NFT to use VoiceAsset with required properties */
   const MOCK_NFT: VoiceAsset = {
     token_id: "vNFT-SOL-8823",
+    voice_id: "v-8823",
     contract_address: "7Xw...9zB", // Solana Address format
     fingerprint_hash: "QmXyZ...9B2a",
     mint_date: new Date().toLocaleDateString(),
     transaction_hash: "5Kj...9xP",
     status: "active",
-    network: "Solana"
+    network: "Solana",
+    is_marketplace_enabled: false
   };
 
   const fetchAssets = async () => {
@@ -86,7 +89,9 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
   const MOCK_LICENSES: VoiceLicense[] = [
     {
       id: "lic_1",
+      license_id: "l-1",
       licensee: "Ubisoft Entertainment",
+      voice_id: "v-8823",
       project_name: "NPC Dialogue Pack A",
       usage_type: "Commercial",
       price: 1500,
@@ -96,7 +101,9 @@ export const VoiceNFTManager: React.FC<VoiceNFTManagerProps> = ({ user, onNaviga
     },
     {
       id: "lic_2",
+      license_id: "l-2",
       licensee: "Indie Game Devs",
+      voice_id: "v-8823",
       project_name: "Character Voices",
       usage_type: "Non-Commercial",
       price: 0,

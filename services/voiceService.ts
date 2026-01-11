@@ -1,4 +1,5 @@
 
+
 import { VoiceDetection, VoiceAsset } from "../types";
 
 // --- MOCK DATA ---
@@ -43,12 +44,14 @@ export const registerVoice = async (file: File): Promise<{ success: boolean, nft
         success: true,
         nft: {
             token_id: "SOL-" + Math.floor(Math.random() * 10000).toString(),
+            voice_id: "v-" + Math.floor(Math.random() * 10000).toString(),
             contract_address: "7Xw...9zB", // Solana address format
             fingerprint_hash: fingerprintHash,
             mint_date: new Date().toLocaleDateString(),
             transaction_hash: "5Kj...9xP" + Math.floor(Math.random() * 1000),
             status: 'active',
-            network: 'Solana' // Defaulting to Solana as requested
+            network: 'Solana', // Defaulting to Solana as requested
+            is_marketplace_enabled: false
         }
     };
 };

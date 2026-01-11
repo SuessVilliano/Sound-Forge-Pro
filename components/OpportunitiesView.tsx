@@ -1,10 +1,12 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Zap, Search, Plus, Filter, ArrowUpDown, Globe, Mail, 
     FileText, CheckCircle2, AlertCircle, Loader2, ArrowRight,
-    TrendingUp, Shield, Budget, Clock, Trash2, Sliders, ChevronRight, X, Sparkles, Send, Music
+    TrendingUp, Shield, Clock, Trash2, Sliders, ChevronRight, X, Sparkles, Send, Music
 } from 'lucide-react';
+/* Updated imports for missing types */
 import { SyncBrief, OpportunityRequest, BriefArtifacts, User, BriefSource, MediaType } from '../types';
 import { dataService } from '../services/dataService';
 import { parseBriefToSchema, generateBriefArtifacts } from '../services/geminiService';
@@ -42,6 +44,7 @@ export const OpportunitiesView: React.FC = () => {
 
     const loadData = async () => {
         setLoading(true);
+        // dataService.getAllSyncBriefs now implemented in dataService.ts
         const data = await dataService.getAllSyncBriefs();
         setBriefs(data);
         setLoading(false);
@@ -79,9 +82,10 @@ export const OpportunitiesView: React.FC = () => {
                 source: 'UserSubmitted',
                 title: parsed.title || 'Imported Brief',
                 description: parsed.description || rawBriefText,
-                mediaType: parsed.mediaType || 'Other',
+                mediaType: (parsed.mediaType as MediaType) || 'Other',
                 deadline: parsed.deadline,
                 budget: parsed.budget,
+                // Added missing SyncBrief properties
                 requiredGenres: parsed.requiredGenres,
                 moods: parsed.moods,
                 tempo: parsed.tempo,
@@ -93,6 +97,7 @@ export const OpportunitiesView: React.FC = () => {
                 createdAt: new Date().toISOString(),
                 readinessScore: 70
             };
+            // dataService.addSyncBrief now implemented in dataService.ts
             await dataService.addSyncBrief(newBrief);
             setBriefs(prev => [newBrief, ...prev]);
             setShowIntake(false);
@@ -121,6 +126,7 @@ export const OpportunitiesView: React.FC = () => {
                 status: 'pending',
                 createdAt: new Date().toISOString()
             };
+            // dataService.submitOpportunityRequest now implemented in dataService.ts
             await dataService.submitOpportunityRequest(request);
             setShowInterestModal(false);
             setInterestNotes('');

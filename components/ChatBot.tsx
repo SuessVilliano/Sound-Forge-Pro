@@ -1,8 +1,10 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Loader2, Minimize2, Sparkles, Bot, Mic, MicOff, Volume2, VolumeX, StopCircle, Move, ChevronDown, CheckCheck, Users } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { chatWithGemini, ChatContext } from '../services/geminiService';
+/* Added AiStaffMember to type imports */
 import { Stats, Opportunity, AiStaffMember, DistributionSubmission } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { authService } from '../services/authService';

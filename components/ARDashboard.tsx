@@ -1,6 +1,8 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { Search, Filter, TrendingUp, Music, Star, Zap, CheckCircle2, Sliders, PlayCircle, Loader2, ArrowUp, ArrowDown, Minus, X, Crown, ChevronRight } from 'lucide-react';
+/* Updated import to use Track from types.ts */
 import { Track, User } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { RapidApiAgent, BillboardEntry } from '../services/rapidApiService';
@@ -112,7 +114,7 @@ export const ARDashboard: React.FC = () => {
                                 <p className="text-xs text-slate-400 mb-3">{artist.bio?.substring(0, 50)}...</p>
                                 <div className="flex flex-wrap gap-2 mb-4">
                                     <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded capitalize">{artist.role}</span>
-                                    {/* Fix: added optional chaining for rates access */}
+                                    {/* Fix: added optional chaining for rates access on Partial User */}
                                     {artist.rates?.featureVerse && <span className="text-[10px] bg-green-900/30 text-green-400 border border-green-500/20 px-2 py-0.5 rounded">Feat: ${artist.rates?.featureVerse}</span>}
                                 </div>
                                 <button className="w-full py-2 bg-white text-slate-900 text-xs font-bold rounded hover:bg-slate-200 transition-colors">
@@ -181,7 +183,7 @@ export const ARDashboard: React.FC = () => {
                                         <select 
                                             value={activeFilters.trend}
                                             onChange={(e) => setActiveFilters({...activeFilters, trend: e.target.value})}
-                                            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                                         >
                                             <option value="all">All Trends</option>
                                             <option value="rising">Rising (Rank Up)</option>
@@ -194,7 +196,7 @@ export const ARDashboard: React.FC = () => {
                                         <select 
                                             value={activeFilters.genre}
                                             onChange={(e) => setActiveFilters({...activeFilters, genre: e.target.value})}
-                                            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                                         >
                                             <option value="all">All Genres</option>
                                             {MOCK_GENRES.map(g => (
