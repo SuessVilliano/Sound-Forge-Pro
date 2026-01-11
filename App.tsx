@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -5,7 +6,7 @@ import {
   MOCK_OPPORTUNITIES, VIEWS, FEATURED_ARTISTS
 } from './constants';
 import { parseRawBrief } from './services/geminiService';
-import { authService } from './services/authService';
+import { authService } from '../services/authService';
 import { dataService } from './services/dataService';
 import { webhookService } from './services/webhookService';
 import { Opportunity, User as UserType, Stats, StaffMessage } from './types';
@@ -18,7 +19,7 @@ import { AllToolsView } from './components/AllToolsView';
 import { OpportunitiesView } from './components/OpportunitiesView';
 import { AcademyView } from './components/AcademyView';
 import { RevenueRecovery } from './components/RevenueRecovery';
-import { Funding } from './components/Funding';
+import { Advances } from './components/Advances'; // Renamed from Funding
 import { MusicDistribution } from './components/MusicDistribution';
 import { MarketingCRM } from './components/MarketingCRM';
 import { VoiceMarketplace } from './components/VoiceMarketplace';
@@ -212,7 +213,7 @@ const AppContent = () => {
 
       <div className="fixed top-20 left-0 right-0 z-[100] px-4 pointer-events-none flex flex-col items-center gap-3">
           {notifications.map(n => (
-              <div key={n.id} className="w-full max-w-sm bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto animate-in slide-in-from-top-4 duration-500">
+              <div key={n.id} className="w-full max-sm bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xl flex items-center gap-4 pointer-events-auto animate-in slide-in-from-top-4 duration-500">
                   {n.image ? (
                       <img src={n.image} className="w-12 h-12 rounded-lg object-cover shadow-lg" alt="track" />
                   ) : (
@@ -266,7 +267,7 @@ const AppContent = () => {
               {currentView === VIEWS.MY_MUSIC && <MyMusic user={user} setShowUploadModal={setShowUploadModal} />}
               {currentView === VIEWS.TOURING && <GigFinder />}
               {currentView === VIEWS.REVENUE && <RevenueRecovery />}
-              {currentView === VIEWS.FUNDING && <Funding user={user} />}
+              {currentView === VIEWS.ADVANCES && <Advances user={user} />}
               {currentView === VIEWS.BRAND && <BrandBuilder />}
               {currentView === VIEWS.MASTERING && <MasteringConsole />}
               {currentView === VIEWS.ANALYTICS && <AnalyticsView user={user} onUpgrade={() => setShowPricingModal(true)} artistId={selectedArtistId} />}
@@ -276,7 +277,7 @@ const AppContent = () => {
               {currentView === VIEWS.MONITORING && user.isAdmin && <AIMonitoring />}
               {currentView === VIEWS.LIVE_AGENT && <LiveAgent />}
               {currentView === VIEWS.ADMIN && user.isAdmin && <AdminDashboard />}
-              {currentView === VIEWS.PROFILE && <ArtistProfile user={user} onBack={() => handleNavigate(VIEWS.DASHBOARD)} />}
+              {currentView === VIEWS.PROFILE && <ArtistProfile user={user} onNavigate={handleNavigate} onBack={() => handleNavigate(VIEWS.DASHBOARD)} />}
               {currentView === VIEWS.BOOKING && <BookingView onBack={() => handleNavigate(VIEWS.DASHBOARD)} />}
             </ErrorBoundary>
           </div>

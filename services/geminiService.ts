@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality, LiveServerMessage } from "@google/genai";
 import { Opportunity, Stats, AiStaffMember, User, StaffProposal, SyncBrief, BriefArtifacts, StudioSuggestion } from "../types";
 
@@ -38,6 +39,10 @@ export const chatWithGemini = async (message: string, history: any[], context: C
     NEW PLATFORM FEATURE: THE DISCOVERY LAB
     - If the user is looking for more tools or feels stuck, point them to the "Discovery Lab".
     - Mention that advanced nodes unlock as they build Merge Reputation (XP).
+
+    RECURRING REVENUE (AFFILIATE PROGRAM):
+    - Users can earn recurring revenue by referring others via the "Partners" tool.
+    - Mention this if the user asks about monetization or networking.
 
     Current User Milestone: ${context.stats.artistLevel} (${context.stats.xp} XP).
     Stats: Earnings $${context.stats.totalEarnings}, Streams ${context.stats.totalStreams}.

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
     Music, Wand2, Mic, Disc, Zap, Briefcase, Swords, Radio, 
@@ -48,7 +49,8 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({ stats, onNavigate, o
 
     const categorizedTools = {
         creative: NAVIGATION_ITEMS.filter(t => [VIEWS.STUDIO, VIEWS.MASTERING, VIEWS.MY_MUSIC].includes(t.id)),
-        business: NAVIGATION_ITEMS.filter(t => [VIEWS.CRM, VIEWS.FUNDING, VIEWS.SMART_WALLET, VIEWS.AFFILIATES].includes(t.id)),
+        // Fixed: Renamed VIEWS.FUNDING to VIEWS.ADVANCES
+        business: NAVIGATION_ITEMS.filter(t => [VIEWS.CRM, VIEWS.ADVANCES, VIEWS.SMART_WALLET, VIEWS.AFFILIATES].includes(t.id)),
         protection: NAVIGATION_ITEMS.filter(t => [VIEWS.VOICE, VIEWS.DAO, VIEWS.MONITORING].includes(t.id)),
         growth: NAVIGATION_ITEMS.filter(t => [VIEWS.OPPORTUNITIES, VIEWS.BRAND, VIEWS.BATTLES, VIEWS.DISTRIBUTION, VIEWS.TOURING, VIEWS.ANALYTICS, VIEWS.AR_DASHBOARD].includes(t.id)),
     };
@@ -149,7 +151,8 @@ function getToolDescription(view: string): string {
         [VIEWS.MASTERING]: "Institutional-grade AI audio post-production and LUFS optimization for global stores.",
         [VIEWS.MY_MUSIC]: "Your private ledger of all forged assets, masters, and on-chain registrations.",
         [VIEWS.CRM]: "Automated fan registry and unified messaging node for SMS, Email, and WhatsApp.",
-        [VIEWS.FUNDING]: "Access non-recourse capital advances based on your verified catalog performance.",
+        // Fixed: Renamed VIEWS.FUNDING to VIEWS.ADVANCES
+        [VIEWS.ADVANCES]: "Access non-recourse capital advances based on your verified catalog performance.",
         [VIEWS.SMART_WALLET]: "Institutional digital account for managing rights liquidity and royalty settlements.",
         [VIEWS.AFFILIATES]: "Expand your network and earn recurring revenue through professional partnerships.",
         [VIEWS.VOICE]: "Biometric vocal fingerprinting and on-chain ID protection against unauthorized clones.",

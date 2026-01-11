@@ -122,7 +122,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       {[
                         { title: "Voice Market", desc: "License your voice avatar.", icon: "Shield", col: "text-purple-500", bg: "bg-purple-500/10", view: "voice" },
                         { title: "Smart Wallet", desc: "Manage your cash & tokens.", icon: "Coins", col: "text-amber-500", bg: "bg-amber-500/10", view: "smart-wallet" },
-                        { title: "Sync Placements", desc: "Found 12 matches for you.", icon: "Zap", col: "text-cyan-500", bg: "bg-cyan-500/10", view: "opportunities" },
+                        { title: "Advances", desc: "Access catalog funding.", icon: "Landmark", col: "text-indigo-500", bg: "bg-indigo-500/10", view: "advances" },
                         { title: "Distribution", desc: "Release to Spotify/TikTok.", icon: "Upload", col: "text-green-500", bg: "bg-green-500/10", view: "distribution" }
                       ].map((act, i) => {
                           const IconComponent = ICON_MAP[act.icon];

@@ -1,3 +1,4 @@
+
 import { Opportunity, Track, Stats, Battle, User, SyncBrief } from './types';
 
 export const APP_NAME = "Sound Merge";
@@ -14,7 +15,7 @@ export const VIEWS = {
   OPPORTUNITIES: 'opportunities',
   TOURING: 'touring',
   REVENUE: 'revenue',
-  FUNDING: 'funding',
+  ADVANCES: 'advances', // Renamed from funding
   BRAND: 'brand',
   ACADEMY: 'academy',
   COMMUNITY: 'community',
@@ -53,6 +54,7 @@ export const NAVIGATION_ITEMS = [
   { id: VIEWS.OPPORTUNITIES, label: 'Opportunities', icon: 'Zap', milestone: 'reputation_500' },
   { id: VIEWS.BRAND, label: 'Brand Builder', icon: 'Briefcase', milestone: 'reputation_500' },
   { id: VIEWS.BATTLES, label: 'Music Battles', icon: 'Swords', milestone: 'reputation_500' },
+  { id: VIEWS.AFFILIATES, label: 'Partners', icon: 'DollarSign', milestone: 'reputation_500' },
 
   // UNLOCKS AT LEVEL 3 (XP > 1000)
   { id: VIEWS.DISTRIBUTION, label: 'Distribution', icon: 'Radio', milestone: 'reputation_1000' },
@@ -61,7 +63,7 @@ export const NAVIGATION_ITEMS = [
 
   // BUSINESS & INSTITUTIONAL (XP > 2000 or Pro)
   { id: VIEWS.CRM, label: 'CRM', icon: 'Mail', milestone: 'reputation_2000' },
-  { id: VIEWS.FUNDING, label: 'Funding', icon: 'Landmark', milestone: 'reputation_2000' },
+  { id: VIEWS.ADVANCES, label: 'Advances', icon: 'Landmark', milestone: 'reputation_2000' }, // Renamed label to Advances
   { id: VIEWS.SMART_WALLET, label: 'Smart Wallet', icon: 'Wallet', milestone: 'reputation_2000' },
   
   // ENTERPRISE & SOCIAL

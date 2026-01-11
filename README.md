@@ -1,3 +1,4 @@
+
 # Sound Merge Professional Ecosystem v2.5 (Institutional Build)
 
 The institutional operating system for modern music legends. Sound Merge provides artists and labels with decentralized infrastructure for creative production, global distribution, and biometric rights protection.
@@ -24,6 +25,10 @@ Unified command center for your professional staff.
 - **Matrix Unified Messaging**: Multi-channel inbox consolidating SMS, WhatsApp, Email, and Social DMs.
 - **Channel Halos**: Colored visual indicators in the inbox for instant channel identification.
 - **Automated Fan Registry**: AI-assisted fan relationship management and personalized reply drafting.
+
+### 5. Affiliate Program (Partners Program)
+- **Recurring Revenue**: Earn recurring commissions for referring other artists to the platform.
+- **PushLap Integration**: Full integration with PushLapGrowth for institutional-grade tracking and payouts.
 
 ---
 

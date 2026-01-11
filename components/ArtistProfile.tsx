@@ -1,19 +1,18 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
     Edit2, Camera, Share2, MapPin, Globe, Save, X, Link as LinkIcon, 
     Music, Users, Shield, ShoppingBag, Play, Mail, MessageCircle, 
     CheckCircle2, Image as ImageIcon, Send, MoreHorizontal, Calendar, 
     Headphones, TrendingUp, Video, Mic2, Star, DollarSign, ArrowLeft,
-    Zap, Plus, Trash2, CalendarCheck, RefreshCw, LogOut, Radio, Palette, Layout, Type as TypeIcon, Eye, Check
+    Zap, Plus, Trash2, CalendarCheck, RefreshCw, LogOut, Radio, Palette, Layout, Type as TypeIcon, Eye, Check, Sparkles,
+    Moon, Sun, ArrowRight, ChevronRight
 } from 'lucide-react';
 import { User, Track, TourDate } from '../types';
-import { VoiceNFTManager } from './VoiceNFTManager';
-import { MerchStore } from './MerchStore';
 import { usePlayer } from '../contexts/PlayerContext';
 import { dataService } from '../services/dataService';
 import { authService } from '../services/authService';
-import { googleCalendarService } from '../services/googleCalendarService';
+// Import VIEWS to allow navigation from the profile
+import { VIEWS } from '../constants';
 
 interface ArtistProfileProps {
   user: User | null;
@@ -25,12 +24,11 @@ interface ArtistProfileProps {
 const MOCK_PHOTOS = [
     'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&w=400&q=80',
     'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80'
 ];
 
 export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, isPublic = false, onBack }) => {
-  const [activeTab, setActiveTab] = useState<'epk' | 'music' | 'voice-ip' | 'store'>('epk');
   const [isEditing, setIsEditing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(user?.photoURL || null);
@@ -68,7 +66,8 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
       website: user?.socialLinks?.website || '',
       spotify: user?.socialLinks?.spotify || '',
       appleMusic: user?.socialLinks?.appleMusic || '',
-      soundcloud: user?.socialLinks?.soundcloud || ''
+      soundcloud: user?.socialLinks?.soundcloud || '',
+      tiktok: user?.socialLinks?.tiktok || ''
   });
 
   const [tourDates, setTourDates] = useState<TourDate[]>(user?.tourDates || []);
@@ -83,7 +82,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
               location: user.location || prev.location
           }));
           setAvatar(user.photoURL);
-          if (user.socialLinks) setSocials({ ...socials, ...user.socialLinks });
+          if (user.socialLinks) setSocials({ ...socials, ...user.socialLinks } as any);
           if (user.tourDates) setTourDates(user.tourDates);
           if (user.profileConfig) setConfig(user.profileConfig);
       }
@@ -124,6 +123,9 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
             profileConfig: config
         });
         setIsEditing(false);
+        window.dispatchEvent(new CustomEvent('sf-notification', { 
+            detail: { title: 'Site Published', message: 'Your professional profile has been updated on the ledger.', type: 'success' } 
+        }));
     } catch (e) {
         alert("Failed to save changes");
     }
@@ -167,17 +169,24 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
   const getThemeClasses = () => {
       switch(config.theme) {
           case 'light': return 'bg-white text-slate-900';
-          case 'cyber': return 'bg-black text-cyan-400 font-mono';
+          case 'cyber': return 'bg-black font-mono';
           case 'minimal': return 'bg-slate-50 text-slate-600';
           default: return 'bg-slate-950 text-white';
       }
   };
 
   const getFontClass = () => {
+      if (config.theme === 'cyber') return 'font-mono';
       if (config.fontStyle === 'serif') return 'font-serif';
       if (config.fontStyle === 'mono') return 'font-mono';
       return 'font-sans';
   };
+
+  const getAccentStyles = () => ({
+      '--accent-color': config.accentColor,
+      '--accent-bg': `${config.accentColor}1A`, // 10% opacity hex
+      '--accent-border': `${config.accentColor}33`, // 20% opacity hex
+  } as React.CSSProperties);
 
   function addTourDate() {
       setTourDates([...tourDates, { date: new Date().toISOString().split('T')[0], venue: 'New Venue', city: 'City, State', status: 'Announced', ticketLink: '' }]);
@@ -196,28 +205,39 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
   };
 
   return (
-    <div className={`flex min-h-screen ${getThemeClasses()} ${getFontClass()} overflow-hidden`}>
+    <div className={`flex min-h-screen ${getThemeClasses()} ${getFontClass()} overflow-hidden transition-colors duration-500`} style={getAccentStyles()}>
       
-      {/* --- BUILDER SIDEBAR (Only in Edit Mode) --- */}
+      {/* --- BUILDER SIDEBAR --- */}
       {isEditing && !isPublic && (
-          <div className="w-80 border-r border-slate-800 bg-slate-900 overflow-y-auto p-6 shrink-0 custom-scrollbar animate-in slide-in-from-left duration-300">
-              <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2"><Palette className="w-5 h-5 text-cyan-500" /> Site Builder</h2>
-                  <button onClick={() => setIsEditing(false)} className="text-slate-500 hover:text-white"><X className="w-5 h-5" /></button>
+          <div className="w-80 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto p-8 shrink-0 custom-scrollbar animate-in slide-in-from-left duration-300 z-50">
+              <div className="flex justify-between items-center mb-10">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tighter italic">
+                        <Palette className="w-5 h-5 text-indigo-500" /> Site Builder
+                    </h2>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Institutional Node Editing</p>
+                  </div>
+                  <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-red-500 transition-colors p-2 bg-slate-100 dark:bg-slate-800 rounded-full"><X className="w-5 h-5" /></button>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-10">
                   {/* Theme Selector */}
                   <section>
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-4">Master Theme</label>
-                      <div className="grid grid-cols-2 gap-2">
-                          {['dark', 'light', 'cyber', 'minimal'].map(t => (
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Master Visual Logic</label>
+                      <div className="grid grid-cols-2 gap-3">
+                          {[
+                              { id: 'dark', label: 'Obsidian', icon: Moon },
+                              { id: 'light', label: 'Ivory', icon: Sun },
+                              { id: 'cyber', label: 'Protocol', icon: Zap },
+                              { id: 'minimal', label: 'Raw', icon: Layout }
+                          ].map(t => (
                               <button 
-                                key={t} 
-                                onClick={() => setConfig({...config, theme: t as any})}
-                                className={`px-3 py-2 rounded-lg text-xs font-bold capitalize border-2 transition-all ${config.theme === t ? 'border-cyan-500 bg-cyan-500/10 text-white' : 'border-slate-800 bg-slate-950 text-slate-500'}`}
+                                key={t.id} 
+                                onClick={() => setConfig({...config, theme: t.id as any})}
+                                className={`flex flex-col items-center gap-2 p-4 rounded-2xl text-[10px] font-black uppercase border-2 transition-all ${config.theme === t.id ? 'border-indigo-500 bg-indigo-500/5 text-indigo-600 dark:text-indigo-400 shadow-lg' : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-400'}`}
                               >
-                                  {t}
+                                  <t.icon className="w-5 h-5" />
+                                  {t.label}
                               </button>
                           ))}
                       </div>
@@ -225,30 +245,30 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
 
                   {/* Accent Color */}
                   <section>
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-4">Accent Color</label>
-                      <div className="flex flex-wrap gap-2">
-                          {['#06b6d4', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#ffffff'].map(c => (
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Identity Accent</label>
+                      <div className="flex flex-wrap gap-3">
+                          {['#06b6d4', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#ec4899', '#ffffff', '#6366f1'].map(c => (
                               <button 
                                 key={c}
                                 onClick={() => setConfig({...config, accentColor: c})}
-                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${config.accentColor === c ? 'border-white scale-110' : 'border-transparent'}`}
+                                className={`w-10 h-10 rounded-xl border-4 transition-all hover:scale-110 shadow-lg ${config.accentColor === c ? 'border-white dark:border-slate-400 scale-110 rotate-12' : 'border-transparent'}`}
                                 style={{ backgroundColor: c }}
                               />
                           ))}
                       </div>
                   </section>
 
-                  {/* Font Style */}
+                  {/* Typography */}
                   <section>
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-4">Typography</label>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Character Type</label>
                       <div className="space-y-2">
                           {(['sans', 'serif', 'mono'] as const).map(f => (
                               <button 
                                 key={f} 
                                 onClick={() => setConfig({...config, fontStyle: f})}
-                                className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-all ${config.fontStyle === f ? 'bg-white text-slate-950 font-bold' : 'bg-slate-950 text-slate-500 hover:text-slate-300'}`}
+                                className={`w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all border-2 ${config.fontStyle === f ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-transparent shadow-xl' : 'bg-slate-50 dark:bg-slate-950 text-slate-400 border-slate-100 dark:border-slate-800'}`}
                               >
-                                  {f.charAt(0).toUpperCase() + f.slice(1)} Mode
+                                  {f} Module
                               </button>
                           ))}
                       </div>
@@ -256,31 +276,33 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
 
                   {/* Section Controls */}
                   <section>
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-4">Layout Sections</label>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Modular Layout</label>
                       <div className="space-y-3">
                           {config.sections.map(s => (
-                              <div key={s.id} className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+                              <div key={s.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
                                   <div className="flex items-center gap-3">
-                                      <Layout className="w-4 h-4 text-slate-500" />
-                                      <span className="text-sm font-bold text-slate-300 capitalize">{s.id}</span>
+                                      <Layout className="w-4 h-4 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">{s.id}</span>
                                   </div>
                                   <button 
                                     onClick={() => updateSectionVisibility(s.id)}
-                                    className={`w-10 h-5 rounded-full p-0.5 transition-colors ${s.visible ? 'bg-green-500' : 'bg-slate-700'}`}
+                                    className={`w-10 h-5 rounded-full p-1 transition-all ${s.visible ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-800'}`}
                                   >
-                                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${s.visible ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                      <div className={`w-3 h-3 bg-white rounded-full transition-transform ${s.visible ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                   </button>
                               </div>
                           ))}
                       </div>
                   </section>
 
-                  <button 
-                    onClick={handleSave}
-                    className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl shadow-xl shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
-                  >
-                      <Save className="w-5 h-5" /> Publish Changes
-                  </button>
+                  <div className="pt-6">
+                    <button 
+                        onClick={handleSave}
+                        className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl shadow-2xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-3 active:scale-95"
+                    >
+                        <Globe className="w-4 h-4" /> Authorize & Publish
+                    </button>
+                  </div>
               </div>
           </div>
       )}
@@ -290,112 +312,131 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
 
         {/* Hero Section */}
-        <div className="relative h-[400px] md:h-[500px] overflow-hidden group">
+        <div className="relative h-[500px] md:h-[650px] overflow-hidden group">
             <div className="absolute inset-0 bg-slate-900">
-                {banner ? <img src={banner} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-slate-900 to-black"></div>}
-                <div className="absolute inset-0 bg-gradient-to-t from-current-bg via-transparent to-transparent" style={{ '--current-bg': config.theme === 'light' ? 'white' : 'black' } as any}></div>
+                {banner ? <img src={banner} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-950"></div>}
+                {/* Custom Gradient overlay using accent variable */}
+                <div 
+                    className="absolute inset-0 bg-gradient-to-t from-[var(--theme-bg)] via-transparent to-transparent opacity-90"
+                    style={{ '--theme-bg': config.theme === 'light' ? '#ffffff' : '#020617' } as any}
+                ></div>
             </div>
 
-            <div className="absolute top-6 left-6 flex gap-3 z-30">
+            <div className="absolute top-8 left-8 flex gap-3 z-30">
                 {isPublic && onBack && (
-                    <button onClick={onBack} className="bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded-full backdrop-blur-md transition-all flex items-center gap-2 text-sm font-bold shadow-lg">
-                        <ArrowLeft className="w-4 h-4" /> Exit Site
+                    <button onClick={onBack} className="bg-black/50 hover:bg-black/70 text-white px-6 py-2.5 rounded-full backdrop-blur-md transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl border border-white/10">
+                        <ArrowLeft className="w-4 h-4" /> Exit Node
                     </button>
                 )}
                 {!isPublic && !isEditing && (
-                    <button onClick={() => setIsEditing(true)} className="bg-cyan-500 text-slate-950 px-6 py-2 rounded-full font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
-                        <Edit2 className="w-4 h-4" /> Enter Build Mode
+                    <button onClick={() => setIsEditing(true)} className="bg-[var(--accent-color)] text-slate-950 px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-2xl hover:scale-105 transition-all">
+                        <Edit2 className="w-4 h-4" /> Initialize Site Builder
                     </button>
+                )}
+                {isEditing && (
+                    <div className="bg-green-500/20 text-green-400 px-4 py-2 rounded-full backdrop-blur-md text-[10px] font-black uppercase tracking-widest border border-green-500/30 flex items-center gap-2 animate-pulse">
+                        <RefreshCw className="w-3.5 h-3.5" /> Live Signal Preview
+                    </div>
                 )}
             </div>
 
-            <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 flex flex-col md:flex-row items-end gap-8 z-10">
+            <div className="absolute bottom-0 left-0 w-full p-8 md:p-20 flex flex-col md:flex-row items-end gap-10 z-10">
                 <div className="relative group/avatar">
-                    <div className="w-40 h-40 md:w-56 md:h-56 rounded-2xl overflow-hidden border-4 border-white/10 shadow-2xl bg-slate-800">
+                    <div className="w-44 h-44 md:w-64 md:h-64 rounded-[2.5rem] overflow-hidden border-8 border-white/5 shadow-2xl bg-slate-900 relative">
                         <img src={avatar || ''} className="w-full h-full object-cover" />
+                        {config.theme === 'cyber' && (
+                            <div className="absolute inset-0 border-4 border-[var(--accent-color)] opacity-20 pointer-events-none"></div>
+                        )}
                     </div>
                     {isEditing && (
-                        <button onClick={() => handleUploadClick('avatar')} className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white font-bold gap-2">
-                            <Camera className="w-5 h-5" /> Change Photo
+                        <button onClick={() => handleUploadClick('avatar')} className="absolute inset-0 bg-black/70 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center text-white font-black text-[10px] uppercase tracking-widest gap-2 backdrop-blur-sm">
+                            <Camera className="w-8 h-8 text-[var(--accent-color)]" /> Ingest Image
                         </button>
                     )}
                 </div>
 
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-4">
                     <div className="flex items-center gap-4">
                         {isEditing ? (
                             <input 
                                 value={profile.stageName} 
                                 onChange={e => setProfile({...profile, stageName: e.target.value})}
-                                className="bg-transparent border-b border-white/20 text-4xl md:text-7xl font-black focus:border-cyan-500 outline-none w-full"
+                                className="bg-transparent border-b-2 border-white/10 text-5xl md:text-8xl font-black focus:border-[var(--accent-color)] outline-none w-full uppercase tracking-tighter italic transition-colors"
                             />
                         ) : (
-                            <h1 className="text-4xl md:text-7xl font-black tracking-tight">{profile.stageName}</h1>
+                            <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.8]" style={{ color: config.theme === 'cyber' ? 'var(--accent-color)' : undefined }}>
+                                {profile.stageName}
+                            </h1>
                         )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-6 opacity-70 font-bold uppercase tracking-widest text-xs">
-                        <span className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {profile.location}</span>
-                        <span className="flex items-center gap-2"><Music className="w-4 h-4" /> {profile.genre}</span>
-                        <span className="flex items-center gap-2 text-cyan-400"><Star className="w-4 h-4 fill-current" /> Official Artist</span>
+                    <div className="flex flex-wrap items-center gap-8 font-black uppercase tracking-[0.2em] text-[10px] opacity-60">
+                        <span className="flex items-center gap-2"><MapPin className="w-4 h-4 text-[var(--accent-color)]" /> {profile.location}</span>
+                        <span className="flex items-center gap-2"><Music className="w-4 h-4 text-[var(--accent-color)]" /> {profile.genre}</span>
+                        <span className="flex items-center gap-2" style={{ color: 'var(--accent-color)' }}><Star className="w-4 h-4 fill-current" /> Identity Verified</span>
                     </div>
                 </div>
 
-                <div className="flex gap-3">
-                    <button onClick={() => setShowChat(true)} className="px-8 py-3 rounded-full font-bold transition-all shadow-xl flex items-center gap-2 hover:scale-105" style={{ backgroundColor: config.accentColor, color: config.theme === 'light' ? 'white' : 'black' }}>
-                        <Mail className="w-5 h-5" /> Connect
+                <div className="flex gap-4">
+                    <button onClick={() => setShowChat(true)} className="px-10 py-4 rounded-full font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-2xl flex items-center gap-3 hover:scale-105 active:scale-95" style={{ backgroundColor: 'var(--accent-color)', color: config.theme === 'light' ? 'white' : 'black' }}>
+                        <Mail className="w-5 h-5" /> Connect Hub
                     </button>
-                    <button onClick={handleShare} className="p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all shadow-lg">
-                        <Share2 className="w-6 h-6" />
+                    <button onClick={handleShare} className="p-4 rounded-full bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all shadow-xl">
+                        <Share2 className="w-6 h-6 text-slate-400" />
                     </button>
                 </div>
             </div>
         </div>
 
         {/* Dynamic Sections */}
-        <div className="max-w-6xl mx-auto px-8 py-16 space-y-24">
+        <div className="max-w-7xl mx-auto px-8 md:px-20 py-24 space-y-32">
             {config.sections.filter(s => s.visible).sort((a, b) => a.order - b.order).map(section => (
-                <div key={section.id} className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div key={section.id} className="animate-in fade-in slide-in-from-bottom-12 duration-1000">
                     
                     {section.id === 'bio' && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
-                            <div className="md:col-span-1">
-                                <h3 className="text-sm font-black uppercase tracking-widest opacity-50 mb-4">The Story</h3>
-                                <div className="w-12 h-1 mb-8" style={{ backgroundColor: config.accentColor }}></div>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-16 items-start">
+                            <div className="md:col-span-4">
+                                <h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-30 mb-6 italic">Operational Dossier</h3>
+                                <div className="w-20 h-1.5" style={{ backgroundColor: 'var(--accent-color)' }}></div>
                             </div>
-                            <div className="md:col-span-2">
+                            <div className="md:col-span-8">
                                 {isEditing ? (
                                     <textarea 
                                         value={profile.bio} 
                                         onChange={e => setProfile({...profile, bio: e.target.value})}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-lg leading-relaxed focus:border-cyan-500 outline-none h-48"
+                                        className="w-full bg-slate-900/50 border-2 border-white/5 rounded-[2.5rem] p-10 text-xl leading-relaxed focus:border-[var(--accent-color)] outline-none h-64 shadow-inner"
                                     />
                                 ) : (
-                                    <p className="text-xl md:text-2xl font-medium leading-relaxed opacity-90">{profile.bio}</p>
+                                    <p className="text-2xl md:text-3xl font-medium leading-relaxed opacity-90 tracking-tight" style={{ color: config.theme === 'cyber' ? 'var(--accent-color)' : undefined }}>{profile.bio}</p>
                                 )}
                             </div>
                         </div>
                     )}
 
                     {section.id === 'tracks' && (
-                        <div className="space-y-8">
-                             <div className="flex justify-between items-end">
-                                <h3 className="text-sm font-black uppercase tracking-widest opacity-50">Discography</h3>
-                                <button onClick={() => setActiveTab('music')} className="text-xs font-bold uppercase tracking-widest hover:underline" style={{ color: config.accentColor }}>View All Releases</button>
+                        <div className="space-y-12">
+                             <div className="flex justify-between items-end border-b-2 border-white/5 pb-6">
+                                <h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-30 italic">On-Chain Discography</h3>
+                                {/* Fixed undefined setActiveTab by using onNavigate prop and VIEWS constant */}
+                                <button onClick={() => onNavigate?.(VIEWS.MY_MUSIC)} className="text-[10px] font-black uppercase tracking-widest hover:underline flex items-center gap-2" style={{ color: 'var(--accent-color)' }}>Access Ledger <ArrowRight className="w-3 h-3"/></button>
                              </div>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {tracks.slice(0, 4).map(track => (
-                                    <div key={track.id} className="group flex items-center gap-6 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all cursor-pointer" onClick={() => playTrack(track)}>
-                                        <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 shadow-lg">
-                                            <img src={track.image} className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <Play className="w-8 h-8 text-white fill-white" />
+                                    <div key={track.id} className="group flex items-center gap-8 p-6 rounded-[2rem] bg-white/5 border border-white/5 hover:border-[var(--accent-color)] transition-all cursor-pointer shadow-sm hover:shadow-2xl hover:shadow-[var(--accent-bg)]" onClick={() => playTrack(track)}>
+                                        <div className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-2xl border border-white/10">
+                                            <img src={track.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                                <Play className="w-10 h-10 text-white fill-white" />
                                             </div>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-lg truncate">{track.title}</h4>
-                                            <p className="text-sm opacity-50">{track.plays.toLocaleString()} Streamed</p>
+                                            <h4 className="font-black text-xl truncate uppercase tracking-tighter" style={{ color: config.theme === 'cyber' ? 'var(--accent-color)' : undefined }}>{track.title}</h4>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">{track.plays.toLocaleString()} Signals</span>
+                                                <span className="w-1 h-1 rounded-full bg-white/20"></span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-color)]">Institutional Node</span>
+                                            </div>
                                         </div>
-                                        <div className="text-xs font-mono opacity-30">{track.duration}</div>
+                                        <div className="text-[10px] font-mono opacity-20 group-hover:opacity-100 transition-opacity">{track.duration}</div>
                                     </div>
                                 ))}
                              </div>
@@ -403,12 +444,13 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
                     )}
 
                     {section.id === 'photos' && (
-                        <div className="space-y-8">
-                            <h3 className="text-sm font-black uppercase tracking-widest opacity-50">Visuals</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-12">
+                            <h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-30 italic">Visual Corpus</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                 {MOCK_PHOTOS.map((src, i) => (
-                                    <div key={i} className="aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl hover:scale-[1.02] transition-transform duration-500 cursor-pointer border border-white/10">
-                                        <img src={src} className="w-full h-full object-cover" />
+                                    <div key={i} className="aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl hover:scale-[1.03] transition-transform duration-700 cursor-pointer border border-white/5 group relative">
+                                        <img src={src} className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
+                                        <div className="absolute inset-0 border-2 border-white/10 group-hover:border-[var(--accent-color)] transition-colors rounded-[2rem]"></div>
                                     </div>
                                 ))}
                             </div>
@@ -416,98 +458,99 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
                     )}
 
                     {section.id === 'tour' && (
-                        <div className="space-y-8">
-                             <div className="flex justify-between items-end">
-                                <h3 className="text-sm font-black uppercase tracking-widest opacity-50">On Tour</h3>
+                        <div className="space-y-12">
+                             <div className="flex justify-between items-end border-b-2 border-white/5 pb-6">
+                                <h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-30 italic">Live Deployments</h3>
                                 {isEditing && (
                                     <button 
                                         onClick={addTourDate} 
-                                        className="text-xs font-black uppercase tracking-widest bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-all flex items-center gap-2 border border-white/10"
+                                        className="text-[10px] font-black uppercase tracking-widest bg-white/5 px-6 py-2.5 rounded-full hover:bg-white/10 transition-all flex items-center gap-2 border border-white/10"
                                     >
-                                        <Plus className="w-3 h-3" /> Add Show
+                                        <Plus className="w-4 h-4 text-[var(--accent-color)]" /> Append Show
                                     </button>
                                 )}
                              </div>
-                             <div className="rounded-3xl border border-white/10 overflow-hidden bg-white/5 shadow-2xl">
+                             <div className="rounded-[3rem] border border-white/5 overflow-hidden bg-white/5 shadow-2xl">
                                 {tourDates.length > 0 ? (
                                     <div className="divide-y divide-white/5">
                                         {tourDates.map((date, i) => (
-                                            <div key={i} className="p-6 md:p-8 hover:bg-white/5 transition-all">
+                                            <div key={i} className="p-8 md:p-12 hover:bg-white/5 transition-all group">
                                                 {isEditing ? (
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 items-end">
                                                         <div className="space-y-1">
-                                                            <label className="text-[10px] font-black uppercase text-slate-500">Date</label>
+                                                            <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Signal Date</label>
                                                             <input 
                                                                 type="date"
                                                                 value={date.date}
                                                                 onChange={(e) => updateTourDate(i, 'date', e.target.value)}
-                                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none"
+                                                                className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-[var(--accent-color)] outline-none"
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <label className="text-[10px] font-black uppercase text-slate-500">Venue</label>
+                                                            <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Venue Node</label>
                                                             <input 
                                                                 value={date.venue}
                                                                 onChange={(e) => updateTourDate(i, 'venue', e.target.value)}
                                                                 placeholder="Venue Name"
-                                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none"
+                                                                className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-[var(--accent-color)] outline-none font-bold"
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <label className="text-[10px] font-black uppercase text-slate-500">City</label>
+                                                            <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">City Hub</label>
                                                             <input 
                                                                 value={date.city}
                                                                 onChange={(e) => updateTourDate(i, 'city', e.target.value)}
                                                                 placeholder="City, State"
-                                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none"
+                                                                className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-[var(--accent-color)] outline-none"
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <label className="text-[10px] font-black uppercase text-slate-500">Status / Link</label>
+                                                            <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Ticket Access</label>
                                                             <input 
                                                                 value={date.ticketLink || ''}
                                                                 onChange={(e) => updateTourDate(i, 'ticketLink', e.target.value)}
-                                                                placeholder="Ticket URL"
-                                                                className="w-full bg-slate-800/50 border border-white/10 rounded-lg p-2 text-sm text-white focus:border-cyan-500 outline-none"
+                                                                placeholder="URL Protocol"
+                                                                className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-[var(--accent-color)] outline-none font-mono"
                                                             />
                                                         </div>
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-3">
                                                             <select 
                                                                 value={date.status}
                                                                 onChange={(e) => updateTourDate(i, 'status', e.target.value)}
-                                                                className="flex-1 bg-slate-800/50 border border-white/10 rounded-lg p-2 text-xs text-white focus:border-cyan-500 outline-none"
+                                                                className="flex-1 bg-slate-900 border border-white/10 rounded-xl p-3 text-[10px] font-black uppercase text-white focus:border-[var(--accent-color)] outline-none appearance-none"
                                                             >
                                                                 <option>Announced</option>
                                                                 <option>Selling Fast</option>
                                                                 <option>Sold Out</option>
                                                                 <option>Cancelled</option>
                                                             </select>
-                                                            <button onClick={() => removeTourDate(i)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                                            <button onClick={() => removeTourDate(i)} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20">
                                                                 <Trash2 className="w-5 h-5" />
                                                             </button>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col md:flex-row md:items-center justify-between">
-                                                        <div className="flex items-center gap-8 mb-4 md:mb-0">
-                                                            <div className="text-center w-16">
-                                                                <div className="text-sm uppercase font-black opacity-40">{new Date(date.date).toLocaleString('default', { month: 'short' })}</div>
-                                                                <div className="text-3xl font-black">{new Date(date.date).getDate() || '??'}</div>
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-10">
+                                                        <div className="flex items-center gap-10 mb-4 md:mb-0">
+                                                            <div className="text-center w-20">
+                                                                <div className="text-[10px] uppercase font-black opacity-30 tracking-[0.2em]">{new Date(date.date).toLocaleString('default', { month: 'short' })}</div>
+                                                                <div className="text-4xl font-black italic tracking-tighter" style={{ color: config.theme === 'cyber' ? 'var(--accent-color)' : undefined }}>{new Date(date.date).getDate() || '??'}</div>
                                                             </div>
                                                             <div>
-                                                                <h4 className="text-xl font-bold">{date.venue}</h4>
-                                                                <p className="text-sm opacity-50">{date.city}</p>
+                                                                <h4 className="text-2xl font-black uppercase tracking-tight italic">{date.venue}</h4>
+                                                                <p className="text-xs opacity-40 font-bold uppercase tracking-[0.2em] mt-1">{date.city}</p>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-6">
-                                                            <span className="text-sm font-bold uppercase tracking-widest opacity-50">{date.status}</span>
+                                                        <div className="flex items-center gap-8">
+                                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 group-hover:opacity-100 transition-opacity" style={{ color: date.status === 'Sold Out' ? '#ef4444' : 'var(--accent-color)' }}>{date.status}</span>
                                                             <a 
                                                                 href={date.ticketLink || '#'} 
                                                                 target="_blank" 
                                                                 rel="noreferrer"
-                                                                className={`px-8 py-3 rounded-full border font-bold transition-all text-center min-w-[160px] ${date.status === 'Sold Out' ? 'border-white/10 text-white/30 cursor-not-allowed pointer-events-none' : 'border-white/20 hover:bg-white hover:text-black'}`}
+                                                                className={`px-12 py-4 rounded-full font-black uppercase text-[10px] tracking-[0.2em] transition-all text-center min-w-[200px] border-2 ${date.status === 'Sold Out' ? 'border-white/5 text-white/20 cursor-not-allowed pointer-events-none' : 'border-white/10 hover:border-[var(--accent-color)] hover:bg-[var(--accent-bg)]'}`}
+                                                                style={{ color: date.status !== 'Sold Out' ? 'var(--accent-color)' : undefined }}
                                                             >
-                                                                {date.status === 'Sold Out' ? 'Sold Out' : 'Tickets'}
+                                                                {date.status === 'Sold Out' ? 'Access Revoked' : 'Authorize Tickets'}
                                                             </a>
                                                         </div>
                                                     </div>
@@ -516,7 +559,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="p-12 text-center text-slate-500 italic">No upcoming dates announced.</div>
+                                    <div className="p-20 text-center text-slate-500 font-black uppercase tracking-[0.3em] opacity-20 italic">No Active Deployments Located.</div>
                                 )}
                              </div>
                         </div>
@@ -526,40 +569,52 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ user, onNavigate, 
             ))}
 
             {/* Footer Connect */}
-            <div className="pt-24 border-t border-white/10 text-center">
-                 <h2 className="text-5xl md:text-8xl font-black mb-12 tracking-tighter">LET'S MERGE.</h2>
-                 <div className="flex flex-wrap justify-center gap-4 mb-16">
-                    {socials.spotify && <a href={socials.spotify} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-500 transition-all group"><Music className="w-8 h-8 group-hover:text-cyan-400" /></a>}
-                    {socials.instagram && <a href={socials.instagram} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-pink-500 transition-all group"><ImageIcon className="w-8 h-8 group-hover:text-pink-400" /></a>}
-                    {socials.youtube && <a href={socials.youtube} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-red-500 transition-all group"><Video className="w-8 h-8 group-hover:text-red-400" /></a>}
-                    {socials.twitter && <a href={socials.twitter} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-400 transition-all group"><Send className="w-8 h-8 group-hover:text-blue-400" /></a>}
+            <div className="pt-32 border-t-2 border-white/5 text-center">
+                 <div className="inline-block p-4 rounded-full bg-[var(--accent-bg)] border border-[var(--accent-border)] mb-12">
+                    <Sparkles className="w-8 h-8" style={{ color: 'var(--accent-color)' }} />
                  </div>
-                 <p className="text-sm font-bold opacity-30 uppercase tracking-widest">© 2025 {profile.stageName} • Built on Sound Merge</p>
+                 <h2 className="text-6xl md:text-9xl font-black mb-16 tracking-tighter italic leading-none" style={{ color: config.theme === 'cyber' ? 'var(--accent-color)' : undefined }}>OPERATIONAL SYNC.</h2>
+                 <div className="flex flex-wrap justify-center gap-6 mb-24">
+                    {[
+                        { link: socials.spotify, icon: Music, label: 'Spotify' },
+                        { link: socials.instagram, icon: ImageIcon, label: 'Instagram' },
+                        { link: socials.youtube, icon: Video, label: 'YouTube' },
+                        { link: socials.twitter, icon: Send, label: 'X Node' },
+                        { link: socials.tiktok, icon: Radio, label: 'TikTok' }
+                    ].map((soc, i) => soc.link ? (
+                        <a key={i} href={soc.link} className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 hover:border-[var(--accent-color)] hover:bg-[var(--accent-bg)] transition-all group shadow-2xl">
+                            <soc.icon className="w-10 h-10 text-slate-500 group-hover:scale-110 transition-all" style={{ color: config.theme === 'cyber' ? 'var(--accent-color)' : undefined }} />
+                        </a>
+                    ) : null)}
+                 </div>
+                 <div className="space-y-4">
+                    <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.4em]">Verified On-Chain Signal #{user?.uid.slice(0, 8)}</p>
+                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--accent-color)' }}>© 2025 {profile.stageName} • Sound Merge Infrastructure</p>
+                 </div>
             </div>
         </div>
       </div>
 
       {/* MODALS */}
       {showChat && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowChat(false)}></div>
-              <div className="bg-slate-900 w-full sm:w-[450px] rounded-3xl shadow-2xl overflow-hidden z-10 animate-in slide-in-from-bottom-10">
-                  <div className="p-6 bg-slate-800 flex justify-between items-center border-b border-white/5">
-                      <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-slate-700 overflow-hidden border-2 border-cyan-500">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+              <div className="bg-slate-900 w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden relative border border-white/10">
+                  <div className="p-10 bg-slate-800/50 flex justify-between items-center border-b border-white/5">
+                      <div className="flex items-center gap-5">
+                          <div className="w-16 h-16 rounded-3xl bg-slate-700 overflow-hidden border-2 border-[var(--accent-color)] shadow-2xl">
                               <img src={avatar || ''} className="w-full h-full object-cover" />
                           </div>
                           <div>
-                              <h4 className="font-bold text-white">Message {profile.stageName}</h4>
-                              <p className="text-[10px] text-green-400 font-bold uppercase tracking-widest">Active Now</p>
+                              <h4 className="text-xl font-black text-white uppercase tracking-tight italic">{profile.stageName} Hub</h4>
+                              <p className="text-[10px] text-green-400 font-black uppercase tracking-[0.2em] mt-1 animate-pulse">Sync Active Now</p>
                           </div>
                       </div>
-                      <button onClick={() => setShowChat(false)} className="text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
+                      <button onClick={() => setShowChat(false)} className="text-slate-400 hover:text-white p-3 bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6" /></button>
                   </div>
-                  <div className="p-8 space-y-6">
-                      <p className="text-sm text-slate-400 text-center">Interested in a feature, booking, or licensing voice IP? Send a direct request.</p>
-                      <textarea className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white focus:border-cyan-500 outline-none h-32" placeholder="Tell me about your project..." />
-                      <button className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl shadow-lg transition-all">Send Message</button>
+                  <div className="p-12 space-y-8">
+                      <p className="text-sm text-slate-400 text-center leading-relaxed font-medium">Interested in a high-fidelity collaboration, booking, or licensing voice IP? Send a direct data request.</p>
+                      <textarea className="w-full bg-slate-950 border border-white/5 rounded-[2rem] p-6 text-white focus:border-[var(--accent-color)] outline-none h-44 shadow-inner resize-none font-medium" placeholder="Brief your request..." />
+                      <button className="w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-2xl transition-all hover:scale-[1.02] active:scale-95" style={{ backgroundColor: 'var(--accent-color)', color: config.theme === 'light' ? 'white' : 'black' }}>Dispatch Message</button>
                   </div>
               </div>
           </div>

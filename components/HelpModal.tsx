@@ -1,3 +1,4 @@
+
 import React from 'react';
 /* Added RefreshCw to lucide-react imports to resolve missing name error */
 import { X, BookOpen, Wand2, Music, Shield, DollarSign, Zap, Globe, MessageSquare, PlayCircle, Cpu, ZapOff, Sparkles, Server, Inbox, Share2, LayoutGrid, Lock, Users, RefreshCw } from 'lucide-react';
@@ -18,6 +19,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestart
     { icon: Zap, title: "Sync Agent", desc: "Auto-match your catalog to institutional placement opportunities from studios and agencies." },
     { icon: Globe, title: "Global Network", desc: "Deploy assets to 150+ stores via Sound Merge rails while maintaining 100% ownership." },
     { icon: Lock, title: "Legal Vault", desc: "Instant access to your signed IP agreements, Voice licenses, and on-chain ownership proofs." },
+    { icon: DollarSign, title: "Partners Program", desc: "Earn recurring commissions by referring other artists. Access your tracking links and performance data." },
   ];
 
   return (
