@@ -110,12 +110,53 @@ export const getStudioAgentSuggestions = async (styleInput: string, lyrics: stri
 
 export const parseBriefToSchema = async (rawText: string): Promise<Partial<SyncBrief>> => {
     const ai = getAiClient();
-    const prompt = `Normalize this music sync brief text into a JSON object... Text: ${rawText}`;
+    const prompt = `
+      Act as an expert Music Supervisor. 
+      Normalize the following raw music sync brief text into a clean, professional JSON schema.
+      Extract project title, high-level description, target media type (TV, Film, Ad, Game, Trailer, Brand, or Other), 
+      budget details (min/max), deadline, required genres, moods, tempo, vocal requirements, 
+      reference artists, and rights required.
+      
+      Raw Text: "${rawText}"
+    `;
+
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: prompt,
-            config: { responseMimeType: "application/json" }
+            config: { 
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  mediaType: { type: Type.STRING },
+                  deadline: { type: Type.STRING },
+                  budget: {
+                    type: Type.OBJECT,
+                    properties: {
+                      min: { type: Type.NUMBER },
+                      max: { type: Type.NUMBER },
+                      currency: { type: Type.STRING }
+                    }
+                  },
+                  requiredGenres: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  moods: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  tempo: { type: Type.STRING },
+                  vocal: { type: Type.STRING },
+                  references: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  deliverables: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  rightsRequired: {
+                    type: Type.OBJECT,
+                    properties: {
+                      master: { type: Type.BOOLEAN },
+                      publishing: { type: Type.BOOLEAN }
+                    }
+                  }
+                }
+              }
+            }
         });
         return JSON.parse(response.text || '{}');
     } catch (e) {
@@ -141,11 +182,44 @@ export const searchAddresses = async (query: string): Promise<any[]> => {
 
 export const generateBriefArtifacts = async (brief: SyncBrief): Promise<BriefArtifacts> => {
     const ai = getAiClient();
-    const prompt = `Act as a professional Sync Producer... JSON format. Brief: "${brief.title} - ${brief.description}"`;
+    const prompt = `
+      Act as a professional Sync Music Producer.
+      Based on the following sync brief, generate two high-fidelity artifacts:
+      1. A "Production Prompt Pack" to guide an AI or human composer in creating the perfect track. Include arrangement arc, mood, tempo, genre, and technical keywords.
+      2. A "Pitch Checklist" of technical and legal requirements for a successful submission.
+      
+      Brief: "${brief.title} - ${brief.description}"
+    `;
     const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: prompt,
-        config: { responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 1024 } }
+        config: { 
+          responseMimeType: "application/json", 
+          thinkingConfig: { thinkingBudget: 2048 },
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              productionPromptPack: {
+                type: Type.OBJECT,
+                properties: {
+                  arrangement: { type: Type.STRING },
+                  mood: { type: Type.STRING },
+                  tempo: { type: Type.STRING },
+                  genre: { type: Type.STRING },
+                  instruments: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  keywordsInclude: { type: Type.ARRAY, items: { type: Type.STRING } }
+                }
+              },
+              pitchChecklist: {
+                type: Type.OBJECT,
+                properties: {
+                  technical: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  legal: { type: Type.ARRAY, items: { type: Type.STRING } }
+                }
+              }
+            }
+          }
+        }
     });
     const data = JSON.parse(response.text || '{}');
     return { id: `art_${Date.now()}`, briefId: brief.id, ...data };
