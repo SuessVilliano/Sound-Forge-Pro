@@ -1,19 +1,25 @@
 
-
 import { collection, addDoc, query, where, orderBy, serverTimestamp, deleteDoc, doc, onSnapshot, Unsubscribe, limit, updateDoc, getDocs, setDoc, enableIndexedDbPersistence } from 'firebase/firestore';
 import { db } from './firebase';
 import { GeneratedTrack } from './audioService';
 import { VoiceAsset, User, Stats, DistributionSubmission, SyncBrief, OpportunityRequest, FundingRequest, DistributionRelease, LegalRecord } from '../types';
 
+// Persistent check for backend availability
 let isFirestoreRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
 
 export const handleFirestoreError = (e: any) => {
     const msg = e?.message || "";
     const code = e?.code || "";
-    if (code === 'permission-denied' || msg.includes('disabled')) {
+    
+    // Explicitly check for "API not enabled" or "Permission Denied" which indicates 
+    // the project hasn't been provisioned yet or is blocked by network.
+    if (code === 'permission-denied' || msg.includes('disabled') || msg.includes('not been used')) {
         if (!isFirestoreRestricted) {
+            console.warn("[DataService] Firestore backend restricted or unprovisioned. Switching to local-only mode.");
             isFirestoreRestricted = true;
             localStorage.setItem('sf_firestore_restricted', 'true');
+            // Notify the app to stop waiting
+            window.dispatchEvent(new CustomEvent('sf-backend-restricted'));
         }
     }
     return null;
@@ -147,7 +153,8 @@ export const dataService = {
           const q = query(collection(db, 'voice_registrations'), where('userId', '==', userId));
           return onSnapshot(q, (snap) => {
               callback(snap.docs.map(d => d.data() as VoiceAsset));
-          }, (error) => { handleFirestoreError(error); callback([]); });
+              // Fixed: Renamed 'error' to 'err' and added explicit type to resolve "Cannot find name 'error'"
+          }, (err: any) => { handleFirestoreError(err); callback([]); });
       } catch (e: any) { handleFirestoreError(e); callback([]); return () => {}; }
   },
 
@@ -163,7 +170,8 @@ export const dataService = {
         const userDocRef = doc(db, "users", userId);
         return onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) callback(docSnap.data() as User);
-        }, (error) => handleFirestoreError(error));
+            // Fixed: Renamed 'error' to 'err' and added explicit type to resolve "Cannot find name 'error'"
+        }, (err: any) => handleFirestoreError(err));
       } catch (e: any) { handleFirestoreError(e); return () => {}; }
   },
 
@@ -186,7 +194,8 @@ export const dataService = {
         return onSnapshot(q, (snapshot) => {
             const tracks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as GeneratedTrack[];
             callback(tracks);
-        }, (error) => { handleFirestoreError(error); callback([]); });
+            // Fixed: Renamed 'error' to 'err' and added explicit type to resolve "Cannot find name 'error'"
+        }, (err: any) => { handleFirestoreError(err); callback([]); });
     } catch (e: any) { handleFirestoreError(e); callback([]); return () => {}; }
   },
 

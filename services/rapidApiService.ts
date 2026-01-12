@@ -98,14 +98,21 @@ export const RapidApiAgent = {
         const data = await this.fetchFromProxy('/billboard');
         if (!data || !data.content) return [];
 
-        return Object.values(data.content).map((item: any) => ({
-            rank: parseInt(item.rank),
-            title: item.title,
-            artist: item.artist,
-            image: item.image || `https://picsum.photos/seed/${item.title}/200/200`,
-            last_week: item['last week'] ? parseInt(item['last week']) : 0,
-            peak_position: item['peak position'] ? parseInt(item['peak position']) : 0,
-            weeks_on_chart: item['weeks on chart'] ? parseInt(item['weeks on chart']) : 0
-        }));
+        return Object.values(data.content).map((item: any) => {
+            // Enhanced Image Validation
+            const rawImage = item.image || item.image_url || '';
+            const isValidImage = rawImage && rawImage.startsWith('http') && !rawImage.includes('spacer.gif');
+            
+            return {
+                rank: parseInt(item.rank),
+                title: item.title,
+                artist: item.artist,
+                // If invalid, use a robust colored placeholder based on the title seed
+                image: isValidImage ? rawImage : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.title)}&background=0f172a&color=334155&size=200`,
+                last_week: item['last week'] ? parseInt(item['last week']) : 0,
+                peak_position: item['peak position'] ? parseInt(item['peak position']) : 0,
+                weeks_on_chart: item['weeks on chart'] ? parseInt(item['weeks on chart']) : 0
+            };
+        });
     }
 };

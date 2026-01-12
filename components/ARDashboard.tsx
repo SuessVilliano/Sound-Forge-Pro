@@ -1,8 +1,6 @@
-
-
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, TrendingUp, Music, Star, Zap, CheckCircle2, Sliders, PlayCircle, Loader2, ArrowUp, ArrowDown, Minus, X, Crown, ChevronRight } from 'lucide-react';
-/* Updated import to use Track from types.ts */
+// Added Plus to the lucide-react imports to fix missing name error on line 292
+import { Search, Filter, TrendingUp, Music, Star, Zap, CheckCircle2, Sliders, PlayCircle, Loader2, ArrowUp, ArrowDown, Minus, X, Crown, ChevronRight, AlertCircle, Plus } from 'lucide-react';
 import { Track, User } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 import { RapidApiAgent, BillboardEntry } from '../services/rapidApiService';
@@ -31,18 +29,15 @@ export const ARDashboard: React.FC = () => {
   useEffect(() => {
       const loadCharts = async () => {
           setLoading(true);
-          // Try to fetch real data
           const realData = await RapidApiAgent.getBillboardHot100();
           
           if (realData && realData.length > 0) {
-              // Assign random genres for demo filtering since API doesn't return genre
               const enhancedData = realData.map(item => ({
                   ...item,
                   genre: MOCK_GENRES[Math.floor(Math.random() * MOCK_GENRES.length)]
               }));
               setChartData(enhancedData);
           } else {
-              // Fallback Mock if API Rate Limited or Fails
               setChartData([
                   { rank: 1, title: "Cruel Summer", artist: "Taylor Swift", image: "https://charts-static.billboard.com/img/2019/09/taylor-swift-90f-cruel-summer-155x155.jpg", last_week: 1, peak_position: 1, weeks_on_chart: 20, genre: 'Pop' },
                   { rank: 2, title: "Paint The Town Red", artist: "Doja Cat", image: "https://charts-static.billboard.com/img/2023/08/doja-cat-87d-paint-the-town-red-155x155.jpg", last_week: 3, peak_position: 2, weeks_on_chart: 8, genre: 'Hip Hop' },
@@ -61,15 +56,18 @@ export const ARDashboard: React.FC = () => {
       return <Minus className="w-3 h-3 text-slate-500" />;
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      const target = e.target as HTMLImageElement;
+      // Replace with a high-fidelity placeholder that matches the brand
+      target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent('Sync')}&background=0f172a&color=334155&size=200`;
+      // Optionally hide the broken image and show a themed div, but src replacement is cleaner
+  };
+
   const filteredChart = chartData.filter(item => {
-      // Genre Filter
       if (activeFilters.genre !== 'all' && item.genre !== activeFilters.genre) return false;
-      
-      // Trend Filter
       if (activeFilters.trend === 'rising') return item.rank < item.last_week && item.last_week !== 0;
       if (activeFilters.trend === 'falling') return item.rank > item.last_week && item.last_week !== 0;
       if (activeFilters.trend === 'new') return item.last_week === 0;
-      
       return true;
   });
 
@@ -100,21 +98,25 @@ export const ARDashboard: React.FC = () => {
                 {FEATURED_ARTISTS.map((artist) => (
                     <div key={artist.uid} className="bg-slate-800/50 rounded-xl overflow-hidden border border-amber-500/20 group hover:border-amber-500/50 transition-all cursor-pointer relative">
                         <div className="h-24 bg-slate-900 relative">
-                            <img src={artist.photoURL} alt={artist.displayName} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" />
+                            <img 
+                                src={artist.photoURL} 
+                                alt={artist.displayName} 
+                                onError={handleImageError}
+                                className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" 
+                            />
                             <div className="absolute top-2 right-2 bg-amber-500 text-slate-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
                                 Spotlight
                             </div>
                         </div>
                         <div className="p-4 relative">
                             <div className="absolute -top-8 left-4 w-14 h-14 rounded-full border-2 border-slate-900 overflow-hidden bg-slate-800">
-                                <img src={artist.photoURL} className="w-full h-full object-cover" />
+                                <img src={artist.photoURL} onError={handleImageError} className="w-full h-full object-cover" />
                             </div>
                             <div className="mt-6">
                                 <h4 className="font-bold text-white text-lg">{artist.displayName}</h4>
                                 <p className="text-xs text-slate-400 mb-3">{artist.bio?.substring(0, 50)}...</p>
                                 <div className="flex flex-wrap gap-2 mb-4">
                                     <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded capitalize">{artist.role}</span>
-                                    {/* Fix: added optional chaining for rates access on Partial User */}
                                     {artist.rates?.featureVerse && <span className="text-[10px] bg-green-900/30 text-green-400 border border-green-500/20 px-2 py-0.5 rounded">Feat: ${artist.rates?.featureVerse}</span>}
                                 </div>
                                 <button className="w-full py-2 bg-white text-slate-900 text-xs font-bold rounded hover:bg-slate-200 transition-colors">
@@ -149,7 +151,6 @@ export const ARDashboard: React.FC = () => {
 
         {/* Discovery Tools */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Chart Feed */}
             <div className="lg:col-span-2 space-y-6">
                 <div className="flex justify-between items-center relative">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -167,7 +168,6 @@ export const ARDashboard: React.FC = () => {
                             <Sliders className="w-3 h-3" /> Filters
                         </button>
 
-                        {/* Filter Dropdown */}
                         {showFilters && (
                             <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 p-4 animate-in fade-in zoom-in-95 duration-200">
                                 <div className="flex justify-between items-center mb-3">
@@ -176,7 +176,6 @@ export const ARDashboard: React.FC = () => {
                                         <X className="w-3 h-3" />
                                     </button>
                                 </div>
-                                
                                 <div className="space-y-4">
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1.5 block font-bold">Trend</label>
@@ -235,19 +234,25 @@ export const ARDashboard: React.FC = () => {
                             >
                                 <div className="text-2xl font-bold text-slate-300 w-8 text-center">{item.rank}</div>
                                 
-                                <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0 shadow-md">
-                                    <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0 shadow-md bg-slate-800">
+                                    <img 
+                                        src={item.image} 
+                                        alt={item.title} 
+                                        onError={handleImageError}
+                                        className="w-full h-full object-cover transition-opacity duration-300" 
+                                    />
+                                    <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-transparent transition-colors"></div>
                                 </div>
                                 
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-slate-900 dark:text-white text-base truncate">{item.title}</h4>
+                                    <h4 className="font-bold text-slate-900 dark:text-white text-base truncate uppercase tracking-tight italic">{item.title}</h4>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-slate-500 text-sm truncate">{item.artist}</p>
+                                        <p className="text-slate-500 text-sm truncate font-medium">{item.artist}</p>
                                         {item.genre && (
-                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">{item.genre}</span>
+                                            <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 font-black uppercase tracking-widest">{item.genre}</span>
                                         )}
                                     </div>
-                                    <div className="flex gap-4 mt-2 text-xs text-slate-400">
+                                    <div className="flex gap-4 mt-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                                         <span className="flex items-center gap-1">
                                             {getRankChangeIcon(item.rank, item.last_week)}
                                             {item.last_week === 0 ? '' : `Prev: ${item.last_week}`}
@@ -257,8 +262,8 @@ export const ARDashboard: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <button className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-purple-500 transition-colors">
-                                    <Search className="w-4 h-4" />
+                                <button className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-cyan-500 hover:bg-cyan-500/10 transition-all">
+                                    <Search className="w-5 h-5" />
                                 </button>
                             </div>
                         ))}
@@ -266,24 +271,25 @@ export const ARDashboard: React.FC = () => {
                 )}
             </div>
 
-            {/* Saved Searches & Alerts */}
             <div className="lg:col-span-1">
-                <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 h-full">
-                    <h3 className="text-lg font-bold text-white mb-4">A&R Alerts</h3>
-                    <div className="space-y-3">
+                <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 h-full shadow-inner">
+                    <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-tight italic">A&R Pulse Alerts</h3>
+                    <div className="space-y-4">
                         {['Energetic Pop for Ads', 'Cinematic Strings', 'Indie Folk Female Vocals', 'Dark Trap Beats'].map((s, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer border border-slate-700/50">
+                            <div key={i} className="flex items-center justify-between p-4 bg-slate-950/50 rounded-xl hover:bg-slate-900 transition-all cursor-pointer border border-slate-800/50 hover:border-purple-500/30 group">
                                 <div className="flex items-center gap-3">
-                                    <Search className="w-4 h-4 text-purple-400" />
-                                    <span className="text-sm text-slate-300">{s}</span>
+                                    <div className="p-2 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20 transition-colors">
+                                        <Search className="w-4 h-4 text-purple-400" />
+                                    </div>
+                                    <span className="text-xs text-slate-300 font-bold uppercase tracking-tight">{s}</span>
                                 </div>
-                                <span className="bg-purple-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3 New</span>
+                                <span className="bg-purple-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase">3 New</span>
                             </div>
                         ))}
                     </div>
                     
-                    <button className="w-full mt-6 py-3 border border-dashed border-slate-700 rounded-lg text-slate-400 text-sm font-bold hover:text-white hover:border-slate-500 transition-colors flex items-center justify-center gap-2">
-                        <Search className="w-4 h-4" /> Create Alert
+                    <button className="w-full mt-10 py-4 border-2 border-dashed border-slate-800 rounded-xl text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-2">
+                        <Plus className="w-4 h-4" /> Create Search Node
                     </button>
                 </div>
             </div>

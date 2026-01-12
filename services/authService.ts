@@ -1,5 +1,4 @@
 
-
 import { 
   signInWithPopup, 
   signOut, 
@@ -29,6 +28,14 @@ const notifyObservers = (user: User | null) => {
   observers.forEach(callback => callback(user));
 };
 
+// Helper to prevent Firestore hangs
+const withTimeout = <T>(promise: Promise<T>, ms: number, timeoutValue: T): Promise<T> => {
+    return Promise.race([
+        promise,
+        new Promise<T>((resolve) => setTimeout(() => resolve(timeoutValue), ms))
+    ]);
+};
+
 const createMockUser = (email: string, name: string): User => ({
     uid: `mock_${Date.now()}`,
     displayName: name,
@@ -47,7 +54,8 @@ const isBackendRestricted = (error: any) => {
            code === 'auth/operation-not-allowed' || 
            code === 'auth/internal-error' ||
            msg.includes('configuration') ||
-           msg.includes('permission-denied');
+           msg.includes('permission-denied') ||
+           msg.includes('not been used');
 };
 
 export const authService = {
@@ -70,20 +78,19 @@ export const authService = {
         onboardingCompleted: false
       };
 
-      try {
-        await setDoc(doc(db, "users", fbUser.uid), newUser);
-      } catch (dbError) {
-          handleFirestoreError(dbError);
-          console.warn("[Auth] Firestore write restricted. Data held in local memory.");
+      // Non-blocking firestore attempt
+      const isRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
+      if (!isRestricted) {
+          setDoc(doc(db, "users", fbUser.uid), newUser).catch(handleFirestoreError);
       }
-
-      await dataService.adminCreateUser(newUser);
-      affiliateService.trackSignup(newUser);
+      
+      dataService.adminCreateUser(newUser).catch(() => {});
+      affiliateService.trackSignup(newUser).catch(() => {});
       webhookService.sendSystemEvent('signup', newUser, { 
           initial_password: pass, 
           source: 'app_registration',
           affiliate_id: (window as any).affiliateId
-      });
+      }).catch(() => {});
 
       return newUser;
 
@@ -91,7 +98,6 @@ export const authService = {
       if (isBackendRestricted(error)) {
           console.warn("[Auth] Backend restricted. Initiating Sandbox Session.");
           const mockUser = createMockUser(email, name);
-          await dataService.adminCreateUser(mockUser);
           notifyObservers(mockUser);
           return mockUser;
       }
@@ -102,7 +108,6 @@ export const authService = {
   loginWithEmail: async (email: string, pass: string): Promise<User> => {
     const normalizedEmail = email.trim().toLowerCase();
     
-    // Super Admin
     if (normalizedEmail === 'liv8ent@gmail.com' && pass === 'Letsgrow888!') {
         const superAdmin: User = {
             uid: 'admin_liv8_master',
@@ -116,12 +121,10 @@ export const authService = {
             isAdmin: true,
             role: 'label_exec'
         };
-        await dataService.adminCreateUser(superAdmin);
         notifyObservers(superAdmin);
         return superAdmin;
     }
 
-    // Master Demo Pro Account (Requested Credentials)
     if ((normalizedEmail === 'demo@soundmerge.club' || normalizedEmail === 'admin') && (pass === 'SoundMerge2025!' || pass === 'password1')) {
         return await authService.loginAsDemo();
     }
@@ -133,7 +136,6 @@ export const authService = {
       if (isBackendRestricted(error)) {
           console.warn("[Auth] Login restricted. Falling back to Sandbox.");
           const mockUser = createMockUser(email, "Sandbox Artist");
-          await dataService.adminCreateUser(mockUser);
           notifyObservers(mockUser);
           return mockUser;
       }
@@ -158,7 +160,6 @@ export const authService = {
           bio: 'Demo account with all nodes fully synchronized. Exploring the boundaries of human-AI collaboration.',
           location: 'Global Hub'
       };
-      await dataService.adminCreateUser(demoUser);
       notifyObservers(demoUser);
       return demoUser;
   },
@@ -167,13 +168,11 @@ export const authService = {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = await authService._fetchUserProfile(result.user);
-      await dataService.adminCreateUser(user);
-      webhookService.sendSystemEvent('signup', user, { source: 'google_oauth' });
+      webhookService.sendSystemEvent('signup', user, { source: 'google_oauth' }).catch(() => {});
       return user;
     } catch (error: any) {
       if (isBackendRestricted(error)) {
           const mockUser = createMockUser("google_user@example.com", "Google Sandbox User");
-          await dataService.adminCreateUser(mockUser);
           notifyObservers(mockUser);
           return mockUser;
       }
@@ -184,15 +183,9 @@ export const authService = {
   loginAsGuest: async (): Promise<User> => {
     const guestName = "Guest Artist";
     const guestEmail = `guest${Date.now()}@soundforge.club`;
-    
-    try {
-        return await authService.registerWithEmail(guestName, guestEmail, "guest123");
-    } catch (error) {
-        const mockUser = createMockUser(guestEmail, guestName);
-        await dataService.adminCreateUser(mockUser);
-        notifyObservers(mockUser);
-        return mockUser;
-    }
+    const mockUser = createMockUser(guestEmail, guestName);
+    notifyObservers(mockUser);
+    return mockUser;
   },
 
   _fetchUserProfile: async (fbUser: FirebaseUser): Promise<User> => {
@@ -208,14 +201,17 @@ export const authService = {
         onboardingCompleted: false
     };
 
+    const isRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
+    if (isRestricted) return fallbackUser;
+
     try {
-      const userSnap = await getDoc(userDocRef);
-      if (userSnap.exists()) {
+      // 2.5 second timeout for database fetching
+      const userSnap = await withTimeout(getDoc(userDocRef), 2500, null);
+      
+      if (userSnap && userSnap.exists()) {
           return userSnap.data() as User;
       } else {
-          try { await setDoc(userDocRef, fallbackUser); } catch (e) { handleFirestoreError(e); }
-          affiliateService.trackSignup(fallbackUser);
-          await dataService.adminCreateUser(fallbackUser);
+          setDoc(userDocRef, fallbackUser).catch(handleFirestoreError);
           return fallbackUser;
       }
     } catch (error: any) {
@@ -262,31 +258,15 @@ export const authService = {
   updateUserProfile: async (data: Partial<User>): Promise<User> => {
       if (currentLocalUser) {
           const updated = { ...currentLocalUser, ...data };
-          // adminUpdateUser implemented in dataService.ts
-          await dataService.adminUpdateUser(updated.uid, updated);
           notifyObservers(updated);
-          if (!auth.currentUser || updated.uid.startsWith('mock_')) return updated;
+          
+          const isRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
+          if (auth.currentUser && !updated.uid.startsWith('mock_') && !isRestricted) {
+              const userDocRef = doc(db, "users", auth.currentUser.uid);
+              updateDoc(userDocRef, data).catch(handleFirestoreError);
+          }
+          return updated;
       }
-
-      const fbUser = auth.currentUser;
-      if (!fbUser) return data as User;
-
-      try {
-        const userDocRef = doc(db, "users", fbUser.uid);
-        await updateDoc(userDocRef, data);
-        const freshProfile = await authService._fetchUserProfile(fbUser);
-        webhookService.sendSystemEvent('profile_update', freshProfile);
-        // adminUpdateUser implemented in dataService.ts
-        await dataService.adminUpdateUser(freshProfile.uid, freshProfile);
-        notifyObservers(freshProfile);
-        return freshProfile;
-      } catch (e: any) {
-          handleFirestoreError(e);
-          const simulatedUpdate = { ...currentLocalUser, ...data } as User;
-          // adminUpdateUser implemented in dataService.ts
-          await dataService.adminUpdateUser(simulatedUpdate.uid, simulatedUpdate);
-          notifyObservers(simulatedUpdate);
-          return simulatedUpdate;
-      }
+      return data as User;
   }
 };

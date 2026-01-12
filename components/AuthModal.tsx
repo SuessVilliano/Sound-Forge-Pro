@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, ArrowRight, AlertCircle, Loader2, Sparkles, Shield, Rocket } from 'lucide-react';
 import { authService } from '../services/authService';
@@ -21,13 +22,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleGuestFallback = async () => {
+      setLoading(true);
       setIsSimulation(true);
       try {
           await authService.loginAsGuest();
-          setTimeout(() => onClose(), 1500);
+          // Short delay for user to see the "Sandbox" status before modal closes
+          setTimeout(() => onClose(), 1000);
       } catch (e) {
           setError("Unable to start sandbox session.");
           setIsSimulation(false);
+          setLoading(false);
       }
   };
 
@@ -38,7 +42,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           onClose();
       } catch (e) {
           setError("Demo node activation failed.");
-      } finally {
           setLoading(false);
       }
   };
@@ -63,7 +66,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       // Check if we entered Simulation Mode automatically
       if (user.uid.startsWith('mock_')) {
           setIsSimulation(true);
-          setTimeout(() => onClose(), 1500);
+          setTimeout(() => onClose(), 1000);
       } else {
           onClose();
       }
@@ -74,12 +77,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           return;
       }
 
+      setLoading(false);
       if (err.code === 'auth/invalid-email') setError("Invalid email format.");
       else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') setError("Invalid credentials.");
       else if (err.code === 'auth/email-already-in-use') setError("Email already registered.");
       else setError(err.message || "Auth failed.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -141,7 +143,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-400 ml-1 uppercase">Email or Username</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input 
                       type="text" value={email} onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@example.com or 'admin'"
