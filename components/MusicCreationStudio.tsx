@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     Play, Square, Mic, Settings, Plus, Trash2, Clock, Save, Wand2, Sparkles, 
@@ -7,7 +8,6 @@ import {
     Share, Sparkle, RefreshCw, Shield, MoreVertical, Layers, Scissors, Upload,
     Volume2, Waves, FileOutput, Bot, Brain, AudioLines, Target, TrendingUp,
     Clapperboard, Video, Film, Star, AlertTriangle, UserCircle, Move, Expand,
-    // Fix: Added Image as ImageIcon to resolve the missing name error used in the Kling production grid
     Camera, Languages, FastForward, Image as ImageIcon
 } from 'lucide-react';
 import { musicGenService, MusicEngine, ForgeOptions } from '../services/musicGenService';
@@ -84,9 +84,15 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
   useEffect(() => {
     if (!user?.uid) return;
     const unsub = dataService.subscribeToTracks(user.uid, (tracks) => {
-        setForgeHistory(tracks);
-        if (tracks.length > 0 && !selectedVideoTrack) {
-            setSelectedVideoTrack(tracks[0] as any);
+        // Map to ensure 'image' property exists for history items
+        // Fix: Cast 't' to 'any' because 'GeneratedTrack' does not have 'image' property, only 'imageUrl'.
+        const mapped = tracks.map((t: any) => ({
+            ...t,
+            image: t.image || t.imageUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&auto=format&fit=crop'
+        }));
+        setForgeHistory(mapped);
+        if (mapped.length > 0 && !selectedVideoTrack) {
+            setSelectedVideoTrack(mapped[0] as any);
         }
     });
     return () => unsub();
@@ -294,7 +300,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Project Title</label>
-                            <input value={songTitle} onChange={(e) => setSongTitle(e.target.value)} placeholder="Untitled..." className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500 font-bold" />
+                            <input value={songTitle} onChange={(e) => setSongTitle(e.target.value)} placeholder="Untitled..." className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-white outline-none focus:border-indigo-500 font-bold" />
                         </div>
                         {isCustomMode ? (
                             <div className="space-y-6">
@@ -332,11 +338,14 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                                     </button>
                                 ))}
                             </div>
+                            <p className="text-[7px] text-slate-500 mt-3 font-bold uppercase tracking-widest">
+                                {klingMode === 'lip_sync' ? 'Syncs vocals to your visual avatar identity.' : 'High-fidelity cinematic generation node.'}
+                            </p>
                         </div>
 
                         <div className="space-y-2">
                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex justify-between">
-                                 Selected Track Node
+                                 Source Track Node
                                  <span className="text-purple-400 font-mono">{user.credits || 0} CR</span>
                              </label>
                              <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
@@ -357,13 +366,13 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
 
                         <div className="space-y-2">
                              <div className="flex justify-between items-center mb-1">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Visual Direction</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Visual Strategy</label>
                                 <button onClick={syncLyricsToVideo} className="text-[8px] font-black uppercase text-cyan-400 hover:text-white flex items-center gap-1"><RefreshCw className="w-2.5 h-2.5" /> Sync Lyrics</button>
                              </div>
                              <textarea 
                                 value={videoPrompt}
                                 onChange={(e) => setVideoPrompt(e.target.value)}
-                                placeholder="Kling AI will synchronize these visuals with your audio gradients..." 
+                                placeholder="Describe the scene. Kling AI will synchronize these visuals with your audio gradients..." 
                                 className="w-full h-32 bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-white resize-none outline-none focus:border-purple-500" 
                              />
                         </div>
@@ -374,7 +383,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                                 onClick={() => setIsAdvancedKling(!isAdvancedKling)}
                                 className="w-full flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-slate-500 py-1 hover:text-white transition-colors"
                             >
-                                <span>Institutional Motion Controls</span>
+                                <span>Master Motion Gradients</span>
                                 <Sliders className="w-3 h-3" />
                             </button>
                             
@@ -406,7 +415,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                         
                         <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
                             <div className="flex items-center justify-between text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                <span>Synthesis Cost</span>
+                                <span>Node Cost</span>
                                 <span className="text-purple-400">{klingMode === 'extension' ? '15' : '10'} Credits</span>
                             </div>
                         </div>
@@ -421,7 +430,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                         </div>
                         <div 
                             onClick={() => sepInputRef.current?.click()}
-                            className={`border-2 border-dashed rounded-[2rem] p-10 text-center cursor-pointer transition-all hover:bg-slate-800/30 ${sepFile ? 'border-cyan-500 bg-cyan-500/5 shadow-inner' : 'border-slate-800'}`}
+                            className={`border-2 border-dashed rounded-[2.5rem] p-10 text-center cursor-pointer transition-all hover:bg-slate-800/30 ${sepFile ? 'border-cyan-500 bg-cyan-500/5 shadow-inner' : 'border-slate-800'}`}
                         >
                             {sepFile ? (
                                 <div className="space-y-2">
@@ -615,7 +624,7 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                                         {forgeHistory.map(track => (
                                             <div key={track.id} className="bg-slate-900/40 border border-slate-800 rounded-[2.5rem] overflow-hidden flex h-40 group hover:border-indigo-500/50 transition-all shadow-xl relative">
                                                 <div className="w-40 relative overflow-hidden shrink-0 border-r border-slate-800">
-                                                    <img src={track.image || track.imageUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&auto=format&fit=crop'} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" />
+                                                    <img src={track.image} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" />
                                                     <div onClick={() => playTrack(track)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer backdrop-blur-sm">
                                                         <Play className="w-12 h-12 fill-white text-white" />
                                                     </div>

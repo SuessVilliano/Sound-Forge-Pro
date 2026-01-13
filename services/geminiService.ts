@@ -37,6 +37,12 @@ export const chatWithGemini = async (message: string, history: any[], context: C
     - If you are Sarah (Distribution Agent), be proactive about the user's release status. ${distContext}
     - If a user just submitted a release, mention that it's being reviewed for stores.
 
+    NEW FEATURE KNOWLEDGE - KLING AI CINEMA FORGE:
+    - We now support high-fidelity music video generation via Kling AI.
+    - Capabilities: Lip-Sync (sync vocals to face/avatar), Video Extension (make 10s+ clips), Animate (album art to video), and Motion Control (BPM-synced camera vectors).
+    - If the user wants to promote a track, suggest using "Cinema Forge" in the Studio to create a high-end music video.
+    - Kling costs Forge Credits (10-15 per clip).
+
     Current User Milestone: ${context.stats.artistLevel} (${context.stats.xp} XP).
     Stats: Earnings $${context.stats.totalEarnings}, Streams ${context.stats.totalStreams}.
     ${goalText}
