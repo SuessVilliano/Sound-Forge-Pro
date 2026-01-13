@@ -1,5 +1,4 @@
 
-
 export type BriefSource = "Songtradr" | "DittoSync" | "Horus" | "EmailFeed" | "UserSubmitted" | "PartnerAPI";
 export type MediaType = "TV" | "Film" | "Ad" | "Game" | "Trailer" | "Brand" | "Other";
 export type CommunicationChannel = 'sms' | 'whatsapp' | 'email' | 'instagram' | 'facebook' | 'gmb';
@@ -19,6 +18,7 @@ export interface User {
   photoURL: string;
   identityAssets?: string[]; 
   plan: 'free' | 'pro' | 'label';
+  credits: number; // For Kling AI video generation
   voiceShieldEnabled: boolean;
   resemble_voice_uuid?: string;
   walletBalance: number;
@@ -46,7 +46,6 @@ export interface User {
   };
   xp?: number;
   artistLevel?: string;
-  // Added properties for Artist Profile and Branding
   isFeatured?: boolean;
   bio?: string;
   rates?: {
@@ -68,6 +67,16 @@ export interface User {
   referenceVideoLinks?: string[];
 }
 
+export interface VideoGenerationJob {
+    id: string;
+    trackId: string;
+    status: 'queued' | 'processing' | 'completed' | 'failed';
+    progress: number;
+    videoUrl?: string;
+    prompt: string;
+    createdAt: string;
+}
+
 export interface SyncBrief {
   id: string;
   source: BriefSource;
@@ -78,7 +87,6 @@ export interface SyncBrief {
   budget?: { min?: number, max?: number, currency?: string };
   createdAt: string;
   readinessScore?: number; 
-  // Added sync brief metadata properties
   requiredGenres?: string[];
   moods?: string[];
   tempo?: string;
@@ -90,9 +98,27 @@ export interface SyncBrief {
   rightsRequired?: { master: boolean, publishing: boolean };
 }
 
+// Added BriefArtifacts interface to fix import errors in geminiService and OpportunitiesView
+export interface BriefArtifacts {
+  id: string;
+  briefId: string;
+  productionPromptPack: {
+    arrangement: string;
+    mood: string;
+    tempo: string;
+    genre: string;
+    instruments: string[];
+    keywordsInclude: string[];
+  };
+  pitchChecklist: {
+    technical: string[];
+    legal: string[];
+  };
+}
+
 export interface DistributionTrack {
   id: string;
-  asset_id: string; // Internal Registry ID
+  asset_id: string; 
   title: string;
   isInstrumental: boolean;
   isExplicit: boolean;
@@ -100,13 +126,13 @@ export interface DistributionTrack {
   contributors?: Contributor[];
   isRadioEdit?: boolean;
   isrc?: string;
-  p_line?: string; // ℗ Sound Recording Rights Owner
-  c_line?: string; // © Publishing Rights Owner
+  p_line?: string; 
+  c_line?: string; 
 }
 
 export interface DistributionSubmission {
     id: string;
-    release_id: string; // Registry Global Release ID
+    release_id: string; 
     userId: string;
     userName: string;
     userEmail: string;
@@ -121,13 +147,13 @@ export interface DistributionSubmission {
     createdAt: string;
     isrcCodes?: string[];
     upcCode?: string;
-    proprietary_id?: string; // Metadata hook for LabelGrid/DSPs
+    proprietary_id?: string; 
     metadata: any;
 }
 
 export interface VoiceAsset {
   token_id: string;
-  voice_id: string; // Permanent platform identity ID
+  voice_id: string; 
   contract_address: string;
   fingerprint_hash: string;
   watermark_job_id?: string;
@@ -282,7 +308,6 @@ export interface Proposal {
   userVoted?: 'for' | 'against';
 }
 
-// Added missing exports for consistency across components
 export interface Track {
   id: string;
   title: string;
@@ -356,23 +381,6 @@ export interface AiStaffMember {
   online: boolean;
   description: string;
   lastMessage: string;
-}
-
-export interface BriefArtifacts {
-  id: string;
-  briefId: string;
-  productionPromptPack?: {
-    arrangement: string;
-    mood: string;
-    tempo: string;
-    genre: string;
-    instruments: string[];
-    keywordsInclude: string[];
-  };
-  pitchChecklist?: {
-    technical: string[];
-    legal: string[];
-  };
 }
 
 export interface CRMContact {

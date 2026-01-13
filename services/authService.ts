@@ -36,12 +36,14 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, timeoutValue: T): Promi
     ]);
 };
 
+// Added missing credits: 0 property to fix error on line 39
 const createMockUser = (email: string, name: string): User => ({
     uid: `mock_${Date.now()}`,
     displayName: name,
     email: email,
     photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff`,
     plan: 'free',
+    credits: 0,
     voiceShieldEnabled: false,
     walletBalance: 0,
     onboardingCompleted: false
@@ -67,12 +69,14 @@ export const authService = {
 
       await updateProfile(fbUser, { displayName: name });
 
+      // Added missing credits: 0 property to fix error on line 70
       const newUser: User = {
         uid: fbUser.uid,
         displayName: name,
         email: cleanEmail,
         photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff`,
         plan: 'free',
+        credits: 0,
         voiceShieldEnabled: false,
         walletBalance: 0,
         onboardingCompleted: false
@@ -109,12 +113,14 @@ export const authService = {
     const normalizedEmail = email.trim().toLowerCase();
     
     if (normalizedEmail === 'liv8ent@gmail.com' && pass === 'Letsgrow888!') {
+        // Added missing credits: 1000 property to fix error on line 112
         const superAdmin: User = {
             uid: 'admin_liv8_master',
             displayName: 'LIV8 Admin',
             email: 'liv8ent@gmail.com',
             photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&get=80',
             plan: 'label',
+            credits: 1000,
             voiceShieldEnabled: true,
             walletBalance: 1000000,
             onboardingCompleted: true, 
@@ -144,12 +150,14 @@ export const authService = {
   },
 
   loginAsDemo: async (): Promise<User> => {
+      // Added missing credits: 100 property to fix error on line 147
       const demoUser: User = {
           uid: 'demo_master_account',
           displayName: 'Legendary Artist',
           email: 'demo@soundmerge.club',
           photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&get=80',
           plan: 'pro',
+          credits: 100,
           voiceShieldEnabled: true,
           walletBalance: 12500.50,
           onboardingCompleted: true,
@@ -190,12 +198,14 @@ export const authService = {
 
   _fetchUserProfile: async (fbUser: FirebaseUser): Promise<User> => {
     const userDocRef = doc(db, "users", fbUser.uid);
+    // Added missing credits: 0 property to fix error on line 193
     const fallbackUser: User = {
         uid: fbUser.uid,
         displayName: fbUser.displayName || 'Artist',
         email: fbUser.email || '',
         photoURL: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'A')}`,
         plan: 'free',
+        credits: 0,
         voiceShieldEnabled: false,
         walletBalance: 0,
         onboardingCompleted: false

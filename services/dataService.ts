@@ -1,24 +1,19 @@
 
-import { collection, addDoc, query, where, orderBy, serverTimestamp, deleteDoc, doc, onSnapshot, Unsubscribe, limit, updateDoc, getDocs, setDoc, enableIndexedDbPersistence } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, serverTimestamp, deleteDoc, doc, onSnapshot, Unsubscribe, limit, updateDoc, getDocs, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { GeneratedTrack } from './audioService';
-import { VoiceAsset, User, Stats, DistributionSubmission, SyncBrief, OpportunityRequest, FundingRequest, DistributionRelease, LegalRecord } from '../types';
+import { VoiceAsset, User, Stats, DistributionSubmission, SyncBrief, OpportunityRequest, FundingRequest, DistributionRelease, LegalRecord, VideoGenerationJob } from '../types';
 
-// Persistent check for backend availability
 let isFirestoreRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
 
 export const handleFirestoreError = (e: any) => {
     const msg = e?.message || "";
     const code = e?.code || "";
-    
-    // Explicitly check for "API not enabled" or "Permission Denied" which indicates 
-    // the project hasn't been provisioned yet or is blocked by network.
     if (code === 'permission-denied' || msg.includes('disabled') || msg.includes('not been used')) {
         if (!isFirestoreRestricted) {
             console.warn("[DataService] Firestore backend restricted or unprovisioned. Switching to local-only mode.");
             isFirestoreRestricted = true;
             localStorage.setItem('sf_firestore_restricted', 'true');
-            // Notify the app to stop waiting
             window.dispatchEvent(new CustomEvent('sf-backend-restricted'));
         }
     }
@@ -41,6 +36,31 @@ export const dataService = {
       } catch (e: any) { handleFirestoreError(e); return []; }
   },
 
+  // --- CREDIT SYSTEM ---
+  async deductCredits(userId: string, amount: number): Promise<boolean> {
+      const userRef = doc(db, 'users', userId);
+      try {
+          const snap = await getDoc(userRef);
+          if (!snap.exists()) return false;
+          const current = snap.data().credits || 0;
+          if (current < amount) return false;
+          
+          await updateDoc(userRef, { credits: current - amount });
+          return true;
+      } catch (e) {
+          console.error("Credit deduction failed", e);
+          return false;
+      }
+  },
+
+  // --- VIDEO LEDGER ---
+  async saveVideoJob(userId: string, job: VideoGenerationJob): Promise<void> {
+      if (isFirestoreRestricted) return;
+      try {
+          await setDoc(doc(db, 'video_jobs', job.id), { ...job, userId, updatedAt: serverTimestamp() });
+      } catch (e: any) { handleFirestoreError(e); }
+  },
+
   // --- DISTRIBUTION LEDGER ---
   async submitDistributionSubmission(submission: Partial<DistributionSubmission>): Promise<void> {
       if (!submission.userId) return;
@@ -51,7 +71,6 @@ export const dataService = {
           status: 'submitted',
           createdAt: new Date().toISOString()
       };
-
       if (!isFirestoreRestricted) {
           try { await setDoc(doc(db, 'distribution_ledger', id), finalSubmission); }
           catch (e: any) { handleFirestoreError(e); }
@@ -86,7 +105,6 @@ export const dataService = {
       return [];
   },
 
-  // --- SYNC BRIEFS ---
   async getAllSyncBriefs(): Promise<SyncBrief[]> {
       if (isFirestoreRestricted) return [];
       try {
@@ -115,7 +133,6 @@ export const dataService = {
       catch (e: any) { handleFirestoreError(e); }
   },
 
-  // --- FUNDING ---
   async getAllFundingRequests(): Promise<FundingRequest[]> {
       if (isFirestoreRestricted) return [];
       try {
@@ -130,12 +147,10 @@ export const dataService = {
       catch (e: any) { handleFirestoreError(e); }
   },
 
-  // --- LEGAL ---
   async getAllLegalRecords(): Promise<LegalRecord[]> {
       return [];
   },
 
-  // --- VOICE IP REGISTRY ---
   async saveVoiceRegistration(userId: string, asset: VoiceAsset): Promise<void> {
     if (isFirestoreRestricted) return;
     try {
@@ -153,31 +168,30 @@ export const dataService = {
           const q = query(collection(db, 'voice_registrations'), where('userId', '==', userId));
           return onSnapshot(q, (snap) => {
               callback(snap.docs.map(d => d.data() as VoiceAsset));
-              // Fixed: Renamed 'error' to 'err' and added explicit type to resolve "Cannot find name 'error'"
           }, (err: any) => { handleFirestoreError(err); callback([]); });
       } catch (e: any) { handleFirestoreError(e); callback([]); return () => {}; }
   },
 
   async updateVoiceAssetStatus(tokenId: string, status: VoiceAsset['status']): Promise<void> {
-    // Logic to burn/mark inactive across the network
     console.log(`[Registry] Marking voice asset ${tokenId} as ${status}`);
   },
 
-  // --- EXISTING CORE ---
   subscribeToUserProfile(userId: string, callback: (user: User) => void): Unsubscribe {
       if (isFirestoreRestricted) return () => {};
       try {
         const userDocRef = doc(db, "users", userId);
         return onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) callback(docSnap.data() as User);
-            // Fixed: Renamed 'error' to 'err' and added explicit type to resolve "Cannot find name 'error'"
         }, (err: any) => handleFirestoreError(err));
       } catch (e: any) { handleFirestoreError(e); return () => {}; }
   },
 
   async adminCreateUser(userData: Partial<User>): Promise<void> {
       if (isFirestoreRestricted) return;
-      try { await setDoc(doc(db, 'users', userData.uid!), userData); }
+      try { 
+          const finalData = { ...userData, credits: userData.credits || 15 }; // Give new users starter credits
+          await setDoc(doc(db, 'users', userData.uid!), finalData); 
+      }
       catch (e: any) { handleFirestoreError(e); }
   },
 
@@ -194,7 +208,6 @@ export const dataService = {
         return onSnapshot(q, (snapshot) => {
             const tracks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as GeneratedTrack[];
             callback(tracks);
-            // Fixed: Renamed 'error' to 'err' and added explicit type to resolve "Cannot find name 'error'"
         }, (err: any) => { handleFirestoreError(err); callback([]); });
     } catch (e: any) { handleFirestoreError(e); callback([]); return () => {}; }
   },

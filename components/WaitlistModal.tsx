@@ -58,6 +58,7 @@ export const WaitlistModal: React.FC = () => {
     try {
       const leadId = `lead_${Date.now()}`;
       
+      // Added missing credits: 0 property to fix error on line 61
       const leadUser: User = {
         uid: leadId,
         email: email,
@@ -65,6 +66,7 @@ export const WaitlistModal: React.FC = () => {
         phoneNumber: phone,
         photoURL: '',
         plan: 'free',
+        credits: 0,
         role: 'listener', // Initially listener/lead
         voiceShieldEnabled: false,
         walletBalance: 0
