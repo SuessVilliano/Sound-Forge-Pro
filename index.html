@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
@@ -9,26 +10,53 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
     
-    <!-- GHL iFrame Smoothness: Prevent scroll bouncing -->
     <style>
       html, body {
         height: 100%;
         overflow: hidden;
         overscroll-behavior: none;
+        background: #020617;
       }
       #root {
         height: 100%;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
-    </style>
+      
+      /* Neural Animations */
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      .animate-shimmer {
+        background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.1), transparent);
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+      }
+      
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+      }
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
 
-    <!-- PushLapGrowth Affiliate Tracker -->
-    <script 
-      src="https://pushlapgrowth.com/affiliate-tracker.js" 
-      data-affiliate data-program-id="0f5888c5-e5fe-4743-97fc-53f44b7ee7f0" 
-      async>
-    </script>
+      /* AI Glow Utilities */
+      .neural-glow {
+        box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+        border: 1px solid rgba(6, 182, 212, 0.3);
+      }
+      .agent-typing::after {
+        content: '...';
+        animation: typing 1.5s infinite;
+      }
+      @keyframes typing {
+        0% { content: '.'; }
+        33% { content: '..'; }
+        66% { content: '...'; }
+      }
+    </style>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -68,23 +96,19 @@
       body {
         font-family: 'Inter', sans-serif;
       }
-      /* Custom Scrollbar */
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
         background: transparent; 
       }
       ::-webkit-scrollbar-thumb {
-        background: #334155; 
-        border-radius: 4px;
+        background: #1e293b; 
+        border-radius: 10px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #475569; 
-      }
-      .dark ::-webkit-scrollbar-track {
-        background: #0f172a;
+        background: #334155; 
       }
     </style>
   <script type="importmap">
@@ -113,14 +137,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js').catch(err => {
-            console.log('SW registration failed: ', err);
-          });
-        });
-      }
-    </script>
   </body>
 </html>
