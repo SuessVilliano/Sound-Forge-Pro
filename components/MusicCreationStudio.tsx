@@ -30,7 +30,8 @@ const MODEL_VERSIONS = [
     { label: 'Cinematic Score Processor', value: 'mureka' },
     { label: 'Rapid Prototype Engine', value: 'musicgpt' },
     { label: 'Standard Vocal Synthesis', value: 'suno' },
-    { label: 'Experimental Hybrid Node', value: 'aimusic' }
+    { label: 'Experimental Hybrid Node', value: 'aimusic' },
+    { label: 'Internal Studio Core (Sim)', value: 'studio' }
 ];
 
 const INITIAL_AGENTS: StudioAgent[] = [
@@ -88,9 +89,13 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
           await dataService.saveTrack(user.uid, trackData);
           playTrack(trackData);
           window.dispatchEvent(new CustomEvent('sf-notification', { detail: { title: 'Forge Success', message: 'Asset anchored to ledger.', type: 'success' } }));
-      } catch (e) {
-          setOperationalMessage("Sync failed. Check connection.");
-      } finally { setIsProcessing(false); }
+      } catch (e: any) {
+          setOperationalMessage(e.message || "Sync failed. Check connection.");
+          // Keep the error message visible for a moment before resetting state completely
+          await new Promise(r => setTimeout(r, 4000));
+      } finally { 
+          setIsProcessing(false); 
+      }
   };
 
   const handleCinemaForge = async () => {
@@ -250,12 +255,19 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                             </div>
                         </div>
                         <h2 className="text-4xl font-black text-white uppercase tracking-tighter italic mb-4">{operationalMessage}</h2>
+                        
                         <div className="flex items-center justify-center gap-3">
                             <div className="h-1.5 w-48 bg-slate-800 rounded-full overflow-hidden">
                                 <div className="h-full bg-cyan-500 animate-shimmer" style={{ width: '60%' }}></div>
                             </div>
                             <span className="text-[10px] font-mono text-cyan-400">LATENCY: 120ms</span>
                         </div>
+                        
+                        {operationalMessage.includes("⚠️") && (
+                            <div className="mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-mono max-w-lg mx-auto">
+                                DIAGNOSTIC: API Credential Missing or Invalid.
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="w-full max-w-5xl">
