@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-// Added Activity to the lucide-react imports to fix missing name error
-import { Send, Search, MoreHorizontal, Bot, User, Phone, Video, Info, CheckCheck, Loader2, Sparkles, Briefcase, Zap, Shield, Globe, Mic, Users, BrainCircuit, ArrowRight, TrendingUp, AlertTriangle, Layers, MessageSquare, Activity } from 'lucide-react';
+import { Send, Bot, Phone, Video, CheckCheck, Loader2, Sparkles, Mic, Users, ArrowRight, Activity, ChevronLeft, Signal } from 'lucide-react';
 import { AiStaffMember, StaffMessage, StaffProposal } from '../types';
-import { chatWithGemini, generateProactiveProposal } from '../services/geminiService';
+import { chatWithGemini } from '../services/geminiService';
 import { MOCK_STATS } from '../constants';
 import { authService } from '../services/authService';
 
@@ -32,8 +31,7 @@ interface StaffMessagingHubProps {
 export const StaffMessagingHub: React.FC<StaffMessagingHubProps> = ({ chatThreads, setChatThreads }) => {
     const user = authService.getCurrentUser();
     const [selectedAgent, setSelectedAgent] = useState<AiStaffMember>(INITIAL_STAFF[0]);
-    const [proposals, setProposals] = useState<StaffProposal[]>([]);
-    const [isThinking, setIsThinking] = useState(false);
+    const [isMobileShowingChat, setIsMobileShowingChat] = useState(false);
     const [activeTypingAgents, setActiveTypingAgents] = useState<string[]>([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -42,8 +40,12 @@ export const StaffMessagingHub: React.FC<StaffMessagingHubProps> = ({ chatThread
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(() => { scrollToBottom(); }, [chatThreads, selectedAgent.id]);
 
-    // Added currentMessages variable to fix the missing name error
     const currentMessages = chatThreads[selectedAgent.id] || [];
+
+    const selectAgent = (agent: AiStaffMember) => {
+        setSelectedAgent(agent);
+        setIsMobileShowingChat(true);
+    };
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -92,72 +94,80 @@ export const StaffMessagingHub: React.FC<StaffMessagingHubProps> = ({ chatThread
     };
 
     return (
-        <div className="h-[calc(100vh-120px)] flex bg-slate-950 rounded-[3rem] border border-white/5 overflow-hidden shadow-2xl font-sans relative">
-            {/* Background Grain/Noise */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+        <div className="h-[calc(100vh-100px)] md:h-[calc(100vh-120px)] flex bg-slate-950 rounded-2xl md:rounded-[3rem] border border-white/5 overflow-hidden shadow-2xl font-sans relative">
             
-            {/* LEFT: ROSTER LIST */}
-            <div className="w-80 border-r border-white/5 flex flex-col shrink-0 bg-slate-900/50 backdrop-blur-3xl z-10">
-                <div className="p-8 border-b border-white/5 bg-slate-950/40">
-                    <h2 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-tighter italic">
-                        <Users className="w-6 h-6 text-indigo-500" /> War Room
+            {/* LEFT: ROSTER LIST (Hidden on mobile when chat is active) */}
+            <div className={`${isMobileShowingChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r border-white/5 flex-col shrink-0 bg-slate-900/50 backdrop-blur-3xl z-10 transition-all`}>
+                <div className="p-6 md:p-8 border-b border-white/5 bg-slate-950/40">
+                    <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-3 uppercase tracking-tighter italic">
+                        <Users className="w-5 h-5 md:w-6 md:h-6 text-indigo-500" /> War Room
                     </h2>
-                    <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-cyan-500 uppercase tracking-widest">
+                    <div className="mt-3 flex items-center gap-2 text-[10px] font-black text-cyan-500 uppercase tracking-widest">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div>
                         Neural Grid: Linked
                     </div>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-4 space-y-2">
                     {INITIAL_STAFF.map(agent => (
                         <button
                             key={agent.id}
-                            onClick={() => setSelectedAgent(agent)}
-                            className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group ${selectedAgent.id === agent.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'hover:bg-white/5'}`}
+                            onClick={() => selectAgent(agent)}
+                            className={`w-full flex items-center gap-4 p-3 md:p-4 rounded-2xl transition-all duration-300 group ${selectedAgent.id === agent.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'hover:bg-white/5'}`}
                         >
                             <div className="relative shrink-0">
-                                <div className={`w-12 h-12 rounded-2xl border-2 transition-all duration-500 overflow-hidden ${selectedAgent.id === agent.id ? 'border-white/20' : 'border-white/5'}`}>
+                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 transition-all duration-500 overflow-hidden ${selectedAgent.id === agent.id ? 'border-white/20' : 'border-white/5'}`}>
                                     <img src={agent.avatar} className="w-full h-full object-cover" alt={agent.name} />
                                 </div>
                                 {agent.online && (
-                                    <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                                    <span className="absolute -bottom-1 -right-1 flex h-3 w-3 md:h-4 md:w-4">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-4 w-4 bg-green-500 border-2 border-slate-900"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 md:h-4 md:w-4 bg-green-500 border-2 border-slate-900"></span>
                                     </span>
                                 )}
                             </div>
                             <div className="text-left min-w-0 flex-1">
-                                <span className={`font-black text-sm uppercase truncate block ${selectedAgent.id === agent.id ? 'text-white' : 'text-slate-200'}`}>{agent.name}</span>
-                                <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${selectedAgent.id === agent.id ? 'text-indigo-200' : 'text-slate-500'}`}>{agent.role}</p>
+                                <span className={`font-black text-xs md:text-sm uppercase truncate block ${selectedAgent.id === agent.id ? 'text-white' : 'text-slate-200'}`}>{agent.name}</span>
+                                <p className={`text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] ${selectedAgent.id === agent.id ? 'text-indigo-200' : 'text-slate-500'}`}>{agent.role}</p>
                             </div>
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* CENTER: INTERFACE */}
-            <div className="flex-1 flex flex-col bg-slate-950 relative z-10">
-                <div className="h-20 border-b border-white/5 px-8 flex items-center justify-between bg-slate-900/40 backdrop-blur-2xl">
-                    <div className="flex items-center gap-5">
-                        <div className="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center">
-                            <Bot className="w-5 h-5 text-indigo-400" />
+            {/* CENTER: INTERFACE (Hidden on mobile when roster is active) */}
+            <div className={`${isMobileShowingChat ? 'flex' : 'hidden md:flex'} flex-1 flex flex-col bg-slate-950 relative z-10 transition-all`}>
+                <div className="h-16 md:h-20 border-b border-white/5 px-4 md:px-8 flex items-center justify-between bg-slate-900/40 backdrop-blur-2xl">
+                    <div className="flex items-center gap-3 md:gap-5">
+                        <button 
+                            onClick={() => setIsMobileShowingChat(false)}
+                            className="md:hidden p-2 -ml-2 text-slate-400 hover:text-white"
+                        >
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center shrink-0">
+                            <Bot className="w-4 h-4 md:w-5 md:h-5 text-indigo-400" />
                         </div>
-                        <div>
-                            <h3 className="font-black text-white text-lg flex items-center gap-2 uppercase tracking-tighter italic">
+                        <div className="min-w-0">
+                            <h3 className="font-black text-white text-sm md:text-lg flex items-center gap-2 uppercase tracking-tighter italic truncate">
                                 {selectedAgent.name}
-                                <span className="bg-indigo-500/10 text-indigo-400 text-[8px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-widest border border-indigo-500/20">Operational</span>
+                                <span className="hidden sm:inline-block bg-indigo-500/10 text-indigo-400 text-[8px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-widest border border-indigo-500/20">Operational</span>
                             </h3>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{selectedAgent.description}</p>
+                            <p className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">{selectedAgent.description}</p>
                         </div>
+                    </div>
+                    <div className="flex gap-1 md:gap-2">
+                        <button className="p-2 md:p-2.5 bg-slate-800/50 rounded-xl text-slate-500"><Phone className="w-4 h-4" /></button>
+                        <button className="p-2 md:p-2.5 bg-slate-800/50 rounded-xl text-slate-500"><Video className="w-4 h-4" /></button>
                     </div>
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.05),_transparent)]">
+                <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-8 custom-scrollbar bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.05),_transparent)]">
                     {currentMessages.map(msg => (
                         <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-500`}>
-                            <div className={`max-w-[70%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                <div className={`px-6 py-4 rounded-[2rem] text-sm shadow-2xl relative border ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-500' : 'bg-slate-900 text-slate-200 rounded-tl-none border-white/5'}`}>
+                            <div className={`max-w-[85%] md:max-w-[70%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                <div className={`px-4 md:px-6 py-3 md:py-4 rounded-2xl md:rounded-[2rem] text-xs md:text-sm shadow-2xl relative border ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-500' : 'bg-slate-900 text-slate-200 rounded-tl-none border-white/5'}`}>
                                     <p className="leading-relaxed whitespace-pre-wrap font-medium">{msg.text}</p>
                                     <div className={`flex items-center gap-2 text-[8px] mt-2 font-black uppercase tracking-widest opacity-30 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                         <span>{msg.timestamp}</span>
@@ -171,12 +181,12 @@ export const StaffMessagingHub: React.FC<StaffMessagingHubProps> = ({ chatThread
                         <div className="flex flex-col gap-3">
                             {activeTypingAgents.length > 0 ? (
                                 activeTypingAgents.map(name => (
-                                    <div key={name} className="flex items-center gap-3 text-[10px] font-black uppercase text-cyan-500 italic animate-pulse">
+                                    <div key={name} className="flex items-center gap-3 text-[9px] md:text-[10px] font-black uppercase text-cyan-500 italic animate-pulse">
                                         <Loader2 className="w-3.5 h-3.5 animate-spin" /> {name} analyzing ledger...
                                     </div>
                                 ))
                             ) : (
-                                <div className="bg-slate-900 border border-white/5 rounded-2xl rounded-tl-none p-4 flex items-center gap-2 shadow-xl w-fit">
+                                <div className="bg-slate-900 border border-white/5 rounded-2xl rounded-tl-none p-3 md:p-4 flex items-center gap-2 shadow-xl w-fit">
                                     <div className="flex gap-1">
                                         <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></div>
                                         <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce delay-150"></div>
@@ -189,28 +199,28 @@ export const StaffMessagingHub: React.FC<StaffMessagingHubProps> = ({ chatThread
                     <div ref={messagesEndRef} />
                 </div>
 
-                <div className="p-8 bg-slate-950 border-t border-white/5">
-                    <form onSubmit={handleSend} className="relative flex items-center gap-4 bg-slate-900/50 p-2 rounded-[2rem] border border-white/5 shadow-inner">
-                        <button type="button" className="p-4 text-slate-500 hover:text-indigo-400 transition-colors"><Mic className="w-6 h-6" /></button>
+                <div className="p-4 md:p-8 bg-slate-950 border-t border-white/5">
+                    <form onSubmit={handleSend} className="relative flex items-center gap-2 md:gap-4 bg-slate-900/50 p-1 md:p-2 rounded-2xl md:rounded-[2rem] border border-white/5 shadow-inner">
+                        <button type="button" className="p-3 md:p-4 text-slate-500 hover:text-indigo-400 transition-colors shrink-0"><Mic className="w-5 h-5 md:w-6 md:h-6" /></button>
                         <input 
                             value={input}
                             onChange={e => setInput(e.target.value)}
-                            placeholder={`Strategy session with ${selectedAgent.name.toUpperCase()}...`}
-                            className="flex-1 bg-transparent border-none py-4 text-sm text-white focus:ring-0 outline-none font-bold placeholder:text-slate-700"
+                            placeholder={isTyping ? "Syncing..." : `Session with ${selectedAgent.name.toUpperCase()}...`}
+                            className="flex-1 bg-transparent border-none py-3 md:py-4 text-xs md:text-sm text-white focus:ring-0 outline-none font-bold placeholder:text-slate-700 min-w-0"
                         />
                         <button 
                             type="submit"
                             disabled={!input.trim() || isTyping}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-[1.5rem] transition-all shadow-xl disabled:opacity-30"
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all shadow-xl disabled:opacity-30 shrink-0"
                         >
-                            <Send className="w-5 h-5" />
+                            <Send className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                     </form>
                 </div>
             </div>
 
-            {/* RIGHT: LIVE SIGNAL FEED */}
-            <div className="w-80 border-l border-white/5 flex flex-col shrink-0 bg-slate-900/30 backdrop-blur-3xl z-10 p-8 space-y-10">
+            {/* RIGHT: LIVE SIGNAL FEED (Hidden on mobile always) */}
+            <div className="hidden lg:flex w-80 border-l border-white/5 flex-col shrink-0 bg-slate-900/30 backdrop-blur-3xl z-10 p-8 space-y-10">
                 <div>
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
                         <Activity className="w-4 h-4 text-cyan-400" /> Pulse signals
