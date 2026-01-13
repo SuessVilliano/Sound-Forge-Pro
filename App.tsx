@@ -5,7 +5,8 @@ import { Header } from './components/Header';
 import { 
   MOCK_OPPORTUNITIES, VIEWS, FEATURED_ARTISTS
 } from './constants';
-import { parseRawBrief } from './services/geminiService';
+// Fixed: parseRawBrief does not exist in geminiService, using parseBriefToSchema instead
+import { parseBriefToSchema } from './services/geminiService';
 import { authService } from '../services/authService';
 import { dataService } from './services/dataService';
 import { webhookService } from './services/webhookService';

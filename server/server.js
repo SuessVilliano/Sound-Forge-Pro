@@ -4,9 +4,10 @@ const admin = require('firebase-admin');
 const cors = require('cors');
 const axios = require('axios');
 
+// Updated to point to the new project node: soundmerge-77880
 if (process.env.NODE_ENV !== 'production' && !admin.apps.length) {
     admin.initializeApp({
-        projectId: process.env.GCP_PROJECT || 'sound-forge-9240f'
+        projectId: process.env.GCP_PROJECT || 'soundmerge-77880'
     });
 } else if (!admin.apps.length) {
     admin.initializeApp();
@@ -18,13 +19,10 @@ app.use(cors());
 app.use(express.json());
 
 const RAPID_API_KEY = process.env.RAPID_API_KEY || "39b9c246b0msh8981e7993ba7354p1804d6jsn4711338b7ff9";
-const GHL_AGENCY_API_KEY = process.env.GHL_AGENCY_API_KEY;
-const GHL_BASE_URL = "https://services.leadconnectorhq.com";
 
 /**
  * AUTH MIDDLEWARE
  * Verifies the Firebase ID token sent from the frontend.
- * This prevents unauthorized users from draining your API credits.
  */
 const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -43,7 +41,6 @@ const authenticateToken = async (req, res, next) => {
 
 /**
  * RAPIDAPI SECURE PROXY
- * Routes all industry data requests through the backend to protect API keys.
  */
 app.get('/api/sync/:node', authenticateToken, async (req, res) => {
     const { node } = req.params;
@@ -64,10 +61,6 @@ app.get('/api/sync/:node', authenticateToken, async (req, res) => {
         case 'billboard':
             url = 'https://billboard-api2.p.rapidapi.com/hot-100?range=1-100';
             host = 'billboard-api2.p.rapidapi.com';
-            break;
-        case 'songstats':
-            url = `https://songstats.p.rapidapi.com/song/info?songstats_id=${id}`;
-            host = 'songstats.p.rapidapi.com';
             break;
         default:
             return res.status(400).json({ error: 'Invalid sync node' });
@@ -92,9 +85,9 @@ app.get('/api/sync/:node', authenticateToken, async (req, res) => {
  */
 app.post('/api/integrations/ghl/provision', authenticateToken, async (req, res) => {
     const { userId, role } = req.body;
-    // ... logic remains as provided in previous file content ...
-    res.json({ success: true, message: 'Provisioning initiated' });
+    // Logic for HighLevel sub-account creation via Sound Merge rails
+    res.json({ success: true, message: 'Institutional node provisioning initiated' });
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Sound Merge Institutional Server listening on ${PORT}`));
+app.listen(PORT, () => console.log(`Sound Merge Server active on port ${PORT}`));

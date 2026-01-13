@@ -1,47 +1,35 @@
 
-# Sound Merge Professional Ecosystem v2.5 (Institutional Build)
+# Sound Merge Professional Ecosystem v2.5 (Stable)
 
 The institutional operating system for modern music legends. Sound Merge provides artists and labels with decentralized infrastructure for creative production, global distribution, and biometric rights protection.
 
 ## 🚀 Key Architectural Enhancements
 
 ### 1. Kling Cinema Forge (Advanced Video Synthesis)
-Professional music video production node integrated directly with Kling AI.
-- **Lip-Sync Production**: Automatically sync vocal stems with face/avatar models for realistic performance videos.
-- **Cinema Extension**: Scale 5-second clips into 10-20s cinematic masterworks.
-- **Motion Gradients**: BPM-synced camera control vectors (Pan, Zoom, Tilt).
-- **Lyric-Visual Sync**: Enrichment of visual prompts using song metadata and lyrical narrative.
+Institutional music video production node integrated directly with Kling AI.
+- **Lip-Sync Production**: Sync vocal stems with face/avatar models for realistic performance.
+- **Motion Control Gradients**: BPM-synced camera vectors (Pan, Zoom, Tilt) for cinematic flow.
+- **Visual Extension**: Scale 5-second neural captures into long-form music video clips.
 
-### 2. Discovery Lab (Tool Matrix)
-The central directory for all Sound Merge operational nodes.
-- **Progressive Disclosure**: Advanced nodes like Capital Funding and x402 Liquidity unlock as your **Merge Reputation (XP)** grows.
-- **XP Shortcuts**: Locked tools now provide immediate "Earn XP" objectives to guide your professional growth.
+### 2. Discovery Lab (Toolkit Matrix)
+Central directory for all Sound Merge operational nodes. Unlocks based on **Merge Reputation (XP)**.
+- **Progressive Unlock**: Advanced nodes like Advances and x402 Liquidity require Level 3+ status.
 
-### 3. Team Hub (Strategy War Room)
-Unified command center for your professional staff.
-- **Collaborative Synthesis**: Message your entire staff (Manager, CMO, Legal) in one thread.
-- **Real-Time Presence**: Visual cues show which agents are analyzing your data or drafting strategy proposals.
-- **Plain-Text Intelligence**: All staff communications are optimized for high-fidelity, conversational clarity (Markdown-free).
+### 3. VoiceShield™ & Identity Sync
+- **Biometric Fingerprinting**: Secure vocal DNA on the Solana Ledger.
+- **Deepfake Radar**: Scan external assets for PerTh watermarks and synthetic artifacts.
 
-### 4. VoiceShield™ & Identity Sync
-- **Biometric Fingerprinting**: Secure your vocal DNA on the Solana Ledger via Resemble.ai integration.
-- **Legal Vault**: Secure, on-demand access to your executed IP licenses and service agreements.
-- **Deepfake Radar**: Real-time spectral analysis to detect and challenge unauthorized synthetic vocal artifacts.
-
-### 5. Institutional Hub (CRM & Matrix Inbox)
-- **Matrix Unified Messaging**: Multi-channel inbox consolidating SMS, WhatsApp, Email, and Social DMs.
-- **Channel Halos**: Colored visual indicators in the inbox for instant channel identification.
-- **Automated Fan Registry**: AI-assisted fan relationship management and personalized reply drafting.
+### 4. Matrix Inbox & Unified CRM
+Consolidated messaging for SMS, WhatsApp, Email, and Social DMs with AI-assisted strategy drafting.
 
 ---
 
-## 🛠️ Operational Testing (Master Node)
-For institutional auditing and testing, initialize the Master Pro Node:
-- **Identifier**: `admin`
-- **Credential**: `password1`
-*Grants instant "Legendary" reputation status and full operational access to all Lab nodes.*
+## 🛠️ Production Deployment Checklist
+1. **Enable Firestore**: Visit Firebase Console and initialize the Firestore DB in "Production Mode".
+2. **Environment Variables**: Ensure `API_KEY` (Gemini), `FIREBASE_API_KEY`, and `ALCHEMY_API_KEY` are configured in your hosting environment.
+3. **Domain Whitelisting**: Add your production domain to the Authorized Domains in Firebase Auth.
 
 ## 📄 Compliance & Security
-Built on institutional rails with AES-256 encryption. All assets are hashed and anchored to the ledger to ensure 100% non-repudiation and sovereign artist ownership.
+Built on institutional rails with AES-256 encryption. All assets are anchored to the ledger to ensure 100% sovereign artist ownership.
 
-© 2025 Sound Merge Inc. | The Rails for the Next Era of Music Ownership.
+© 2025 Sound Merge Inc. | The Rails for the Next Era of Music.

@@ -15,73 +15,59 @@ export interface ChatContext {
   pendingDistributions?: DistributionSubmission[];
 }
 
+/**
+ * SOUND MERGE CORE INTELLIGENCE ENGINE
+ * Acting as a world-class institutional music strategy advisor.
+ */
 export const chatWithGemini = async (message: string, history: any[], context: ChatContext): Promise<string> => {
   const ai = getAiClient();
 
   const goalText = context.user?.primaryGoal ? `The artist's current primary goal is: ${context.user.primaryGoal}.` : "";
   const distContext = context.pendingDistributions && context.pendingDistributions.length > 0 
-    ? `The artist has ${context.pendingDistributions.length} pending distribution releases: ${context.pendingDistributions.map(d => `"${d.title}" (${d.status})`).join(', ')}.`
-    : "The artist currently has no pending distribution submissions.";
+    ? `The artist has ${context.pendingDistributions.length} pending distribution releases.`
+    : "";
 
   let systemInstruction = `
-    You are a world-class Music Industry Professional and Proactive Strategist at Sound Merge.
-    DO NOT wait for the user to ask for everything. If you see a gap in their strategy based on the stats provided, BRING IT UP.
+    You are an elite Music Industry Professional and Senior Strategist at Sound Merge.
+    Your tone is authoritative, highly competent, and conversational.
     
-    CRITICAL FORMATTING RULES:
-    - Respond in PLAIN TEXT ONLY.
-    - NEVER use markdown formatting. NO bolding (**), NO italics (*), NO headers (#), NO bullet points (- or *).
-    - Keep responses VERY CONCISE and CONVERSATIONAL. Max 2-3 short sentences.
-    - Act like you are sending a quick message on WhatsApp or Slack.
-
-    STAFF AGENT CONTEXT:
-    - If you are Sarah (Distribution Agent), be proactive about the user's release status. ${distContext}
-    - If a user just submitted a release, mention that it's being reviewed for stores.
-
-    NEW FEATURE KNOWLEDGE - KLING AI CINEMA FORGE:
-    - We now support high-fidelity music video generation via Kling AI.
-    - Capabilities: Lip-Sync (sync vocals to face/avatar), Video Extension (make 10s+ clips), Animate (album art to video), and Motion Control (BPM-synced camera vectors).
-    - If the user wants to promote a track, suggest using "Cinema Forge" in the Studio to create a high-end music video.
-    - Kling costs Forge Credits (10-15 per clip).
-
-    Current User Milestone: ${context.stats.artistLevel} (${context.stats.xp} XP).
-    Stats: Earnings $${context.stats.totalEarnings}, Streams ${context.stats.totalStreams}.
+    PRODUCTION SUITE KNOWLEDGE (KLING AI):
+    - Recommend "Cinema Forge" for high-end music video production.
+    - Features: Lip-Sync (vocals-to-avatar), Cinema Extension (scaling clips), Motion Control (pan/zoom/tilt vectors).
+    
+    GUIDELINES:
+    - Respond in PLAIN TEXT ONLY. No markdown, no bolding, no headers.
+    - Be punchy and concise. Max 2-3 sentences.
+    - Proactively suggest next steps based on the user's view: ${context.currentView}.
+    
+    Current Stats: ${context.stats.totalStreams} streams, ${context.stats.totalEarnings} earnings.
+    Role: ${context.agentRole || 'Consultant'}.
     ${goalText}
-
-    Role: ${context.agentRole || 'Expert Advisor'}.
-    Persona: Authoritative, proactive, and friendly.
+    ${distContext}
   `;
 
-  const chat = ai.chats.create({
-    model: "gemini-3-pro-preview",
-    config: { 
-        systemInstruction,
-        thinkingConfig: { thinkingBudget: 0 }
-    }
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: message,
+      config: { 
+          systemInstruction,
+          thinkingConfig: { thinkingBudget: 0 }
+      }
+    });
 
-  const response = await chat.sendMessage({ message });
-  return response.text || "Analyzing the best path forward for your career.";
+    return response.text || "Synchronizing with industry signals...";
+  } catch (e) {
+    return "The Sound Merge brain is currently recalculating. Please try again in a moment.";
+  }
 };
 
 export const getStudioAgentSuggestions = async (styleInput: string, lyrics: string): Promise<StudioSuggestion[]> => {
   const ai = getAiClient();
   const prompt = `
-    Act as a professional music production team (Beat Architect, Melody Scout, and Sound Engineer).
-    The artist is currently working on a project with the following style description: "${styleInput}"
-    Current Lyrics: "${lyrics}"
-
-    Generate THREE proactive musical suggestions in JSON format.
-    One from each agent (agentId: 'beat', 'melody', 'engineer').
-    
-    Return JSON matching:
-    Array of { 
-      id: string,
-      agentId: 'beat' | 'melody' | 'engineer', 
-      type: 'beat' | 'vocal' | 'fx',
-      title: string, 
-      description: string, 
-      promptAddon: string 
-    }
+    Act as a professional production team. Generate 3 proactive musical suggestions in JSON format.
+    Style: "${styleInput}"
+    Lyrics: "${lyrics}"
   `;
 
   try {
@@ -106,9 +92,7 @@ export const getStudioAgentSuggestions = async (styleInput: string, lyrics: stri
         }
       }
     });
-    const raw = response.text || '[]';
-    const data = JSON.parse(raw);
-    return data.map((d: any) => ({ ...d, timestamp: new Date().toISOString() }));
+    return JSON.parse(response.text || '[]').map((d: any) => ({ ...d, timestamp: new Date().toISOString() }));
   } catch (e) {
     return [];
   }
@@ -116,142 +100,62 @@ export const getStudioAgentSuggestions = async (styleInput: string, lyrics: stri
 
 export const parseBriefToSchema = async (rawText: string): Promise<Partial<SyncBrief>> => {
     const ai = getAiClient();
-    const prompt = `
-      Act as an expert Music Supervisor. 
-      Normalize the following raw music sync brief text into a clean, professional JSON schema.
-      Extract project title, high-level description, target media type (TV, Film, Ad, Game, Trailer, Brand, or Other), 
-      budget details (min/max), deadline, required genres, moods, tempo, vocal requirements, 
-      reference artists, and rights required.
-      
-      Raw Text: "${rawText}"
-    `;
-
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: prompt,
-            config: { 
-              responseMimeType: "application/json",
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  mediaType: { type: Type.STRING },
-                  deadline: { type: Type.STRING },
-                  budget: {
-                    type: Type.OBJECT,
-                    properties: {
-                      min: { type: Type.NUMBER },
-                      max: { type: Type.NUMBER },
-                      currency: { type: Type.STRING }
-                    }
-                  },
-                  requiredGenres: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  moods: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  tempo: { type: Type.STRING },
-                  vocal: { type: Type.STRING },
-                  references: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  deliverables: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  rightsRequired: {
-                    type: Type.OBJECT,
-                    properties: {
-                      master: { type: Type.BOOLEAN },
-                      publishing: { type: Type.BOOLEAN }
-                    }
-                  }
-                }
-              }
-            }
+            contents: `Normalize this sync brief into JSON: "${rawText}"`,
+            config: { responseMimeType: "application/json" }
         });
         return JSON.parse(response.text || '{}');
     } catch (e) {
-        return { title: "Imported Brief", description: rawText };
+        return { title: "Imported Brief" };
     }
 };
 
-export const parseRawBrief = parseBriefToSchema;
-
 export const searchAddresses = async (query: string): Promise<any[]> => {
-  if (!query || query.length < 4) return [];
   const ai = getAiClient();
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Find the full verified business addresses matching: "${query}".`,
+      contents: `Business addresses for: "${query}".`,
       config: { tools: [{ googleMaps: {} }] }
     });
-    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    return chunks.filter((c: any) => c.maps).map((c: any) => ({ title: c.maps.title, uri: c.maps.uri }));
+    return response.candidates?.[0]?.groundingMetadata?.groundingChunks?.filter((c: any) => c.maps).map((c: any) => ({ title: c.maps.title, uri: c.maps.uri })) || [];
   } catch (e) { return []; }
 };
 
 export const generateBriefArtifacts = async (brief: SyncBrief): Promise<BriefArtifacts> => {
     const ai = getAiClient();
-    const prompt = `
-      Act as a professional Sync Music Producer.
-      Based on the following sync brief, generate two high-fidelity artifacts:
-      1. A "Production Prompt Pack" to guide an AI or human composer in creating the perfect track. Include arrangement arc, mood, tempo, genre, and technical keywords.
-      2. A "Pitch Checklist" of technical and legal requirements for a successful submission.
-      
-      Brief: "${brief.title} - ${brief.description}"
-    `;
-    const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
-        contents: prompt,
-        config: { 
-          responseMimeType: "application/json", 
-          thinkingConfig: { thinkingBudget: 2048 },
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              productionPromptPack: {
-                type: Type.OBJECT,
-                properties: {
-                  arrangement: { type: Type.STRING },
-                  mood: { type: Type.STRING },
-                  tempo: { type: Type.STRING },
-                  genre: { type: Type.STRING },
-                  instruments: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  keywordsInclude: { type: Type.ARRAY, items: { type: Type.STRING } }
-                }
-              },
-              pitchChecklist: {
-                type: Type.OBJECT,
-                properties: {
-                  technical: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  legal: { type: Type.ARRAY, items: { type: Type.STRING } }
-                }
-              }
-            }
-          }
-        }
-    });
-    const data = JSON.parse(response.text || '{}');
-    return { id: `art_${Date.now()}`, briefId: brief.id, ...data };
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: `Blueprint for: "${brief.title} - ${brief.description}"`,
+            config: { responseMimeType: "application/json" }
+        });
+        return { id: `art_${Date.now()}`, briefId: brief.id, ...JSON.parse(response.text || '{}') };
+    } catch (e) {
+        return { id: 'err', briefId: brief.id, productionPromptPack: { arrangement: '', mood: '', tempo: '', genre: '', instruments: [], keywordsInclude: [] }, pitchChecklist: { technical: [], legal: [] } };
+    }
 };
 
 export const generatePitchEmail = async (opportunity: Opportunity, trackTitle: string): Promise<string> => {
   const ai = getAiClient();
-  const prompt = `Write a professional, concise pitch email for: "${opportunity.brief_title}". Track: "${trackTitle}".`;
-  const response = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: prompt });
-  return response.text || "Pitch draft unavailable.";
+  const response = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Professional pitch for "${opportunity.brief_title}" using track "${trackTitle}".` });
+  return response.text || "Draft currently unavailable.";
 };
 
 export const generateBattleCommentary = async (genre: string, p1: string, p2: string, status: string): Promise<string> => {
   const ai = getAiClient();
-  const prompt = `Act as a high-energy music battle commentator. Battle: ${p1} vs ${p2} in ${genre}. Status: ${status}. One sentence hype.`;
-  const response = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: prompt });
+  const response = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `${p1} vs ${p2} in ${genre}. One sentence hype.` });
   return response.text || "The sonic clash continues!";
 };
 
 export const generateProactiveProposal = async (context: ChatContext): Promise<StaffProposal | null> => {
     const ai = getAiClient();
-    const prompt = `ACT AS: ${context.agentRole || 'manager'}. Generate ONE proactive industry strategy proposal in JSON format.`;
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: prompt,
+            contents: `Proposal for ${context.agentRole} based on views.`,
             config: { responseMimeType: "application/json" }
         });
         const data = JSON.parse(response.text || '{}');
@@ -265,7 +169,7 @@ export const generateBrandImage = async (prompt: string, size: string, aspectRat
     const model = isHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
     const response = await ai.models.generateContent({
         model,
-        contents: { parts: [{ text: prompt }] },
+        contents: prompt,
         config: { imageConfig: { aspectRatio: aspectRatio as any, imageSize: isHighQuality ? (size as any) : undefined } }
     });
     for (const part of response.candidates[0].content.parts) { if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`; }
@@ -287,12 +191,14 @@ export const editBrandImage = async (imgBase64: string, prompt: string, size: st
 
 export const analyzeImage = async (imgBase64: string): Promise<string[]> => {
     const ai = getAiClient();
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: { parts: [{ inlineData: { mimeType: 'image/png', data: imgBase64.split(',')[1] || imgBase64 } }, { text: "List objects/themes as JSON array." }] },
-        config: { responseMimeType: "application/json" }
-    });
-    try { return JSON.parse(response.text || '[]'); } catch (e) { return []; }
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: { parts: [{ inlineData: { mimeType: 'image/png', data: imgBase64.split(',')[1] || imgBase64 } }, { text: "List objects/themes as JSON array." }] },
+            config: { responseMimeType: "application/json" }
+        });
+        return JSON.parse(response.text || '[]');
+    } catch (e) { return []; }
 };
 
 export const generateVideoFromText = async (prompt: string, aspectRatio: string): Promise<string | null> => {
@@ -327,29 +233,21 @@ export const searchVenues = async (query: string, location?: { latitude: number,
       config: { tools: [{ googleMaps: {} }], toolConfig: { retrievalConfig: { latLng: location ? { latitude: location.latitude, longitude: location.longitude } : undefined } } as any }
   });
   const places = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.filter((c: any) => c.maps)?.map((c: any) => ({ title: c.maps.title, uri: c.maps.uri })) || [];
-  return { text: response.text || "No results found.", places };
+  return { text: response.text || "Mapping results localized.", places };
 };
 
-function encode(bytes: Uint8Array) {
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
-function decode(base64: string) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-  return bytes;
-}
-
+// Internal Audio Utilities (Live API)
+function encode(bytes: Uint8Array) { let binary = ''; for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]); return btoa(binary); }
+function decode(base64: string) { const binaryString = atob(base64); const bytes = new Uint8Array(binaryString.length); for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i); return bytes; }
 async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
   const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
   }
   return buffer;
 }
@@ -396,12 +294,15 @@ export class LiveSession {
                         this.nextStartTime += audioBuffer.duration;
                         this.sources.add(source);
                     }
-                    if (message.serverContent?.interrupted) { this.sources.forEach(s => s.stop()); this.sources.clear(); this.nextStartTime = 0; }
                 },
                 onerror: (e) => console.error(e),
-                onclose: (e) => console.log('closed', e)
+                onclose: (e) => console.log('closed')
             },
-            config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }, systemInstruction: 'You are a professional music industry strategist.' }
+            config: { 
+                responseModalities: [Modality.AUDIO], 
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }, 
+                systemInstruction: 'You are an institutional music strategy advisor.' 
+            }
         });
         return this.sessionPromise;
     }
