@@ -28,7 +28,6 @@ const notifyObservers = (user: User | null) => {
   observers.forEach(callback => callback(user));
 };
 
-// Helper to prevent Firestore hangs
 const withTimeout = <T>(promise: Promise<T>, ms: number, timeoutValue: T): Promise<T> => {
     return Promise.race([
         promise,
@@ -36,14 +35,13 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, timeoutValue: T): Promi
     ]);
 };
 
-// Added missing credits: 0 property to fix error on line 39
 const createMockUser = (email: string, name: string): User => ({
     uid: `mock_${Date.now()}`,
     displayName: name,
     email: email,
     photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff`,
     plan: 'free',
-    credits: 0,
+    credits: 15,
     voiceShieldEnabled: false,
     walletBalance: 0,
     onboardingCompleted: false
@@ -69,24 +67,22 @@ export const authService = {
 
       await updateProfile(fbUser, { displayName: name });
 
-      // Added missing credits: 0 property to fix error on line 70
       const newUser: User = {
         uid: fbUser.uid,
         displayName: name,
         email: cleanEmail,
         photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff`,
         plan: 'free',
-        credits: 0,
+        credits: 15,
         voiceShieldEnabled: false,
         walletBalance: 0,
         onboardingCompleted: false
       };
 
-      // Non-blocking firestore attempt
-      const isRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
-      if (!isRestricted) {
-          setDoc(doc(db, "users", fbUser.uid), newUser).catch(handleFirestoreError);
-      }
+      // Reset Sandbox flag if registration starts working
+      localStorage.removeItem('sf_firestore_restricted');
+      
+      await setDoc(doc(db, "users", fbUser.uid), newUser);
       
       dataService.adminCreateUser(newUser).catch(() => {});
       affiliateService.trackSignup(newUser).catch(() => {});
@@ -112,8 +108,8 @@ export const authService = {
   loginWithEmail: async (email: string, pass: string): Promise<User> => {
     const normalizedEmail = email.trim().toLowerCase();
     
+    // Master Credentials Check
     if (normalizedEmail === 'liv8ent@gmail.com' && pass === 'Letsgrow888!') {
-        // Added missing credits: 1000 property to fix error on line 112
         const superAdmin: User = {
             uid: 'admin_liv8_master',
             displayName: 'LIV8 Admin',
@@ -137,10 +133,11 @@ export const authService = {
 
     try {
       const result = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
+      // Reset Sandbox flag on successful login
+      localStorage.removeItem('sf_firestore_restricted');
       return await authService._fetchUserProfile(result.user);
     } catch (error: any) {
       if (isBackendRestricted(error)) {
-          console.warn("[Auth] Login restricted. Falling back to Sandbox.");
           const mockUser = createMockUser(email, "Sandbox Artist");
           notifyObservers(mockUser);
           return mockUser;
@@ -150,7 +147,6 @@ export const authService = {
   },
 
   loginAsDemo: async (): Promise<User> => {
-      // Added missing credits: 100 property to fix error on line 147
       const demoUser: User = {
           uid: 'demo_master_account',
           displayName: 'Legendary Artist',
@@ -175,6 +171,7 @@ export const authService = {
   loginWithGoogle: async (): Promise<User> => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      localStorage.removeItem('sf_firestore_restricted');
       const user = await authService._fetchUserProfile(result.user);
       webhookService.sendSystemEvent('signup', user, { source: 'google_oauth' }).catch(() => {});
       return user;
@@ -198,30 +195,24 @@ export const authService = {
 
   _fetchUserProfile: async (fbUser: FirebaseUser): Promise<User> => {
     const userDocRef = doc(db, "users", fbUser.uid);
-    // Added missing credits: 0 property to fix error on line 193
     const fallbackUser: User = {
         uid: fbUser.uid,
         displayName: fbUser.displayName || 'Artist',
         email: fbUser.email || '',
         photoURL: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'A')}`,
         plan: 'free',
-        credits: 0,
+        credits: 15,
         voiceShieldEnabled: false,
         walletBalance: 0,
         onboardingCompleted: false
     };
 
-    const isRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
-    if (isRestricted) return fallbackUser;
-
     try {
-      // 2.5 second timeout for database fetching
-      const userSnap = await withTimeout(getDoc(userDocRef), 2500, null);
-      
+      const userSnap = await withTimeout(getDoc(userDocRef), 3000, null);
       if (userSnap && userSnap.exists()) {
           return userSnap.data() as User;
       } else {
-          setDoc(userDocRef, fallbackUser).catch(handleFirestoreError);
+          await setDoc(userDocRef, fallbackUser);
           return fallbackUser;
       }
     } catch (error: any) {
@@ -270,8 +261,7 @@ export const authService = {
           const updated = { ...currentLocalUser, ...data };
           notifyObservers(updated);
           
-          const isRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
-          if (auth.currentUser && !updated.uid.startsWith('mock_') && !isRestricted) {
+          if (auth.currentUser && !updated.uid.startsWith('mock_')) {
               const userDocRef = doc(db, "users", auth.currentUser.uid);
               updateDoc(userDocRef, data).catch(handleFirestoreError);
           }

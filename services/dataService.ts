@@ -9,9 +9,11 @@ let isFirestoreRestricted = localStorage.getItem('sf_firestore_restricted') === 
 export const handleFirestoreError = (e: any) => {
     const msg = e?.message || "";
     const code = e?.code || "";
+    
+    // If we get a permission-denied or unprovisioned error, we flag it
     if (code === 'permission-denied' || msg.includes('disabled') || msg.includes('not been used')) {
         if (!isFirestoreRestricted) {
-            console.warn("[DataService] Firestore backend restricted or unprovisioned. Switching to local-only mode.");
+            console.warn("[DataService] Firestore node unreachable. Operating in Sandbox Mode.");
             isFirestoreRestricted = true;
             localStorage.setItem('sf_firestore_restricted', 'true');
             window.dispatchEvent(new CustomEvent('sf-backend-restricted'));
@@ -20,7 +22,25 @@ export const handleFirestoreError = (e: any) => {
     return null;
 };
 
+/**
+ * PRODUCTION DATA NODE
+ * Handles all institutional ledger interactions.
+ */
 export const dataService = {
+  
+  // Method to check if we can reach the real project node
+  async pingNode(): Promise<boolean> {
+      try {
+          // Simple test fetch to check API status
+          await getDocs(query(collection(db, 'system_ping'), limit(1)));
+          isFirestoreRestricted = false;
+          localStorage.removeItem('sf_firestore_restricted');
+          return true;
+      } catch (e) {
+          return false;
+      }
+  },
+
   // --- USER MANAGEMENT ---
   async adminUpdateUser(uid: string, data: Partial<User>): Promise<void> {
       if (isFirestoreRestricted) return;
@@ -101,9 +121,7 @@ export const dataService = {
       }
   },
 
-  async getAllReleases(): Promise<DistributionRelease[]> {
-      return [];
-  },
+  async getAllReleases(): Promise<DistributionRelease[]> { return []; },
 
   async getAllSyncBriefs(): Promise<SyncBrief[]> {
       if (isFirestoreRestricted) return [];
@@ -147,9 +165,7 @@ export const dataService = {
       catch (e: any) { handleFirestoreError(e); }
   },
 
-  async getAllLegalRecords(): Promise<LegalRecord[]> {
-      return [];
-  },
+  async getAllLegalRecords(): Promise<LegalRecord[]> { return []; },
 
   async saveVoiceRegistration(userId: string, asset: VoiceAsset): Promise<void> {
     if (isFirestoreRestricted) return;
@@ -189,7 +205,7 @@ export const dataService = {
   async adminCreateUser(userData: Partial<User>): Promise<void> {
       if (isFirestoreRestricted) return;
       try { 
-          const finalData = { ...userData, credits: userData.credits || 15 }; // Give new users starter credits
+          const finalData = { ...userData, credits: userData.credits || 15 }; 
           await setDoc(doc(db, 'users', userData.uid!), finalData); 
       }
       catch (e: any) { handleFirestoreError(e); }
