@@ -53,6 +53,8 @@ const isBackendRestricted = (error: any) => {
     return code === 'auth/configuration-not-found' || 
            code === 'auth/operation-not-allowed' || 
            code === 'auth/internal-error' ||
+           code === 'auth/api-key-not-valid' ||
+           code === 'auth/invalid-api-key' ||
            msg.includes('configuration') ||
            msg.includes('permission-denied') ||
            msg.includes('not been used');
@@ -60,6 +62,7 @@ const isBackendRestricted = (error: any) => {
 
 export const authService = {
   registerWithEmail: async (name: string, email: string, pass: string): Promise<User> => {
+    localStorage.removeItem('sf_onboarding_skip'); // Force new onboarding session
     try {
       const cleanEmail = email.trim().toLowerCase();
       const result = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
@@ -106,6 +109,7 @@ export const authService = {
   },
 
   loginWithEmail: async (email: string, pass: string): Promise<User> => {
+    localStorage.removeItem('sf_onboarding_skip');
     const normalizedEmail = email.trim().toLowerCase();
     
     // Master Credentials Check
@@ -147,6 +151,7 @@ export const authService = {
   },
 
   loginAsDemo: async (): Promise<User> => {
+      localStorage.removeItem('sf_onboarding_skip');
       const demoUser: User = {
           uid: 'demo_master_account',
           displayName: 'Legendary Artist',
@@ -169,6 +174,7 @@ export const authService = {
   },
 
   loginWithGoogle: async (): Promise<User> => {
+    localStorage.removeItem('sf_onboarding_skip');
     try {
       const result = await signInWithPopup(auth, googleProvider);
       localStorage.removeItem('sf_firestore_restricted');
@@ -186,6 +192,7 @@ export const authService = {
   },
 
   loginAsGuest: async (): Promise<User> => {
+    localStorage.removeItem('sf_onboarding_skip');
     const guestName = "Guest Artist";
     const guestEmail = `guest${Date.now()}@soundforge.club`;
     const mockUser = createMockUser(guestEmail, guestName);
@@ -223,6 +230,7 @@ export const authService = {
 
   logout: async (): Promise<void> => {
     try { await signOut(auth); } catch (error) {}
+    localStorage.removeItem('sf_onboarding_skip');
     notifyObservers(null);
   },
 

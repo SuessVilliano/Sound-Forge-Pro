@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, ArrowRight, AlertCircle, Loader2, Sparkles, Shield, Rocket } from 'lucide-react';
+/* Added Eye and EyeOff imports */
+import { X, Mail, Lock, User, ArrowRight, AlertCircle, Loader2, Sparkles, Shield, Rocket, Eye, EyeOff } from 'lucide-react';
 import { authService } from '../services/authService';
 
 interface AuthModalProps {
@@ -13,6 +14,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSimulation, setIsSimulation] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   // Form State
   const [name, setName] = useState('');
@@ -54,6 +56,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     try {
       const cleanEmail = email.trim();
       if (!cleanEmail || !password) throw new Error("Credentials are required");
+
+      // Ensure we clear any previous onboarding skip flags to force flow for new sessions
+      localStorage.removeItem('sf_onboarding_skip');
 
       let user;
       if (mode === 'signup') {
@@ -157,10 +162,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                     <input 
-                      type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                      type={showPassword ? "text" : "password"} 
+                      value={password} 
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-12 text-white placeholder:text-slate-700 focus:outline-none focus:border-cyan-500"
                     />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                    >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
