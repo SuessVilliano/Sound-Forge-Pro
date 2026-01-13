@@ -17,33 +17,17 @@ export interface ChatContext {
 
 /**
  * SOUND MERGE CORE INTELLIGENCE ENGINE
- * Acting as a world-class institutional music strategy advisor.
  */
 export const chatWithGemini = async (message: string, history: any[], context: ChatContext): Promise<string> => {
   const ai = getAiClient();
 
   const goalText = context.user?.primaryGoal ? `The artist's current primary goal is: ${context.user.primaryGoal}.` : "";
-  const distContext = context.pendingDistributions && context.pendingDistributions.length > 0 
-    ? `The artist has ${context.pendingDistributions.length} pending distribution releases.`
-    : "";
-
+  
   let systemInstruction = `
     You are an elite Music Industry Professional and Senior Strategist at Sound Merge.
     Your tone is authoritative, highly competent, and conversational.
-    
-    PRODUCTION SUITE KNOWLEDGE (KLING AI):
-    - Recommend "Cinema Forge" for high-end music video production.
-    - Features: Lip-Sync (vocals-to-avatar), Cinema Extension (scaling clips), Motion Control (pan/zoom/tilt vectors).
-    
-    GUIDELINES:
-    - Respond in PLAIN TEXT ONLY. No markdown, no bolding, no headers.
-    - Be punchy and concise. Max 2-3 sentences.
-    - Proactively suggest next steps based on the user's view: ${context.currentView}.
-    
+     Respond in PLAIN TEXT ONLY. Max 2-3 sentences.
     Current Stats: ${context.stats.totalStreams} streams, ${context.stats.totalEarnings} earnings.
-    Role: ${context.agentRole || 'Consultant'}.
-    ${goalText}
-    ${distContext}
   `;
 
   try {
@@ -55,19 +39,36 @@ export const chatWithGemini = async (message: string, history: any[], context: C
           thinkingConfig: { thinkingBudget: 0 }
       }
     });
-
     return response.text || "Synchronizing with industry signals...";
   } catch (e) {
-    return "The Sound Merge brain is currently recalculating. Please try again in a moment.";
+    return "The Sound Merge brain is currently recalculating.";
   }
+};
+
+/**
+ * NEURAL PITCH GENERATOR for Affiliate Program
+ */
+export const generateAffiliatePitch = async (targetVibe: string, artistName: string): Promise<string> => {
+    const ai = getAiClient();
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: `Write a hyper-compelling, 1-sentence social media pitch for Sound Merge Pro.
+            The sender is ${artistName}. The target audience vibe is ${targetVibe}.
+            Highlight: 100% royalties and VoiceShield protection. No markdown.`,
+            config: { thinkingConfig: { thinkingBudget: 0 } }
+        });
+        return response.text || "Join the Sound Merge movement and keep 100% of your ownership.";
+    } catch (e) {
+        return "Upgrade your music career with Sound Merge infrastructure.";
+    }
 };
 
 export const getStudioAgentSuggestions = async (styleInput: string, lyrics: string): Promise<StudioSuggestion[]> => {
   const ai = getAiClient();
   const prompt = `
-    Act as a professional production team. Generate 3 proactive musical suggestions in JSON format.
+    Act as a professional production team. Generate 3 musical suggestions in JSON format.
     Style: "${styleInput}"
-    Lyrics: "${lyrics}"
   `;
 
   try {
@@ -129,7 +130,7 @@ export const generateBriefArtifacts = async (brief: SyncBrief): Promise<BriefArt
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-pro-preview",
-            contents: `Blueprint for: "${brief.title} - ${brief.description}"`,
+            contents: `Blueprint for: "${brief.title}"`,
             config: { responseMimeType: "application/json" }
         });
         return { id: `art_${Date.now()}`, briefId: brief.id, ...JSON.parse(response.text || '{}') };
@@ -236,7 +237,7 @@ export const searchVenues = async (query: string, location?: { latitude: number,
   return { text: response.text || "Mapping results localized.", places };
 };
 
-// Internal Audio Utilities (Live API)
+// Internal Audio Utilities
 function encode(bytes: Uint8Array) { let binary = ''; for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]); return btoa(binary); }
 function decode(base64: string) { const binaryString = atob(base64); const bytes = new Uint8Array(binaryString.length); for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i); return bytes; }
 async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
