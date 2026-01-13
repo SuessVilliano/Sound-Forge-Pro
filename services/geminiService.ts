@@ -17,31 +17,44 @@ export interface ChatContext {
 
 /**
  * SOUND MERGE CORE INTELLIGENCE ENGINE
+ * Optimized for multi-turn institutional strategy sessions.
  */
 export const chatWithGemini = async (message: string, history: any[], context: ChatContext): Promise<string> => {
   const ai = getAiClient();
 
-  const goalText = context.user?.primaryGoal ? `The artist's current primary goal is: ${context.user.primaryGoal}.` : "";
-  
-  let systemInstruction = `
+  const systemInstruction = `
     You are an elite Music Industry Professional and Senior Strategist at Sound Merge.
     Your tone is authoritative, highly competent, and conversational.
-     Respond in PLAIN TEXT ONLY. Max 2-3 sentences.
-    Current Stats: ${context.stats.totalStreams} streams, ${context.stats.totalEarnings} earnings.
+    Respond in PLAIN TEXT ONLY. Max 2-3 sentences.
+    
+    Artist Stats: ${context.stats.totalStreams} streams, ${context.stats.totalEarnings} earnings.
+    Current Department: ${context.agentRole || 'General Strategy'}.
+    View: ${context.currentView}.
   `;
+
+  // Construct proper multi-turn contents array for the SDK
+  const contents = [
+    ...history.map(h => ({
+      role: h.role === 'user' ? 'user' : 'model',
+      parts: [{ text: h.text }]
+    })),
+    { role: 'user', parts: [{ text: message }] }
+  ];
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: message,
+      model: "gemini-3-flash-preview", // Use Flash for faster UI interactions
+      contents,
       config: { 
           systemInstruction,
-          thinkingConfig: { thinkingBudget: 0 }
+          // Removed thinkingBudget for standard chat stability
       }
     });
+    
     return response.text || "Synchronizing with industry signals...";
   } catch (e) {
-    return "The Sound Merge brain is currently recalculating.";
+    console.error("[Sound Merge Neural Engine Error]:", e);
+    return "The Sound Merge brain is currently recalculating. Please try again in a moment.";
   }
 };
 
@@ -53,9 +66,10 @@ export const generateAffiliatePitch = async (targetVibe: string, artistName: str
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: `Write a hyper-compelling, 1-sentence social media pitch for Sound Merge Pro.
-            The sender is ${artistName}. The target audience vibe is ${targetVibe}.
-            Highlight: 100% royalties and VoiceShield protection. No markdown.`,
+            contents: [{ 
+                role: 'user', 
+                parts: [{ text: `Write a hyper-compelling, 1-sentence social media pitch for Sound Merge Pro. The sender is ${artistName}. The target audience vibe is ${targetVibe}. Highlight: 100% royalties and VoiceShield protection. No markdown.` }]
+            }],
             config: { thinkingConfig: { thinkingBudget: 0 } }
         });
         return response.text || "Join the Sound Merge movement and keep 100% of your ownership.";
@@ -74,7 +88,7 @@ export const getStudioAgentSuggestions = async (styleInput: string, lyrics: stri
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: prompt,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { 
         responseMimeType: "application/json",
         responseSchema: {
@@ -104,7 +118,7 @@ export const parseBriefToSchema = async (rawText: string): Promise<Partial<SyncB
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: `Normalize this sync brief into JSON: "${rawText}"`,
+            contents: [{ role: 'user', parts: [{ text: `Normalize this sync brief into JSON: "${rawText}"` }] }],
             config: { responseMimeType: "application/json" }
         });
         return JSON.parse(response.text || '{}');
@@ -118,7 +132,7 @@ export const searchAddresses = async (query: string): Promise<any[]> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Business addresses for: "${query}".`,
+      contents: [{ role: 'user', parts: [{ text: `Business addresses for: "${query}".` }] }],
       config: { tools: [{ googleMaps: {} }] }
     });
     return response.candidates?.[0]?.groundingMetadata?.groundingChunks?.filter((c: any) => c.maps).map((c: any) => ({ title: c.maps.title, uri: c.maps.uri })) || [];
@@ -130,7 +144,7 @@ export const generateBriefArtifacts = async (brief: SyncBrief): Promise<BriefArt
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-pro-preview",
-            contents: `Blueprint for: "${brief.title}"`,
+            contents: [{ role: 'user', parts: [{ text: `Blueprint for: "${brief.title}"` }] }],
             config: { responseMimeType: "application/json" }
         });
         return { id: `art_${Date.now()}`, briefId: brief.id, ...JSON.parse(response.text || '{}') };
@@ -141,13 +155,19 @@ export const generateBriefArtifacts = async (brief: SyncBrief): Promise<BriefArt
 
 export const generatePitchEmail = async (opportunity: Opportunity, trackTitle: string): Promise<string> => {
   const ai = getAiClient();
-  const response = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Professional pitch for "${opportunity.brief_title}" using track "${trackTitle}".` });
+  const response = await ai.models.generateContent({ 
+      model: "gemini-3-flash-preview", 
+      contents: [{ role: 'user', parts: [{ text: `Professional pitch for "${opportunity.brief_title}" using track "${trackTitle}".` }] }] 
+  });
   return response.text || "Draft currently unavailable.";
 };
 
 export const generateBattleCommentary = async (genre: string, p1: string, p2: string, status: string): Promise<string> => {
   const ai = getAiClient();
-  const response = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `${p1} vs ${p2} in ${genre}. One sentence hype.` });
+  const response = await ai.models.generateContent({ 
+      model: "gemini-3-flash-preview", 
+      contents: [{ role: 'user', parts: [{ text: `${p1} vs ${p2} in ${genre}. One sentence hype.` }] }] 
+  });
   return response.text || "The sonic clash continues!";
 };
 
@@ -156,7 +176,7 @@ export const generateProactiveProposal = async (context: ChatContext): Promise<S
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: `Proposal for ${context.agentRole} based on views.`,
+            contents: [{ role: 'user', parts: [{ text: `Proposal for ${context.agentRole} based on views.` }] }],
             config: { responseMimeType: "application/json" }
         });
         const data = JSON.parse(response.text || '{}');
@@ -170,7 +190,7 @@ export const generateBrandImage = async (prompt: string, size: string, aspectRat
     const model = isHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
     const response = await ai.models.generateContent({
         model,
-        contents: prompt,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: { imageConfig: { aspectRatio: aspectRatio as any, imageSize: isHighQuality ? (size as any) : undefined } }
     });
     for (const part of response.candidates[0].content.parts) { if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`; }
@@ -230,7 +250,7 @@ export const searchVenues = async (query: string, location?: { latitude: number,
   const ai = getAiClient();
   const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: query,
+      contents: [{ role: 'user', parts: [{ text: query }] }],
       config: { tools: [{ googleMaps: {} }], toolConfig: { retrievalConfig: { latLng: location ? { latitude: location.latitude, longitude: location.longitude } : undefined } } as any }
   });
   const places = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.filter((c: any) => c.maps)?.map((c: any) => ({ title: c.maps.title, uri: c.maps.uri })) || [];
