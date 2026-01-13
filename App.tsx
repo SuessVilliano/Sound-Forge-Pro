@@ -7,7 +7,7 @@ import {
 } from './constants';
 // Fixed: parseRawBrief does not exist in geminiService, using parseBriefToSchema instead
 import { parseBriefToSchema } from './services/geminiService';
-import { authService } from '../services/authService';
+import { authService } from './services/authService';
 import { dataService } from './services/dataService';
 import { webhookService } from './services/webhookService';
 import { Opportunity, User as UserType, Stats, StaffMessage, DistributionSubmission } from './types';
@@ -128,6 +128,16 @@ const AppContent = () => {
     const authUnsubscribe = authService.observeAuth((observedUser) => {
         if (observedUser) {
             setUser(observedUser); 
+            
+            // CRITICAL FIX: Evaluate onboarding immediately for new signups/sandbox users
+            const isLocallyDismissed = localStorage.getItem('sf_onboarding_skip') === 'true';
+            const isDemo = observedUser.uid === 'demo_master_account';
+            
+            if (!isDemo && !observedUser.onboardingCompleted && !onboardingDismissed && !isLocallyDismissed) {
+                setShowOnboarding(true);
+            }
+
+            // Real-time profile sync (if Firestore is live)
             userUnsubscribe = dataService.subscribeToUserProfile(observedUser.uid, (updatedUser) => {
                 setUser(updatedUser);
                 dataService.getRealStats(observedUser.uid).then(stats => {
@@ -142,12 +152,11 @@ const AppContent = () => {
                     }
                 });
 
-                // Load distribution submissions for AI awareness
                 dataService.getMyDistributionSubmissions(observedUser.uid).then(subs => {
                     setPendingDistributions(subs.filter(s => s.status !== 'live' && s.status !== 'rejected'));
                 });
 
-                const isLocallyDismissed = localStorage.getItem('sf_onboarding_skip') === 'true';
+                // Update onboarding/tour based on server data
                 if (updatedUser.uid !== 'demo_master_account' && !updatedUser.onboardingCompleted && !onboardingDismissed && !isLocallyDismissed) {
                     setShowOnboarding(true);
                 } else if (updatedUser.onboardingCompleted && !updatedUser.tourCompleted) {
@@ -157,17 +166,19 @@ const AppContent = () => {
             setShowAuthModal(false); 
         } else {
             setUser(null);
+            setShowOnboarding(false);
             if (userUnsubscribe) userUnsubscribe();
         }
         setLoadingAuth(false);
     });
     return () => { authUnsubscribe(); if (userUnsubscribe) userUnsubscribe(); };
-  }, [onboardingDismissed]); // REMOVED currentView from dependencies to fix navigation flicker
+  }, [onboardingDismissed]);
 
   const handleLogout = async () => {
       await authService.logout();
       setCurrentView(VIEWS.DASHBOARD);
       setOnboardingDismissed(false);
+      setShowOnboarding(false);
       localStorage.removeItem('sf_onboarding_skip'); 
   };
 
