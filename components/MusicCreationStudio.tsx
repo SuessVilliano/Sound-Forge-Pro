@@ -67,6 +67,16 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
   const [extractedStems, setExtractedStems] = useState<StemResult | null>(null);
   const [sepFile, setSepFile] = useState<File | null>(null);
   const sepInputRef = useRef<HTMLInputElement>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -174,13 +184,21 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
           const job = await klingService.forgeVideo(selectedVideoTrack, { mode: klingMode, prompt: videoPrompt });
           setActiveVideoJob(job);
 
+          // Clear any existing interval first
+          if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+          }
+
           let progress = 0;
-          const poll = setInterval(async () => {
+          pollIntervalRef.current = setInterval(async () => {
               const next = klingService.getNextProgress(progress, klingMode);
               progress = next.progress;
               setOperationalMessage(next.message);
               if (progress >= 100) {
-                  clearInterval(poll);
+                  if (pollIntervalRef.current) {
+                      clearInterval(pollIntervalRef.current);
+                      pollIntervalRef.current = null;
+                  }
                   const finalUrl = await klingService.getDownloadUrl(job.id);
                   setActiveVideoJob({ ...job, status: 'completed', progress: 100, videoUrl: finalUrl });
                   setIsProcessing(false);

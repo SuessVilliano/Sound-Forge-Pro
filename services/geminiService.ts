@@ -297,7 +297,10 @@ export const generateVideoFromText = async (prompt: string, aspectRatio: string)
         while (!operation.done) { await new Promise(r => setTimeout(r, 10000)); operation = await ai.operations.getVideosOperation({ operation }); }
         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
         if (downloadLink) {
-            const response = await fetch(`${downloadLink}&key=${AI_CONFIG.GEMINI_API_KEY}`);
+            // Fetch video using headers for authentication (more secure)
+            const response = await fetch(downloadLink, {
+                headers: { 'X-Goog-Api-Key': AI_CONFIG.GEMINI_API_KEY }
+            });
             return URL.createObjectURL(await response.blob());
         }
         return null;
@@ -318,7 +321,10 @@ export const generateVideoFromImage = async (imgBase64: string, prompt: string, 
         while (!operation.done) { await new Promise(r => setTimeout(r, 10000)); operation = await ai.operations.getVideosOperation({ operation }); }
         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
         if (downloadLink) {
-            const response = await fetch(`${downloadLink}&key=${AI_CONFIG.GEMINI_API_KEY}`);
+            // Fetch video using headers for authentication (more secure)
+            const response = await fetch(downloadLink, {
+                headers: { 'X-Goog-Api-Key': AI_CONFIG.GEMINI_API_KEY }
+            });
             return URL.createObjectURL(await response.blob());
         }
         return null;
