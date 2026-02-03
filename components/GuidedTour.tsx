@@ -27,72 +27,72 @@ interface Mission {
 }
 
 const ARTIST_MISSIONS: Mission[] = [
-    { 
-        id: 1, 
-        title: "Forge Your Signature Sound", 
-        description: "Welcome! Your first objective is the AI Studio. Use our neural engines to create radio-ready tracks from simple ideas.", 
-        view: VIEWS.STUDIO, 
-        icon: 'Music', 
-        color: "text-purple-500 dark:text-purple-400" 
+    {
+        id: 1,
+        title: "Create with AI Studio",
+        description: "Generate radio-ready tracks using 5 AI engines: Udio, Suno, MusicGPT, Mureka, and AIMusic. Costs 5 credits per generation.",
+        view: VIEWS.STUDIO,
+        icon: 'Music',
+        color: "text-purple-500 dark:text-purple-400"
     },
-    { 
-        id: 2, 
-        title: "Develop Visual Identity", 
-        description: "Great music needs a visual world. We're going to the Brand Builder to generate cinematic promo videos and cover art.", 
-        view: VIEWS.BRAND, 
-        icon: 'Briefcase', 
-        color: "text-cyan-600 dark:text-cyan-400" 
+    {
+        id: 2,
+        title: "Build Your Brand",
+        description: "Create cover art and promo videos with Gemini Image and Veo 3.1. Generate cinematic lip-sync content with Kling AI.",
+        view: VIEWS.BRAND,
+        icon: 'Briefcase',
+        color: "text-cyan-600 dark:text-cyan-400"
     },
-    { 
-        id: 3, 
-        title: "Deploy to Global Stores", 
-        description: "It's time to go live. Our AI agents automate distribution to 150+ stores while you keep 100% ownership.", 
-        view: VIEWS.DISTRIBUTION, 
-        icon: 'Globe', 
-        color: "text-green-600 dark:text-green-400" 
+    {
+        id: 3,
+        title: "Distribute via DistroKid",
+        description: "Export DistroKid-ready metadata with auto-generated ISRC/UPC codes. Copy-paste directly to 150+ streaming platforms.",
+        view: VIEWS.DISTRIBUTION,
+        icon: 'Globe',
+        color: "text-green-600 dark:text-green-400"
     },
-    { 
-        id: 4, 
-        title: "Meet Your AI Staff", 
-        description: "Finally, head to the Team Hub. Your AI staff handles strategy, marketing, and legal while you focus on art.", 
-        view: VIEWS.STAFF, 
-        icon: 'Users', 
-        color: "text-indigo-600 dark:text-indigo-400" 
+    {
+        id: 4,
+        title: "Meet Your AI Staff",
+        description: "Your Gemini-powered team: Manager for strategy, Marketing for growth, Distribution for metadata, and Legal for IP protection.",
+        view: VIEWS.STAFF,
+        icon: 'Users',
+        color: "text-indigo-600 dark:text-indigo-400"
     }
 ];
 
 const LABEL_MISSIONS: Mission[] = [
-    { 
-        id: 1, 
-        title: "Identify Roster Gaps", 
-        description: "Welcome to Label Operations. First, head to the A&R Dashboard to find trending sounds that align with your roster.", 
-        view: VIEWS.AR_DASHBOARD, 
-        icon: 'BarChart3', 
-        color: "text-red-500 dark:text-red-400" 
+    {
+        id: 1,
+        title: "A&R Dashboard",
+        description: "Discover trending sounds and identify roster gaps. Access sync opportunities across 8 platforms with payouts up to $100K.",
+        view: VIEWS.AR_DASHBOARD,
+        icon: 'BarChart3',
+        color: "text-red-500 dark:text-red-400"
     },
-    { 
-        id: 2, 
-        title: "Scale Artist Brands", 
-        description: "Consistency is key for your roster. Use the Brand Builder to generate bulk marketing assets for your artists simultaneously.", 
-        view: VIEWS.BRAND, 
-        icon: 'Layout', 
-        color: "text-cyan-600 dark:text-cyan-400" 
+    {
+        id: 2,
+        title: "Scale Artist Brands",
+        description: "Generate bulk marketing assets with Gemini Image and Veo 3.1. Create consistent visual identity across your roster.",
+        view: VIEWS.BRAND,
+        icon: 'Layout',
+        color: "text-cyan-600 dark:text-cyan-400"
     },
-    { 
-        id: 3, 
-        title: "Institutional Distribution", 
-        description: "Manage global deployments for all roster artists in one central ledger. Fast-track submissions to Spotify and Apple Music.", 
-        view: VIEWS.DISTRIBUTION, 
-        icon: 'Building2', 
-        color: "text-indigo-600 dark:text-indigo-400" 
+    {
+        id: 3,
+        title: "Multi-Artist Distribution",
+        description: "DistroKid-compatible exports with auto-generated ISRC/UPC for all roster artists. Bulk metadata management.",
+        view: VIEWS.DISTRIBUTION,
+        icon: 'Building2',
+        color: "text-indigo-600 dark:text-indigo-400"
     },
-    { 
-        id: 4, 
-        title: "Manage Global Staff", 
-        description: "Scale your workload. Delegate marketing and legal tasks to your AI team members for each artist on your roster.", 
-        view: VIEWS.STAFF, 
-        icon: 'Users', 
-        color: "text-green-600 dark:text-green-400" 
+    {
+        id: 4,
+        title: "AI Staff Delegation",
+        description: "2,500 credits/month on Label plan. Assign AI agents to each artist for 24/7 marketing, legal, and strategy support.",
+        view: VIEWS.STAFF,
+        icon: 'Users',
+        color: "text-green-600 dark:text-green-400"
     }
 ];
 
@@ -128,7 +128,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ user, onComplete, onNavi
                             {user.role === 'label_exec' ? 'The Executive Mission' : 'The Artist Mission'}
                         </h2>
                         <p className="text-slate-600 dark:text-slate-400 text-lg mb-10 leading-relaxed font-medium">
-                            Welcome to Sound Merge. Your personal institutional infrastructure is ready. Let's walk through your first {user.role === 'label_exec' ? 'operational' : 'release'} cycle.
+                            Welcome to Sound Forge Pro v3.0. Your AI-powered music creation and distribution platform is ready. Let's explore the core features.
                         </p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mb-12">

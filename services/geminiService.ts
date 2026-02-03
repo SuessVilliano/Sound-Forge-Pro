@@ -23,29 +23,29 @@ export interface ChatContext {
 // Fallback responses for when AI is not configured
 const FALLBACK_RESPONSES: Record<string, string[]> = {
   manager: [
-    "Let's focus on your top priorities. What's your biggest challenge right now?",
-    "Strategic growth requires consistent effort. Keep pushing forward.",
-    "Your catalog is your foundation. Let's build on it strategically.",
+    "Try generating a track in AI Studio (5 credits) to kickstart your catalog.",
+    "Check the Opportunities tab - we have 20+ sync briefs from platforms like Songtradr and Musicbed.",
+    "Pro plan gives you 500 credits/month and 100% royalty share. Worth considering for serious creators.",
   ],
   marketing: [
-    "Social presence is key. Consistent posting builds momentum.",
-    "Engage with your audience authentically - it makes all the difference.",
-    "Your brand story is unique. Let's amplify it across channels.",
+    "Use Brand Builder to create cover art with Gemini Image (3 credits) and promo videos with Veo (15 credits).",
+    "Consistent visual identity across platforms increases recognition. Let's build your brand assets.",
+    "Social content performs best when paired with new releases. Time your drops strategically.",
   ],
   distribution: [
-    "Distribution timing matters. Plan releases around key moments.",
-    "Multi-platform presence maximizes your reach potential.",
-    "Metadata quality directly impacts discoverability.",
+    "Our DistroKid-compatible export generates ISRC and UPC codes automatically.",
+    "Export your release metadata as CSV, JSON, or copy-paste text for submission.",
+    "Metadata quality directly impacts playlist placement. Let's get your tags right.",
   ],
   legal: [
-    "Protect your IP early - it's easier than fixing issues later.",
-    "Clear rights documentation is essential for sync opportunities.",
-    "VoiceShield registration helps secure your vocal identity.",
+    "Register your voice with VoiceShield for deepfake protection on Solana.",
+    "Sync opportunities require clear rights. Make sure your splits are documented.",
+    "Pro tier unlocks premium sync platforms like Musicbed with payouts up to $100K.",
   ],
   default: [
-    "I'm here to help you navigate the music industry.",
-    "Let's work together on growing your career.",
-    "What aspect of your music business needs attention?",
+    "Sound Forge Pro v3.0 - AI music creation, sync licensing, and distribution.",
+    "5 music engines, 8 sync platforms, DistroKid export, and VoiceShield protection.",
+    "What would you like to work on - creation, opportunities, or distribution?",
   ]
 };
 
@@ -67,9 +67,18 @@ export const chatWithGemini = async (message: string, history: any[], context: C
   }
 
   const systemInstruction = `
-    You are an elite Music Industry Professional and Senior Strategist at Sound Forge Pro.
+    You are an elite Music Industry Professional and Senior Strategist at Sound Forge Pro v3.0.
     Your tone is authoritative, highly competent, and conversational.
     Respond in PLAIN TEXT ONLY. Max 2-3 sentences.
+
+    PLATFORM CAPABILITIES:
+    - AI Studio: 5 music engines (Udio, Suno, MusicGPT, Mureka, AIMusic) - 5 credits/generation
+    - Sync Opportunities: 8 platforms (Songtradr, Musicbed, Artlist, etc.) - payouts $50-$100K
+    - Distribution: DistroKid-compatible export with ISRC/UPC codes
+    - Brand Builder: Gemini Image, Veo 3.1 video, Kling AI lip-sync
+    - VoiceShield: Vocal fingerprinting and deepfake detection
+
+    PRICING: Free (50 credits, 80% royalty), Pro $19 (500 credits, 100% royalty), Label $99 (2500 credits)
 
     Artist Stats: ${context.stats.totalStreams} streams, $${context.stats.totalEarnings} earnings.
     Current Department: ${context.agentRole || 'General Strategy'}.
@@ -110,19 +119,19 @@ export const chatWithGemini = async (message: string, history: any[], context: C
 export const generateAffiliatePitch = async (targetVibe: string, artistName: string): Promise<string> => {
     const ai = getAiClient();
     if (!ai) {
-        return `Hey! ${artistName} here. Sound Forge Pro gives you 100% royalties and VoiceShield protection. Level up your music career!`;
+        return `Hey! ${artistName} here. Sound Forge Pro v3.0 - 5 AI music engines, sync payouts up to $100K, and 100% royalties on Pro. Let's create!`;
     }
     try {
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 role: 'user',
-                parts: [{ text: `Write a hyper-compelling, 1-sentence social media pitch for Sound Forge Pro. The sender is ${artistName}. The target audience vibe is ${targetVibe}. Highlight: 100% royalties and VoiceShield protection. No markdown.` }]
+                parts: [{ text: `Write a hyper-compelling, 1-sentence social media pitch for Sound Forge Pro v3.0. The sender is ${artistName}. The target audience vibe is ${targetVibe}. Key features: 5 AI music engines, 8 sync platforms (payouts up to $100K), 100% royalties on Pro plan, VoiceShield protection. No markdown.` }]
             }]
         });
-        return response.text || "Join the Sound Forge movement and keep 100% of your ownership.";
+        return response.text || "Create with AI, license your music, keep 100% - Sound Forge Pro v3.0.";
     } catch (e) {
-        return "Upgrade your music career with Sound Forge Pro infrastructure.";
+        return "Sound Forge Pro v3.0 - AI music creation, sync licensing, and 100% royalties.";
     }
 };
 
@@ -423,10 +432,10 @@ export class LiveSession {
                 onerror: (e) => console.error(e),
                 onclose: (e) => console.log('closed')
             },
-            config: { 
-                responseModalities: [Modality.AUDIO], 
-                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }, 
-                systemInstruction: 'You are an institutional music strategy advisor.' 
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
+                systemInstruction: 'You are a music industry advisor for Sound Forge Pro v3.0. Help artists with AI music creation (5 engines), sync licensing (8 platforms, payouts up to $100K), DistroKid distribution, and VoiceShield protection. Keep responses concise and actionable.'
             }
         });
         return this.sessionPromise;

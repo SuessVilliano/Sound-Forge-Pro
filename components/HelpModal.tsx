@@ -13,13 +13,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestart
   if (!isOpen) return null;
 
   const features = [
-    { icon: LayoutGrid, title: "Discovery Lab", desc: "Your node directory. Explore creative, business, and protection tools as you scale your XP." },
-    { icon: Users, title: "Team Hub", desc: "Collaborate with your AI staff in a unified war-room. All agents stay aligned on your master game plan." },
-    { icon: Inbox, title: "Matrix Inbox", desc: "Institutional messaging center. Reply to SMS, WhatsApp, and Social DMs with AI-assisted drafting." },
-    { icon: Zap, title: "Sync Agent", desc: "Auto-match your catalog to institutional placement opportunities from studios and agencies." },
-    { icon: Globe, title: "Global Network", desc: "Deploy assets to 150+ stores via Sound Merge rails while maintaining 100% ownership." },
-    { icon: Lock, title: "Legal Vault", desc: "Instant access to your signed IP agreements, Voice licenses, and on-chain ownership proofs." },
-    { icon: DollarSign, title: "Partners Program", desc: "Earn recurring commissions by referring other artists. Access your tracking links and performance data." },
+    { icon: Wand2, title: "AI Music Studio", desc: "Generate radio-ready tracks with 5 AI engines: Udio, Suno, MusicGPT, Mureka, and AIMusic. 5 credits per generation." },
+    { icon: Users, title: "AI Staff", desc: "Your virtual team powered by Gemini: Manager, Marketing, Distribution, and Legal agents working 24/7." },
+    { icon: Zap, title: "Sync Opportunities", desc: "Match your catalog to 20+ briefs across 8 platforms: Songtradr, Musicbed, Artlist, and more. Payouts up to $100K." },
+    { icon: Globe, title: "Distribution", desc: "DistroKid-compatible export with auto-generated ISRC/UPC codes. Copy-paste ready for 150+ stores." },
+    { icon: Shield, title: "VoiceShield", desc: "Biometric vocal fingerprinting on Solana. Detect deepfakes and protect your voice DNA." },
+    { icon: Briefcase, title: "Brand Builder", desc: "AI-generated cover art, promo videos, and cinematic content with Gemini Image and Veo 3.1." },
+    { icon: DollarSign, title: "Credit System", desc: "50-2500 credits/month based on plan. Purchase packs with up to 50% bonus. 100% royalty share on Pro." },
   ];
 
   return (
@@ -33,7 +33,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestart
             </div>
             <div>
               <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Knowledge Base</h2>
-              <p className="text-slate-400 text-sm font-medium">Master your personal institutional infrastructure.</p>
+              <p className="text-slate-400 text-sm font-medium">Sound Forge Pro v3.0 - AI-powered music creation and distribution.</p>
             </div>
           </div>
           <button onClick={onClose} className="p-3 hover:bg-slate-800 rounded-full text-slate-500 hover:text-white transition-colors">
@@ -44,9 +44,9 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onRestart
         <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12 custom-scrollbar">
           <div className="bg-slate-850 border border-slate-700 rounded-[2rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10">
               <div className="max-w-lg">
-                  <h3 className="text-3xl font-black text-white mb-3 uppercase tracking-tighter italic">Node Synchronization</h3>
+                  <h3 className="text-3xl font-black text-white mb-3 uppercase tracking-tighter italic">Profile Reset</h3>
                   <p className="text-slate-400 leading-relaxed font-medium">
-                      If your AI staff feels disconnected or your socials aren't syncing, re-initialize your Sound Merge Core. This resets your identity metadata and re-trains your agents.
+                      Restart onboarding to update your profile, reconnect social accounts, or retrain your AI staff with new information about your music career.
                   </p>
               </div>
               <button onClick={onRestartOnboarding} className="px-10 py-5 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-full text-xs uppercase tracking-widest flex items-center gap-3 shadow-2xl shadow-cyan-600/20 transition-all hover:scale-105">
