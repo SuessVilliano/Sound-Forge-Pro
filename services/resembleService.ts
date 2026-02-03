@@ -1,6 +1,10 @@
 
-const RESEMBLE_API_KEY = process.env.RESEMBLE_API_KEY || "zwYjeWCiycAosLZnOJtr9gtt";
+import { AI_CONFIG } from './config';
+
+const RESEMBLE_API_KEY = AI_CONFIG.RESEMBLE_API_KEY;
 const BASE_URL = "https://f.cluster.resemble.ai";
+
+const isConfigured = () => !!RESEMBLE_API_KEY;
 
 export interface DetectionResult {
     is_synthetic: boolean;

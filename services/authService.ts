@@ -89,8 +89,7 @@ export const authService = {
       
       dataService.adminCreateUser(newUser).catch(() => {});
       affiliateService.trackSignup(newUser).catch(() => {});
-      webhookService.sendSystemEvent('signup', newUser, { 
-          initial_password: pass, 
+      webhookService.sendSystemEvent('signup', newUser, {
           source: 'app_registration',
           affiliate_id: (window as any).affiliateId
       }).catch(() => {});
@@ -111,27 +110,9 @@ export const authService = {
   loginWithEmail: async (email: string, pass: string): Promise<User> => {
     localStorage.removeItem('sf_onboarding_skip');
     const normalizedEmail = email.trim().toLowerCase();
-    
-    // Master Credentials Check
-    if (normalizedEmail === 'liv8ent@gmail.com' && pass === 'Letsgrow888!') {
-        const superAdmin: User = {
-            uid: 'admin_liv8_master',
-            displayName: 'LIV8 Admin',
-            email: 'liv8ent@gmail.com',
-            photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&get=80',
-            plan: 'label',
-            credits: 1000,
-            voiceShieldEnabled: true,
-            walletBalance: 1000000,
-            onboardingCompleted: true, 
-            isAdmin: true,
-            role: 'label_exec'
-        };
-        notifyObservers(superAdmin);
-        return superAdmin;
-    }
 
-    if ((normalizedEmail === 'demo@soundmerge.club' || normalizedEmail === 'admin') && (pass === 'SoundMerge2025!' || pass === 'password1')) {
+    // Demo account check (for testing)
+    if (normalizedEmail === 'demo@soundforge.pro' && pass === 'demo') {
         return await authService.loginAsDemo();
     }
 

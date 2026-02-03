@@ -2,13 +2,19 @@
 // Alchemy Service for SoundForge Pro
 // Leveraging Solana DAS API, Core Data APIs (Prices), and Account Abstraction (Smart Wallets)
 
-const ALCHEMY_API_KEY = "IorZj1TanTcxwbym-shjw";
-const ALCHEMY_RPC_URL_SOLANA = `https://solana-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
-const GAS_POLICY_ID = "c0c9a87b-6c51-4425-b348-e96e370f3341";
+import { BLOCKCHAIN_CONFIG, isConfigured } from './config';
+
+const ALCHEMY_API_KEY = BLOCKCHAIN_CONFIG.ALCHEMY_API_KEY;
+const ALCHEMY_RPC_URL_SOLANA = BLOCKCHAIN_CONFIG.SOLANA_RPC_URL;
+const GAS_POLICY_ID = BLOCKCHAIN_CONFIG.ALCHEMY_GAS_POLICY_ID || '';
 
 // For Smart Wallets (Account Abstraction), Alchemy predominantly supports EVM chains.
-// We will simulate the AA flow for Polygon Mainnet as it's standard for Music NFTs.
-const ALCHEMY_RPC_URL_POLYGON = `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+const ALCHEMY_RPC_URL_POLYGON = BLOCKCHAIN_CONFIG.POLYGON_RPC_URL;
+
+// Log configuration status
+if (!isConfigured.alchemy()) {
+  console.warn('[Alchemy] API key not configured. Blockchain features will use fallback mode.');
+}
 
 export interface AlchemyNFT {
     id: string;

@@ -1,6 +1,7 @@
 
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js';
+import { BLOCKCHAIN_CONFIG, isConfigured } from './config';
 
 declare global {
     interface Window {
@@ -9,8 +10,13 @@ declare global {
 }
 
 // Configuration: Using Alchemy Mainnet for Real-Time Data or Devnet for testing
-const ALCHEMY_RPC_URL = "https://solana-mainnet.g.alchemy.com/v2/IorZj1TanTcxwbym-shjw";
+const ALCHEMY_RPC_URL = BLOCKCHAIN_CONFIG.SOLANA_RPC_URL;
 const connection = new Connection(ALCHEMY_RPC_URL, 'confirmed');
+
+// Log configuration status
+if (!isConfigured.alchemy()) {
+    console.warn('[SolanaService] Alchemy API key not configured. Using public RPC endpoint.');
+}
 
 export type MintType = 'music' | 'voice' | 'license';
 

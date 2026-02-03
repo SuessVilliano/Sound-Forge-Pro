@@ -1,20 +1,22 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    Play, Square, Mic, Settings, Plus, Trash2, Clock, Save, Wand2, Sparkles, 
-    Loader2, Music, Download, ChevronRight, ChevronDown, Grid, Disc, 
-    FileAudio, Circle, X, BrainCircuit, Cpu, Database, Zap, CheckCircle2, 
-    Sliders, Type, History, MessageSquare, RotateCcw, Heart, BookmarkPlus, 
+import {
+    Play, Square, Mic, Settings, Plus, Trash2, Clock, Save, Wand2, Sparkles,
+    Loader2, Music, Download, ChevronRight, ChevronDown, Grid, Disc,
+    FileAudio, Circle, X, BrainCircuit, Cpu, Database, Zap, CheckCircle2,
+    Sliders, Type, History, MessageSquare, RotateCcw, Heart, BookmarkPlus,
     Share, Sparkle, RefreshCw, Shield, MoreVertical, Layers, Scissors, Upload,
     Volume2, Waves, FileOutput, Bot, Brain, AudioLines, Target, TrendingUp,
     Clapperboard, Video, Film, Star, AlertTriangle, UserCircle, Move, Expand,
-    Camera, Languages, FastForward, Image as ImageIcon
+    Camera, Languages, FastForward, Image as ImageIcon, Coins, Lock
 } from 'lucide-react';
-import { musicGenService, MusicEngine, ForgeOptions } from '../services/musicGenService';
+import { musicGenService, MusicEngine, ForgeOptions, getAvailableEngines, MUSIC_GEN_CREDIT_COST } from '../services/musicGenService';
 import { separateAudioWithKits } from '../services/audioService';
 import { klingService, KlingMode, KlingConfig } from '../services/klingService';
 import { dataService } from '../services/dataService';
+import { creditService } from '../services/creditService';
 import { getStudioAgentSuggestions } from '../services/geminiService';
+import { CREDIT_COSTS } from '../services/config';
 import { User, StemResult, StudioSuggestion, StudioAgent, VideoGenerationJob, Track } from '../types';
 import { usePlayer } from '../contexts/PlayerContext';
 
@@ -25,14 +27,18 @@ interface MusicCreationStudioProps {
 
 type StudioTab = 'forge' | 'separator' | 'cinema' | 'history';
 
-const MODEL_VERSIONS = [
-    { label: 'High-Fidelity Neural Node', value: 'udio' },
-    { label: 'Cinematic Score Processor', value: 'mureka' },
-    { label: 'Rapid Prototype Engine', value: 'musicgpt' },
-    { label: 'Standard Vocal Synthesis', value: 'suno' },
-    { label: 'Experimental Hybrid Node', value: 'aimusic' },
-    { label: 'Internal Studio Core (Sim)', value: 'studio' }
-];
+// Dynamic engine list based on configuration
+const getModelVersions = () => {
+    const engines = getAvailableEngines();
+    return [
+        { label: 'Internal Studio Core', value: 'studio', available: true },
+        { label: 'High-Fidelity Neural (Udio)', value: 'udio', available: engines.find(e => e.engine === 'udio')?.available },
+        { label: 'Cinematic Score (Mureka)', value: 'mureka', available: engines.find(e => e.engine === 'mureka')?.available },
+        { label: 'Rapid Prototype (MusicGPT)', value: 'musicgpt', available: engines.find(e => e.engine === 'musicgpt')?.available },
+        { label: 'Vocal Synthesis (Suno)', value: 'suno', available: engines.find(e => e.engine === 'suno')?.available },
+        { label: 'Experimental Hybrid (AIMusic)', value: 'aimusic', available: engines.find(e => e.engine === 'aimusic')?.available },
+    ];
+};
 
 const INITIAL_AGENTS: StudioAgent[] = [
   { id: 'beat', name: 'Rhythm Architect', role: 'beat', avatar: 'https://ui-avatars.com/api/?name=Rhythm+Architect&background=06b6d4&color=fff', status: 'idle' },
@@ -61,6 +67,16 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
   const [extractedStems, setExtractedStems] = useState<StemResult | null>(null);
   const [sepFile, setSepFile] = useState<File | null>(null);
   const sepInputRef = useRef<HTMLInputElement>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -75,9 +91,35 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
 
   const handleForge = async () => {
       if (!styleInput && !lyrics) return;
+
+      // Check credits before proceeding
+      const creditCost = CREDIT_COSTS.MUSIC_GENERATION;
+      const hasCredits = await creditService.hasEnoughCredits(user.uid, 'MUSIC_GENERATION');
+
+      if (!hasCredits) {
+          window.dispatchEvent(new CustomEvent('sf-notification', {
+              detail: {
+                  title: 'Insufficient Credits',
+                  message: `You need ${creditCost} credits to generate music. Upgrade your plan or purchase credits.`,
+                  type: 'error'
+              }
+          }));
+          onUpgrade();
+          return;
+      }
+
       setIsProcessing(true);
       setOperationalMessage(`Connecting to ${activeEngine.toUpperCase()} Node...`);
+
       try {
+          // Deduct credits
+          const creditResult = await creditService.useCredits(user.uid, 'MUSIC_GENERATION', `Music generation: ${styleInput.substring(0, 30)}`);
+          if (!creditResult.success) {
+              throw new Error(creditResult.error || 'Failed to deduct credits');
+          }
+
+          setOperationalMessage(`Neural processing... (${creditCost} credits used)`);
+
           const result = await musicGenService.generate({
               engine: activeEngine,
               prompt: styleInput,
@@ -85,41 +127,98 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
               isInstrumental,
               durationDesired: duration
           });
+
           const trackData: any = { ...result, userId: user.uid, createdAt: new Date().toISOString() };
           await dataService.saveTrack(user.uid, trackData);
           playTrack(trackData);
-          window.dispatchEvent(new CustomEvent('sf-notification', { detail: { title: 'Forge Success', message: 'Asset anchored to ledger.', type: 'success' } }));
+
+          window.dispatchEvent(new CustomEvent('sf-notification', {
+              detail: {
+                  title: 'Forge Success',
+                  message: `Asset created! Remaining credits: ${creditResult.newBalance}`,
+                  type: 'success'
+              }
+          }));
       } catch (e: any) {
           setOperationalMessage(e.message || "Sync failed. Check connection.");
-          // Keep the error message visible for a moment before resetting state completely
+          window.dispatchEvent(new CustomEvent('sf-notification', {
+              detail: { title: 'Generation Failed', message: e.message, type: 'error' }
+          }));
           await new Promise(r => setTimeout(r, 4000));
-      } finally { 
-          setIsProcessing(false); 
+      } finally {
+          setIsProcessing(false);
       }
   };
 
   const handleCinemaForge = async () => {
       if (!selectedVideoTrack || !videoPrompt) return;
+
+      // Check credits for video generation
+      const creditCost = CREDIT_COSTS.VIDEO_GENERATION;
+      const hasCredits = await creditService.hasEnoughCredits(user.uid, 'VIDEO_GENERATION');
+
+      if (!hasCredits) {
+          window.dispatchEvent(new CustomEvent('sf-notification', {
+              detail: {
+                  title: 'Insufficient Credits',
+                  message: `You need ${creditCost} credits for video generation. Upgrade your plan or purchase credits.`,
+                  type: 'error'
+              }
+          }));
+          onUpgrade();
+          return;
+      }
+
       setIsProcessing(true);
       setOperationalMessage(`Handshaking Kling Cinema Node...`);
+
       try {
-          const success = await dataService.deductCredits(user.uid, 10);
-          if (!success) throw new Error("Credits required.");
+          // Deduct credits using the new credit service
+          const creditResult = await creditService.useCredits(user.uid, 'VIDEO_GENERATION', `Video: ${videoPrompt.substring(0, 30)}`);
+          if (!creditResult.success) {
+              throw new Error(creditResult.error || 'Failed to deduct credits');
+          }
+
+          setOperationalMessage(`Cinema processing... (${creditCost} credits used)`);
+
           const job = await klingService.forgeVideo(selectedVideoTrack, { mode: klingMode, prompt: videoPrompt });
           setActiveVideoJob(job);
+
+          // Clear any existing interval first
+          if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+          }
+
           let progress = 0;
-          const poll = setInterval(async () => {
+          pollIntervalRef.current = setInterval(async () => {
               const next = klingService.getNextProgress(progress, klingMode);
               progress = next.progress;
               setOperationalMessage(next.message);
               if (progress >= 100) {
-                  clearInterval(poll);
+                  if (pollIntervalRef.current) {
+                      clearInterval(pollIntervalRef.current);
+                      pollIntervalRef.current = null;
+                  }
                   const finalUrl = await klingService.getDownloadUrl(job.id);
                   setActiveVideoJob({ ...job, status: 'completed', progress: 100, videoUrl: finalUrl });
                   setIsProcessing(false);
-              } else { setActiveVideoJob(prev => prev ? { ...prev, progress } : null); }
+                  window.dispatchEvent(new CustomEvent('sf-notification', {
+                      detail: {
+                          title: 'Video Ready',
+                          message: `Cinema asset created! Remaining credits: ${creditResult.newBalance}`,
+                          type: 'success'
+                      }
+                  }));
+              } else {
+                  setActiveVideoJob(prev => prev ? { ...prev, progress } : null);
+              }
           }, 3000);
-      } catch (e: any) { alert(e.message); setIsProcessing(false); }
+      } catch (e: any) {
+          window.dispatchEvent(new CustomEvent('sf-notification', {
+              detail: { title: 'Cinema Error', message: e.message, type: 'error' }
+          }));
+          setIsProcessing(false);
+      }
   };
 
   return (
@@ -147,7 +246,11 @@ export const MusicCreationStudio: React.FC<MusicCreationStudioProps> = ({ user, 
                         <div className="flex items-center justify-between">
                             <span className="text-[10px] font-black text-cyan-500 uppercase tracking-[0.2em] flex items-center gap-2"><Cpu className="w-3 h-3" /> Core Selection</span>
                             <select value={activeEngine} onChange={(e) => setActiveEngine(e.target.value as any)} className="bg-slate-800 border border-white/10 text-[10px] font-black text-white rounded-full px-4 py-1.5 outline-none focus:ring-1 ring-cyan-500">
-                                {MODEL_VERSIONS.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+                                {getModelVersions().map(v => (
+                                    <option key={v.value} value={v.value} disabled={v.value !== 'studio' && !v.available}>
+                                        {v.label} {v.value !== 'studio' && !v.available ? '(Not Configured)' : ''}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div className="space-y-2">
