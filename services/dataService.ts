@@ -3,17 +3,26 @@ import { collection, addDoc, query, where, orderBy, serverTimestamp, deleteDoc, 
 import { db } from './firebase';
 import { GeneratedTrack } from './audioService';
 import { VoiceAsset, User, Stats, DistributionSubmission, SyncBrief, OpportunityRequest, FundingRequest, DistributionRelease, LegalRecord, VideoGenerationJob } from '../types';
+import { isConfigured } from './config';
 
+// Track Firestore availability
 let isFirestoreRestricted = localStorage.getItem('sf_firestore_restricted') === 'true';
+let connectionRetryCount = 0;
+const MAX_RETRIES = 3;
+
+// Check if Firebase is properly configured
+const isFirebaseConfigured = () => {
+    return isConfigured.firebase();
+};
 
 export const handleFirestoreError = (e: any) => {
     const msg = e?.message || "";
     const code = e?.code || "";
-    
+
     // If we get a permission-denied or unprovisioned error, we flag it
     if (code === 'permission-denied' || msg.includes('disabled') || msg.includes('not been used')) {
         if (!isFirestoreRestricted) {
-            console.warn("[DataService] Firestore node unreachable. Operating in Sandbox Mode.");
+            console.warn("[DataService] Firestore unavailable. Operating in local storage mode.");
             isFirestoreRestricted = true;
             localStorage.setItem('sf_firestore_restricted', 'true');
             window.dispatchEvent(new CustomEvent('sf-backend-restricted'));
@@ -22,23 +31,92 @@ export const handleFirestoreError = (e: any) => {
     return null;
 };
 
+// Helper to retry operations with exponential backoff
+const withRetry = async <T>(
+    operation: () => Promise<T>,
+    maxRetries: number = MAX_RETRIES
+): Promise<T> => {
+    let lastError: any;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await operation();
+        } catch (e) {
+            lastError = e;
+            if (i < maxRetries - 1) {
+                await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+            }
+        }
+    }
+    throw lastError;
+};
+
+// Local storage fallback helpers
+const localStorageDB = {
+    get: <T>(key: string): T[] => {
+        try {
+            const data = localStorage.getItem(`sf_local_${key}`);
+            return data ? JSON.parse(data) : [];
+        } catch { return []; }
+    },
+    set: <T>(key: string, data: T[]): void => {
+        try {
+            localStorage.setItem(`sf_local_${key}`, JSON.stringify(data));
+        } catch (e) {
+            console.warn('[LocalDB] Storage full or unavailable');
+        }
+    },
+    add: <T extends { id?: string }>(key: string, item: T): void => {
+        const data = localStorageDB.get<T>(key);
+        const newItem = { ...item, id: item.id || `local_${Date.now()}` };
+        data.unshift(newItem);
+        localStorageDB.set(key, data.slice(0, 100)); // Keep last 100 items
+    },
+    remove: (key: string, id: string): void => {
+        const data = localStorageDB.get<any>(key);
+        localStorageDB.set(key, data.filter((item: any) => item.id !== id));
+    }
+};
+
 /**
- * PRODUCTION DATA NODE
- * Handles all institutional ledger interactions.
+ * SOUND FORGE PRO DATA SERVICE
+ * Handles all data persistence with Firestore + local storage fallback.
  */
 export const dataService = {
-  
-  // Method to check if we can reach the real project node
+
+  // Check if running in local mode
+  isLocalMode(): boolean {
+      return isFirestoreRestricted || !isFirebaseConfigured();
+  },
+
+  // Method to check if we can reach Firestore
   async pingNode(): Promise<boolean> {
-      try {
-          // Simple test fetch to check API status
-          await getDocs(query(collection(db, 'system_ping'), limit(1)));
-          isFirestoreRestricted = false;
-          localStorage.removeItem('sf_firestore_restricted');
-          return true;
-      } catch (e) {
+      if (!isFirebaseConfigured()) {
+          console.warn('[DataService] Firebase not configured. Using local storage.');
           return false;
       }
+      try {
+          await withRetry(async () => {
+              await getDocs(query(collection(db, 'system_ping'), limit(1)));
+          });
+          isFirestoreRestricted = false;
+          localStorage.removeItem('sf_firestore_restricted');
+          connectionRetryCount = 0;
+          return true;
+      } catch (e) {
+          connectionRetryCount++;
+          if (connectionRetryCount >= MAX_RETRIES) {
+              isFirestoreRestricted = true;
+              localStorage.setItem('sf_firestore_restricted', 'true');
+          }
+          return false;
+      }
+  },
+
+  // Reset connection status to retry Firestore
+  resetConnection(): void {
+      isFirestoreRestricted = false;
+      connectionRetryCount = 0;
+      localStorage.removeItem('sf_firestore_restricted');
   },
 
   // --- USER MANAGEMENT ---
@@ -212,25 +290,65 @@ export const dataService = {
   },
 
   async saveTrack(userId: string, track: GeneratedTrack) {
-    if (isFirestoreRestricted) return;
-    try { await addDoc(collection(db, 'tracks'), { userId, ...track, createdAt: serverTimestamp() }); }
-    catch (e: any) { handleFirestoreError(e); }
+    const trackData = { userId, ...track, createdAt: new Date().toISOString() };
+
+    // Always save to local storage as backup
+    localStorageDB.add('tracks', trackData);
+
+    if (isFirestoreRestricted || !isFirebaseConfigured()) return;
+
+    try {
+        await withRetry(async () => {
+            await addDoc(collection(db, 'tracks'), { ...trackData, createdAt: serverTimestamp() });
+        });
+    } catch (e: any) {
+        handleFirestoreError(e);
+    }
   },
 
   subscribeToTracks(userId: string, callback: (tracks: GeneratedTrack[]) => void): Unsubscribe {
-    if (isFirestoreRestricted) { callback([]); return () => {}; }
+    // If in local mode, return local storage data
+    if (isFirestoreRestricted || !isFirebaseConfigured()) {
+        const localTracks = localStorageDB.get<GeneratedTrack>('tracks')
+            .filter(t => (t as any).userId === userId);
+        callback(localTracks);
+        return () => {};
+    }
+
     try {
         const q = query(collection(db, 'tracks'), where('userId', '==', userId), orderBy('createdAt', 'desc'), limit(50));
         return onSnapshot(q, (snapshot) => {
             const tracks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as GeneratedTrack[];
+            // Sync to local storage
+            localStorageDB.set('tracks', tracks);
             callback(tracks);
-        }, (err: any) => { handleFirestoreError(err); callback([]); });
-    } catch (e: any) { handleFirestoreError(e); callback([]); return () => {}; }
+        }, (err: any) => {
+            handleFirestoreError(err);
+            // Fallback to local storage on error
+            const localTracks = localStorageDB.get<GeneratedTrack>('tracks')
+                .filter(t => (t as any).userId === userId);
+            callback(localTracks);
+        });
+    } catch (e: any) {
+        handleFirestoreError(e);
+        const localTracks = localStorageDB.get<GeneratedTrack>('tracks')
+            .filter(t => (t as any).userId === userId);
+        callback(localTracks);
+        return () => {};
+    }
   },
 
   async deleteTrack(trackId: string) {
-    if (isFirestoreRestricted) return;
-    try { await deleteDoc(doc(db, 'tracks', trackId)); } catch (e: any) { handleFirestoreError(e); }
+    // Remove from local storage
+    localStorageDB.remove('tracks', trackId);
+
+    if (isFirestoreRestricted || !isFirebaseConfigured()) return;
+
+    try {
+        await deleteDoc(doc(db, 'tracks', trackId));
+    } catch (e: any) {
+        handleFirestoreError(e);
+    }
   },
 
   getCatalogPlays(): Record<string, number> {
@@ -252,6 +370,56 @@ export const dataService = {
   },
 
   async getRealStats(userId: string): Promise<Stats> {
-      return { totalEarnings: 1250, totalStreams: 4520, activeOpportunities: 8, brandScore: 'B+', earningsGrowth: 12, streamsGrowth: 5, opportunitiesNew: false, artistLevel: "Rising Artist", xp: 1200, nextLevelXp: 2500 };
+      // Try to get real stats from Firestore
+      if (!isFirestoreRestricted && isFirebaseConfigured()) {
+          try {
+              const userDoc = await getDoc(doc(db, 'users', userId));
+              if (userDoc.exists()) {
+                  const userData = userDoc.data();
+                  const xp = userData.xp || 0;
+
+                  // Calculate artist level based on XP
+                  let artistLevel = "New Artist";
+                  let nextLevelXp = 500;
+                  if (xp >= 5000) { artistLevel = "Legendary"; nextLevelXp = 10000; }
+                  else if (xp >= 2500) { artistLevel = "Established"; nextLevelXp = 5000; }
+                  else if (xp >= 1000) { artistLevel = "Rising Star"; nextLevelXp = 2500; }
+                  else if (xp >= 500) { artistLevel = "Emerging Artist"; nextLevelXp = 1000; }
+
+                  return {
+                      totalEarnings: userData.totalEarnings || 0,
+                      totalStreams: userData.totalStreams || 0,
+                      activeOpportunities: userData.activeOpportunities || 0,
+                      brandScore: userData.brandScore || 'C',
+                      earningsGrowth: userData.earningsGrowth || 0,
+                      streamsGrowth: userData.streamsGrowth || 0,
+                      opportunitiesNew: userData.opportunitiesNew || false,
+                      artistLevel,
+                      xp,
+                      nextLevelXp
+                  };
+              }
+          } catch (e) {
+              // Fall through to default stats
+          }
+      }
+
+      // Default stats for new users or when offline
+      const localTracks = localStorageDB.get<any>('tracks').filter(t => t.userId === userId);
+      const xp = localTracks.length * 50; // 50 XP per track created
+
+      return {
+          totalEarnings: 0,
+          totalStreams: localTracks.reduce((sum, t) => sum + (t.plays || 0), 0),
+          activeOpportunities: 0,
+          brandScore: 'C',
+          earningsGrowth: 0,
+          streamsGrowth: 0,
+          opportunitiesNew: false,
+          artistLevel: xp >= 500 ? "Emerging Artist" : "New Artist",
+          xp,
+          nextLevelXp: xp >= 500 ? 1000 : 500
+      };
   }
+};
 };

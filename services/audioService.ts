@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Modality } from "@google/genai";
 import { KitsVoiceModel, StemResult } from '../types';
+import { AI_CONFIG, isConfigured, API_ENDPOINTS } from './config';
 
 export interface GeneratedTrack {
   id: string;
@@ -14,17 +15,19 @@ export interface GeneratedTrack {
   stems?: StemResult;
 }
 
-const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1";
+// KITS.AI CONFIGURATION - loaded from environment
+const KITS_API_KEY = AI_CONFIG.KITS_API_KEY;
+const KITS_BASE_URL = API_ENDPOINTS.KITS.BASE;
 
-// KITS.AI CONFIGURATION
-const KITS_API_KEY = process.env.KITS_API_KEY || "kits_m7g3j5k9_l8r2w1p0"; 
-const KITS_BASE_URL = "https://arpeggi.io/api/kits/v1";
+// Log configuration status
+if (!isConfigured.kits()) {
+  console.warn('[AudioService] Kits API key not configured. Voice/stem features will use simulation mode.');
+}
 
 // GEMINI CLIENT
 const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
+  if (!isConfigured.gemini()) return null;
+  return new GoogleGenAI({ apiKey: AI_CONFIG.GEMINI_API_KEY });
 };
 
 // --- JOB QUEUE UTILITY ---

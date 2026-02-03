@@ -1,13 +1,17 @@
 
 import { VideoGenerationJob, Track } from '../types';
+import { AI_CONFIG, isConfigured, API_ENDPOINTS, CREDIT_COSTS } from './config';
 
 /**
  * KLING AI ENTERPRISE PRODUCTION SUITE
  * Positioned for Institutional Music Video Synthesis
  */
 
-const ACCESS_KEY = "A9A444T4tnaE8dHGQLBQbJDEBbbET3FB";
-const SECRET_KEY = "btNhm93CCbrHNNYfCtdahf3NMHKDhrTH";
+const ACCESS_KEY = AI_CONFIG.KLING_ACCESS_KEY;
+const SECRET_KEY = AI_CONFIG.KLING_SECRET_KEY;
+
+// Configuration status
+const isKlingConfigured = isConfigured.kling();
 
 export type KlingMode = 'text_to_video' | 'image_to_video' | 'lip_sync' | 'extension' | 'avatar';
 

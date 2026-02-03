@@ -1,10 +1,13 @@
 
 import { User, WebhookLog, Opportunity } from '../types';
+import { INTEGRATION_CONFIG } from './config';
 
-// This URL should point to your backend automation (Make.com, Zapier, n8n)
-// which then routes data to Supabase (Backup) and HighLevel (CRM/Community)
-// Example: "https://hook.us1.make.com/..."
-const SYSTEM_WEBHOOK_URL = process.env.SYSTEM_BACKUP_WEBHOOK || "https://apps.taskmagic.com/api/v1/webhooks/JPKrlyiBI0keHNRdW38Hw"; 
+// System webhook URL from environment configuration
+// Point this to your backend automation (Make.com, Zapier, n8n)
+const SYSTEM_WEBHOOK_URL = INTEGRATION_CONFIG.WEBHOOK_URL;
+
+// Check if webhooks are configured
+const isWebhookConfigured = () => !!SYSTEM_WEBHOOK_URL; 
 
 // Local storage for logs (Mock Database for Webhooks)
 let webhookLogs: WebhookLog[] = [];
@@ -16,6 +19,12 @@ export const webhookService = {
      * This is called immediately after signup.
      */
     sendSystemEvent: async (eventType: 'signup' | 'profile_update' | 'plan_change' | 'admin_test' | 'sync_match', userData: User, extraData?: any) => {
+        // Skip if webhook not configured
+        if (!isWebhookConfigured()) {
+            console.warn('[Webhook] System webhook URL not configured. Skipping event:', eventType);
+            return;
+        }
+
         const payload = {
             event: eventType,
             timestamp: new Date().toISOString(),

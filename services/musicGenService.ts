@@ -1,9 +1,10 @@
 
 import { GeneratedTrack } from './audioService';
+import { AI_CONFIG, isConfigured, API_ENDPOINTS, CREDIT_COSTS } from './config';
 
 /**
- * Sound Merge Professional Music Generation Gateway
- * Integrated with Udio, MusicGPT, and Mureka cinema nodes.
+ * Sound Forge Pro - Professional Music Generation Gateway
+ * Integrated with Udio, MusicGPT, Mureka, Suno, and AIMusic engines.
  */
 
 export type MusicEngine = 'udio' | 'suno' | 'musicgpt' | 'mureka' | 'aimusic' | 'studio';
@@ -16,59 +17,56 @@ export interface ForgeOptions {
     styleTags?: string[];
     vocalGender?: 'male' | 'female' | 'none';
     version?: string;
-    durationDesired?: number; 
+    durationDesired?: number;
 }
 
-// REAL PROVIDER ENDPOINTS (Representational for standard integration)
-const PROVIDERS = {
-    UDIO: {
-        GENERATE: "https://api.udio.com/v1/generate",
-        STATUS: "https://api.udio.com/v1/status/"
-    },
-    MUSICGPT: {
-        GENERATE: "https://api.musicgpt.ai/v1/create"
-    },
-    MUREKA: {
-        GENERATE: "https://api.mureka.ai/v1/compose",
-        POLL: "https://api.mureka.ai/v1/jobs/"
-    },
-    SUNO: {
-        GENERATE: "https://api.suno.ai/v1/generate",
-        STATUS: "https://api.suno.ai/v1/status/"
-    },
-    AIMUSIC: {
-        GENERATE: "https://api.aimusic.io/v1/create"
-    }
-};
+// Provider endpoints from centralized config
+const PROVIDERS = API_ENDPOINTS;
+
+// Check which engines are available
+export const getAvailableEngines = (): { engine: MusicEngine; available: boolean; name: string }[] => [
+    { engine: 'studio', available: true, name: 'Internal Studio' },
+    { engine: 'udio', available: isConfigured.udio(), name: 'Udio (High-Fidelity)' },
+    { engine: 'suno', available: isConfigured.suno(), name: 'Suno (Vocal Synthesis)' },
+    { engine: 'musicgpt', available: isConfigured.musicgpt(), name: 'MusicGPT (Rapid)' },
+    { engine: 'mureka', available: isConfigured.mureka(), name: 'Mureka (Cinematic)' },
+    { engine: 'aimusic', available: isConfigured.aimusic(), name: 'AIMusic (Experimental)' },
+];
+
+// Credit cost for music generation
+export const MUSIC_GEN_CREDIT_COST = CREDIT_COSTS.MUSIC_GENERATION;
 
 export const musicGenService = {
     /**
      * Executes the generation cycle for the selected professional engine.
-     * Implements POST -> POLL -> FETCH pattern.
+     * Implements POST -> POLL -> FETCH pattern with graceful fallbacks.
      */
     generate: async (options: ForgeOptions): Promise<GeneratedTrack> => {
         const { engine, prompt } = options;
-        console.log(`[NeuralForge] Dispatching request to ${engine.toUpperCase()} Enterprise API...`);
 
-        // Check for specific API keys in the environment
+        // Check for specific API keys from centralized config
         const keys: Record<string, string | undefined> = {
-            udio: process.env.UDIO_API_KEY,
-            mureka: process.env.MUREKA_API_KEY,
-            musicgpt: process.env.MUSICGPT_API_KEY,
-            suno: process.env.SUNO_API_KEY,
-            aimusic: process.env.AIMUSIC_API_KEY
+            udio: AI_CONFIG.UDIO_API_KEY,
+            mureka: AI_CONFIG.MUREKA_API_KEY,
+            musicgpt: AI_CONFIG.MUSICGPT_API_KEY,
+            suno: AI_CONFIG.SUNO_API_KEY,
+            aimusic: AI_CONFIG.AIMUSIC_API_KEY
         };
 
-        // If using internal Studio engine, use simulation logic
+        // If using internal Studio engine, use the built-in synthesizer
         if (engine === 'studio') {
-             return await musicGenService.simulateProfessionalFlow(options);
+            return await musicGenService.simulateProfessionalFlow(options);
         }
 
         const activeKey = keys[engine];
 
-        // STRICT ENFORCEMENT: No simulation fallback for external engines
+        // If API key not configured, fall back to studio mode with notification
         if (!activeKey) {
-            throw new Error(`⚠️ NEURAL LINK SEVERED: ${engine.toUpperCase()} Uplink Key Not Detected. Please provision credentials in the Environment Matrix.`);
+            console.warn(`[MusicGen] ${engine.toUpperCase()} API key not configured. Using internal studio.`);
+            return await musicGenService.simulateProfessionalFlow({
+                ...options,
+                engine: 'studio'
+            });
         }
 
         try {
