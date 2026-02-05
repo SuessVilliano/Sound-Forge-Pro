@@ -15,6 +15,7 @@ export const VIEWS = {
   OPPORTUNITIES: 'opportunities',
   TOURING: 'touring',
   REVENUE: 'revenue',
+  PUBLISHING: 'publishing',
   ADVANCES: 'advances', // Renamed from funding
   BRAND: 'brand',
   ACADEMY: 'academy',
@@ -58,6 +59,7 @@ export const NAVIGATION_ITEMS = [
 
   // UNLOCKS AT LEVEL 3 (XP > 1000)
   { id: VIEWS.DISTRIBUTION, label: 'Distribution', icon: 'Radio', milestone: 'reputation_1000' },
+  { id: VIEWS.PUBLISHING, label: 'Publishing Health', icon: 'Shield', milestone: 'reputation_1000' },
   { id: VIEWS.REVENUE, label: 'Revenue Recovery', icon: 'DollarSign', milestone: 'reputation_1000' },
   { id: VIEWS.TOURING, label: 'Gig Finder', icon: 'MapPin', milestone: 'reputation_1000' },
 

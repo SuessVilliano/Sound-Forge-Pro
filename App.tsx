@@ -20,6 +20,7 @@ import { AllToolsView } from './components/AllToolsView';
 import { OpportunitiesView } from './components/OpportunitiesView';
 import { AcademyView } from './components/AcademyView';
 import { RevenueRecovery } from './components/RevenueRecovery';
+import { PublishingHealth } from './components/PublishingHealth';
 import { Advances } from './components/Advances'; 
 import { MusicDistribution } from './components/MusicDistribution';
 import { MarketingCRM } from './components/MarketingCRM';
@@ -285,6 +286,7 @@ const AppContent = () => {
               {currentView === VIEWS.MY_MUSIC && <MyMusic user={user} setShowUploadModal={setShowUploadModal} />}
               {currentView === VIEWS.TOURING && <GigFinder />}
               {currentView === VIEWS.REVENUE && <RevenueRecovery />}
+              {currentView === VIEWS.PUBLISHING && <PublishingHealth user={user} tracks={[]} />}
               {currentView === VIEWS.ADVANCES && <Advances user={user} />}
               {currentView === VIEWS.BRAND && <BrandBuilder />}
               {currentView === VIEWS.MASTERING && <MasteringConsole />}

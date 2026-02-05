@@ -65,6 +65,15 @@ AI-powered visual identity creation:
 - Brand Image: 3 credits
 - Brand Video: 15 credits
 
+### Publishing Health & Revenue Recovery
+Comprehensive publishing audit and royalty collection:
+- **PRO Integration** - ASCAP, BMI, SESAC, SOCAN, PRS, GEMA, SACEM verification
+- **MLC Registration** - US streaming mechanical royalties guide
+- **Revenue Recovery** - Scan 10+ databases for unclaimed royalties
+- **Publishing Audit** - Score your setup (A-F grade) with actionable recommendations
+- **Estimated Lost Revenue** - Calculate exactly what you're missing
+- **Registration Checklist** - Essential, recommended, and advanced registrations
+
 ### VoiceShield Protection
 Biometric vocal fingerprinting and deepfake detection:
 - Voice DNA registration on Solana ledger
