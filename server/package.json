@@ -8,11 +8,11 @@
     "worker": "node worker.js"
   },
   "dependencies": {
-    "@google-cloud/storage": "^7.7.0",
-    "@google-cloud/pubsub": "^4.3.0",
+    "@google-cloud/storage": "^8.2.0",
+    "@google-cloud/pubsub": "^6.1.0",
     "express": "^4.22.3",
     "cors": "^2.8.5",
-    "uuid": "^9.0.1",
+    "uuid": "^14.0.2",
     "axios": "^1.12.0",
     "form-data": "^4.0.4"
   }
